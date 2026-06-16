@@ -555,7 +555,9 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="consultor-brand-text">Painel do Consultor<small>FIEL · Sistema multi-loja</small></div>
     </div>
     <div class="consultor-actions">
-      <button class="consultor-btn consultor-btn-ghost" onclick="abrirConfigConsultor()"><i class="ti ti-settings"></i> Minha conta</button>
+      <button class="consultor-btn consultor-btn-ghost" onclick="abrirConfigConsultor()" title="Configurações da sua conta"><i class="ti ti-settings"></i> Minha conta</button>
+      <button class="consultor-btn consultor-btn-ghost" onclick="exportarTudoConsultor()" title="Baixar JSON com todas as lojas e dados"><i class="ti ti-database-export"></i> Exportar tudo</button>
+      <button class="consultor-btn consultor-btn-ghost" onclick="importarTudoConsultor()" title="Restaurar dados de um JSON anterior"><i class="ti ti-database-import"></i> Importar</button>
       <button class="consultor-btn" onclick="abrirModalNovaLoja()"><i class="ti ti-plus"></i> Nova Loja</button>
       <button class="consultor-btn consultor-btn-ghost" onclick="sairConsultor()"><i class="ti ti-logout"></i> Sair</button>
     </div>
@@ -617,10 +619,12 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     </div>
   </div>
 
-  <div class="slabel" style="margin-bottom:8px;margin-top:14px">Gestor Master inicial</div>
-  <p style="font-size:11px;color:var(--t3);margin-bottom:10px;margin-top:-4px">Esta é a pessoa que vai administrar a loja. Poderá cadastrar colaboradores depois.</p>
-  <div class="fr g2"><div class="fg"><label>Nome *</label><input id="loja_master_nome" type="text" placeholder="Carlos Silva"></div><div class="fg"><label>WhatsApp</label><input id="loja_master_whats" type="text" placeholder="(65) 99999-0000"></div></div>
-  <div class="fr g3"><div class="fg"><label>Usuário (login) *</label><input id="loja_master_login" type="text" placeholder="admin" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')"></div><div class="fg"><label>Senha *</label><input id="loja_master_senha" type="password" placeholder="••••••••" autocomplete="new-password"></div><div class="fg"><label>Confirmar *</label><input id="loja_master_senha2" type="password" placeholder="••••••••" autocomplete="new-password"></div></div>
+  <div id="loja-master-section">
+    <div class="slabel" style="margin-bottom:8px;margin-top:14px">Gestor Master inicial</div>
+    <p style="font-size:11px;color:var(--t3);margin-bottom:10px;margin-top:-4px">Esta é a pessoa que vai administrar a loja. Poderá cadastrar colaboradores depois.</p>
+    <div class="fr g2"><div class="fg"><label>Nome *</label><input id="loja_master_nome" type="text" placeholder="Carlos Silva"></div><div class="fg"><label>WhatsApp</label><input id="loja_master_whats" type="text" placeholder="(65) 99999-0000"></div></div>
+    <div class="fr g3"><div class="fg"><label>Usuário (login) *</label><input id="loja_master_login" type="text" placeholder="admin" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')"></div><div class="fg"><label>Senha *</label><input id="loja_master_senha" type="password" placeholder="••••••••" autocomplete="new-password"></div><div class="fg"><label>Confirmar *</label><input id="loja_master_senha2" type="password" placeholder="••••••••" autocomplete="new-password"></div></div>
+  </div>
 
   <div class="mf"><button class="btn" onclick="fecharModal('mNovaLoja');resetNovaLoja()">Cancelar</button><button class="btn btn-pu" onclick="salvarNovaLoja()"><i class="ti ti-check"></i> Cadastrar Loja</button></div>
 </div></div>
@@ -1900,6 +1904,92 @@ function abrirPainelConsultor() {
   renderPainelConsultor()
 }
 
+/* ───── EXPORT/IMPORT TUDO (migração entre origens) ─────
+   Permite mover todos os dados (lojas, usuários, clientes, OSs, etc.)
+   de um navegador/domínio pra outro. Use quando migrar de file:// pro GitHub Pages. */
+
+function exportarTudoConsultor() {
+  if (!consultorLogado) return
+  const tudo = {
+    _formato: 'FIEL_OFICINA_CONSULTOR_FULL',
+    _versao: 1,
+    _exportadoEm: new Date().toISOString(),
+    _origem: location.href,
+    lojasData,
+    lojaCounter,
+    usuariosData,
+    userCounter,
+    lojasDados: {}
+  }
+  lojasData.forEach(loja => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + '_' + loja.id)
+      if (raw) tudo.lojasDados[loja.id] = JSON.parse(raw)
+    } catch (e) { console.warn('Erro ao ler loja', loja.id, e) }
+  })
+
+  const totLojas = lojasData.length
+  const totUsuarios = usuariosData.length
+  const totDados = Object.keys(tudo.lojasDados).length
+
+  if (!confirm(`Exportar TUDO?\n\n• ${totLojas} loja(s)\n• ${totUsuarios} usuário(s)\n• Dados de ${totDados} loja(s)\n\nUm arquivo .json será baixado com tudo.`)) return
+
+  const blob = new Blob([JSON.stringify(tudo, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const dt = new Date().toISOString().substring(0, 10).replace(/-/g, '')
+  a.href = url
+  a.download = `FIEL_oficina_consultor_${dt}.json`
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  toast(`✓ Exportado: FIEL_oficina_consultor_${dt}.json`, 5000)
+}
+
+function importarTudoConsultor() {
+  if (!consultorLogado) return
+  if (lojasData.length > 0 || usuariosData.length > 0) {
+    if (!confirm(`⚠ ATENÇÃO:\n\nVocê já tem ${lojasData.length} loja(s) e ${usuariosData.length} usuário(s) cadastrado(s).\n\nA importação vai SUBSTITUIR esses dados. Os dados atuais serão perdidos.\n\nDeseja continuar?`)) return
+  }
+  const inp = document.createElement('input')
+  inp.type = 'file'; inp.accept = 'application/json,.json'
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result)
+        if (d._formato !== 'FIEL_OFICINA_CONSULTOR_FULL') {
+          alert('❌ Arquivo inválido.\n\nUse um arquivo gerado pelo "Exportar tudo" do Painel do Consultor.')
+          return
+        }
+        if (!confirm(`Restaurar:\n\n• ${(d.lojasData || []).length} loja(s)\n• ${(d.usuariosData || []).length} usuário(s)\n• Dados de ${Object.keys(d.lojasDados || {}).length} loja(s)\n\nExportado em: ${new Date(d._exportadoEm).toLocaleString('pt-BR')}\nOrigem: ${d._origem || '—'}\n\nDeseja continuar?`)) return
+
+        if (Array.isArray(d.lojasData)) lojasData = d.lojasData
+        if (typeof d.lojaCounter === 'number') lojaCounter = d.lojaCounter
+        if (Array.isArray(d.usuariosData)) usuariosData = d.usuariosData
+        if (typeof d.userCounter === 'number') userCounter = d.userCounter
+        saveLojas(); saveAuth()
+
+        if (d.lojasDados && typeof d.lojasDados === 'object') {
+          Object.entries(d.lojasDados).forEach(([lojaId, dadosLoja]) => {
+            try {
+              localStorage.setItem(STORAGE_KEY + '_' + lojaId, JSON.stringify(dadosLoja))
+            } catch (e) { console.warn('Erro ao salvar loja', lojaId, e) }
+          })
+        }
+
+        alert(`✓ Importação concluída!\n\n• ${lojasData.length} loja(s) restaurada(s)\n• ${usuariosData.length} usuário(s) restaurado(s)\n• Dados de ${Object.keys(d.lojasDados || {}).length} loja(s)\n\nO painel será atualizado.`)
+        renderPainelConsultor()
+      } catch (err) {
+        alert('❌ Erro ao importar: ' + (err.message || ''))
+        console.error(err)
+      }
+    }
+    reader.readAsText(f)
+  }
+  inp.click()
+}
+
 async function sairConsultor() {
   if (!confirm('Sair do painel do Consultor?')) return
   /* Desloga do Supabase se houver sessão */
@@ -1949,7 +2039,11 @@ function renderPainelConsultor() {
     const fat = (dados?.recData || []).reduce((a, b) => a + (b.total || 0), 0)
     return `<div class="loja-card ${loja.ativa ? '' : 'inativa'}">
       <div class="loja-card-top">
-        <div class="loja-card-icon"><i class="ti ti-building-store"></i></div>
+        <div class="loja-card-icon" ${loja.logo ? `style="background:#fff;border-color:rgba(212,169,66,.3);padding:0;overflow:hidden"` : ''}>
+          ${loja.logo
+            ? `<img src="${loja.logo}" style="width:100%;height:100%;object-fit:contain">`
+            : '<i class="ti ti-building-store"></i>'}
+        </div>
         <div class="loja-card-status ${loja.ativa ? 'ativa' : 'inativa'}">${loja.ativa ? 'Ativa' : 'Suspensa'}</div>
       </div>
       <div class="loja-card-nome">${loja.nome}</div>
@@ -1986,6 +2080,11 @@ function resetNovaLoja() {
   document.getElementById('loja_logo').value = ''
   document.getElementById('loja-logo-preview').innerHTML = '<i class="ti ti-photo" style="font-size:24px;color:var(--t3)"></i>'
   _lojaLogoBase64 = null
+  /* Restaura UI pra modo de cadastro (seção Master visível, botão original) */
+  const masterSec = document.getElementById('loja-master-section')
+  if (masterSec) masterSec.style.display = ''
+  const btnSalvar = document.querySelector('#mNovaLoja button[onclick="salvarNovaLoja()"]')
+  if (btnSalvar) btnSalvar.innerHTML = '<i class="ti ti-check"></i> Cadastrar Loja'
 }
 
 let _lojaLogoBase64 = null
@@ -2003,12 +2102,34 @@ function previewLogoLoja() {
 
 async function salvarNovaLoja() {
   const nome = document.getElementById('loja_nome').value.trim()
+  if (!nome) { toast('Informe o nome da loja', 4000); return }
+
+  /* ─── MODO EDIÇÃO ─── */
+  if (lojaEditId) {
+    const l = lojasData.find(x => x.id === lojaEditId)
+    if (!l) { toast('Loja não encontrada.'); return }
+    l.nome = nome
+    l.cnpj = document.getElementById('loja_cnpj').value.trim()
+    l.tel = document.getElementById('loja_tel').value.trim()
+    l.email = document.getElementById('loja_email').value.trim()
+    l.end = document.getElementById('loja_end').value.trim()
+    l.cid = document.getElementById('loja_cid').value.trim() || 'Rondonópolis'
+    l.uf = document.getElementById('loja_uf').value.trim() || 'MT'
+    if (_lojaLogoBase64 !== undefined) l.logo = _lojaLogoBase64  /* permite remover logo */
+    l.atualizadoEm = fmtD()
+    saveLojas()
+    fecharModal('mNovaLoja'); resetNovaLoja()
+    toast(`Loja "${nome}" atualizada.`, 3500)
+    renderPainelConsultor()
+    return
+  }
+
+  /* ─── MODO CRIAÇÃO ─── */
   const mNome = document.getElementById('loja_master_nome').value.trim()
   const mLogin = document.getElementById('loja_master_login').value.trim()
   const mSenha = document.getElementById('loja_master_senha').value
   const mSenha2 = document.getElementById('loja_master_senha2').value
 
-  if (!nome) { toast('Informe o nome da loja', 4000); return }
   if (!mNome || !mLogin || !mSenha) { toast('Preencha os dados do Gestor Master', 4000); return }
   if (mSenha.length < 4) { toast('Senha do Master deve ter pelo menos 4 caracteres', 4500); return }
   if (mSenha !== mSenha2) { toast('Senhas do Master não coincidem', 4000); return }
@@ -2062,7 +2183,7 @@ let lojaEditId = null
 function editarLoja(id) {
   const l = lojasData.find(x => x.id === id); if (!l) return
   lojaEditId = id
-  document.getElementById('mNovaLoja-title').textContent = 'Editar Loja'
+  document.getElementById('mNovaLoja-title').textContent = 'Editar Loja — ' + l.nome
   document.getElementById('loja_nome').value = l.nome
   document.getElementById('loja_cnpj').value = l.cnpj || ''
   document.getElementById('loja_tel').value = l.tel || ''
@@ -2073,9 +2194,17 @@ function editarLoja(id) {
   /* Logo */
   _lojaLogoBase64 = l.logo || null
   const prev = document.getElementById('loja-logo-preview')
-  prev.innerHTML = _lojaLogoBase64
-    ? `<img src="${_lojaLogoBase64}" style="width:100%;height:100%;object-fit:contain">`
-    : '<i class="ti ti-photo" style="font-size:24px;color:var(--t3)"></i>'
+  if (prev) {
+    prev.innerHTML = _lojaLogoBase64
+      ? `<img src="${_lojaLogoBase64}" style="width:100%;height:100%;object-fit:contain">`
+      : '<i class="ti ti-photo" style="font-size:24px;color:var(--t3)"></i>'
+  }
+  /* Esconde a seção do Master inicial (não muda Master no modo edição) */
+  const masterSec = document.getElementById('loja-master-section')
+  if (masterSec) masterSec.style.display = 'none'
+  /* Muda o texto do botão de salvar */
+  const btnSalvar = document.querySelector('#mNovaLoja button[onclick="salvarNovaLoja()"]')
+  if (btnSalvar) btnSalvar.innerHTML = '<i class="ti ti-check"></i> Salvar alterações'
   abrirModal('mNovaLoja')
 }
 
