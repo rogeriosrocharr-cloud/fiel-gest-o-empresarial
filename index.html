@@ -29,6 +29,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ÍCONE SVG (inline para PWA + favicon) -->
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%235c14dc"/><path d="M30 40h40v6H30zm0 14h28v6H30zm0 14h36v6H30z" fill="%23fff"/><circle cx="74" cy="34" r="10" fill="%23d4a942"/></svg>'>
 <!-- MANIFEST PWA -->
@@ -536,6 +537,13 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       </div>
       <div class="auth-foot">Esqueceu a senha? Solicite ao <b>Gestor Master</b>.</div>
     </div>
+
+    <!-- Link discreto de acesso ao Consultor (alternativa ao 5x no logo) -->
+    <div style="margin-top:18px;text-align:center;border-top:1px solid rgba(255,255,255,.08);padding-top:14px">
+      <a href="#" onclick="event.preventDefault();abrirAcessoConsultor()" style="font-size:11px;color:rgba(212,169,66,.6);text-decoration:none;letter-spacing:.05em">
+        <i class="ti ti-key" style="font-size:12px;vertical-align:middle"></i> Acesso administrativo (Consultor)
+      </a>
+    </div>
   </div>
 </div>
 
@@ -578,10 +586,11 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <div id="cons-login">
-    <p style="font-size:13px;color:var(--t2);margin-bottom:14px">Acesso restrito ao dono do sistema.</p>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:14px">Entre com seu e-mail e senha cadastrados no Supabase.</p>
     <div class="auth-error" id="cons-log-err" style="margin-bottom:10px"></div>
-    <div class="fg"><label>Usuário</label><input id="cons_log_login" type="text" placeholder="seu usuário" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
+    <div class="fg"><label>E-mail</label><input id="cons_log_login" type="email" placeholder="seu@email.com" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
     <div class="fg"><label>Senha</label><input id="cons_log_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginConsultor()"></div>
+    <div style="text-align:right;margin-bottom:14px"><a href="#" onclick="event.preventDefault();recuperarSenhaConsultor()" style="font-size:11px;color:var(--pul);text-decoration:none">Esqueci minha senha</a></div>
     <div class="mf"><button class="btn" onclick="fecharModal('mConsLogin');resetConsLogin()">Cancelar</button><button class="btn" onclick="loginConsultor()" style="background:#d4a942;color:#0a0814;font-weight:700"><i class="ti ti-check"></i> Entrar como Consultor</button></div>
   </div>
 </div></div>
@@ -1628,6 +1637,80 @@ function debounce(fn, ms = 250) {
 const STORAGE_KEY = 'autogestao_v3_data'
 const STORAGE_KEY_AUTH = 'autogestao_v3_auth'
 const STORAGE_KEY_CONSULTOR = 'autogestao_v3_consultor'
+
+/* ═══════════════════════════════════════════════════
+   SUPABASE — Camada de banco de dados em nuvem
+   ═══════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://zejdfvdadhccdkducpqa.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_wWux08QICJJmbuXqapwOkg_kGXvnZ-9'
+let supabase = null
+let _supabaseOk = false
+
+/* Inicializa o cliente — se a lib não carregou (offline ou CDN bloqueada),
+   o app continua funcionando em modo localStorage. */
+try {
+  if (window.supabase && typeof window.supabase.createClient === 'function') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    })
+    _supabaseOk = true
+    console.info('[FIEL] Supabase conectado:', SUPABASE_URL)
+  } else {
+    console.warn('[FIEL] Supabase JS Client não carregou — funções online indisponíveis.')
+  }
+} catch (e) {
+  console.error('[FIEL] Erro ao inicializar Supabase:', e)
+}
+
+/* Namespace `db` agrupa todas operações Supabase. Conforme migrarmos,
+   vamos adicionando aqui: db.clientes, db.os, etc. Por enquanto só auth. */
+const db = {
+  isOnline: () => _supabaseOk && navigator.onLine,
+  /* ─── AUTENTICAÇÃO ─── */
+  auth: {
+    async signIn(email, password) {
+      if (!_supabaseOk) throw new Error('Sistema offline. Não conseguimos conectar com o Supabase. Verifique sua conexão e atualize a página.')
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      return data
+    },
+    async signOut() {
+      if (!_supabaseOk) return
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    },
+    async getSession() {
+      if (!_supabaseOk) return null
+      const { data: { session } } = await supabase.auth.getSession()
+      return session
+    },
+    async recuperarSenha(email) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const redirectTo = window.location.origin + window.location.pathname
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      if (error) throw error
+    },
+    async atualizarSenha(novaSenha) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await supabase.auth.updateUser({ password: novaSenha })
+      if (error) throw error
+    },
+    async getPerfil(authId) {
+      if (!_supabaseOk) return null
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, nome, email, role, permissoes, loja_id, ativo, ultimo_acesso')
+        .eq('auth_id', authId)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    async marcarAcesso(usuarioId) {
+      if (!_supabaseOk) return
+      await supabase.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', usuarioId)
+    }
+  }
+}
 const STORAGE_KEY_LOJAS = 'autogestao_v3_lojas'
 const DATA_VERSION = 2  /* Incrementar sempre que os dados embutidos mudarem */
 let _saveTimer = null
@@ -1666,18 +1749,12 @@ function contarClickLogo() {
 
 function abrirAcessoConsultor() {
   resetConsLogin()
-  /* Se ainda não há consultor cadastrado, abre cadastro */
-  if (!consultor) {
-    document.getElementById('cons-cadastro').style.display = ''
-    document.getElementById('cons-login').style.display = 'none'
-    document.getElementById('mConsLogin-title').textContent = 'Primeiro acesso — Consultor'
-  } else {
-    document.getElementById('cons-cadastro').style.display = 'none'
-    document.getElementById('cons-login').style.display = ''
-    document.getElementById('mConsLogin-title').textContent = 'Acesso do Consultor'
-  }
+  /* Login agora é sempre via Supabase. Esconde o modo de cadastro local antigo. */
+  document.getElementById('cons-cadastro').style.display = 'none'
+  document.getElementById('cons-login').style.display = ''
+  document.getElementById('mConsLogin-title').textContent = 'Acesso do Consultor'
   abrirModal('mConsLogin')
-  setTimeout(() => document.getElementById(consultor ? 'cons_log_login' : 'cons_cad_nome')?.focus(), 100)
+  setTimeout(() => document.getElementById('cons_log_login')?.focus(), 100)
 }
 
 function resetConsLogin() {
@@ -1732,16 +1809,81 @@ async function cadastrarConsultor() {
 }
 
 async function loginConsultor() {
-  if (!consultor) return mostrarAuthError('cons-log-err', 'Consultor ainda não foi cadastrado.')
-  const login = document.getElementById('cons_log_login').value.trim().toLowerCase()
+  /* Lê email/senha. Como mudamos pro Supabase, o campo "login" é o e-mail. */
+  const email = document.getElementById('cons_log_login').value.trim().toLowerCase()
   const senha = document.getElementById('cons_log_senha').value
-  if (!login || !senha) return mostrarAuthError('cons-log-err', 'Preencha usuário e senha.')
-  if (login !== consultor.login) return mostrarAuthError('cons-log-err', 'Usuário não confere.')
-  const hash = await hashSenha(senha)
-  if (hash !== consultor.senhaHash) return mostrarAuthError('cons-log-err', 'Senha incorreta.')
-  consultorLogado = true
-  fecharModal('mConsLogin'); resetConsLogin()
-  abrirPainelConsultor()
+  if (!email || !senha) return mostrarAuthError('cons-log-err', 'Preencha e-mail e senha.')
+  if (!email.includes('@')) return mostrarAuthError('cons-log-err', 'Use seu e-mail (não usuário) para entrar.')
+
+  const btn = document.querySelector('#cons-login button[onclick*="loginConsultor"]')
+  const txtOriginal = btn ? btn.innerHTML : ''
+  if (btn) { btn.innerHTML = '<i class="ti ti-loader-2"></i> Entrando...'; btn.disabled = true }
+
+  try {
+    /* 1. Login no Supabase Auth */
+    const { session } = await db.auth.signIn(email, senha)
+    if (!session) throw new Error('Sessão não retornada')
+
+    /* 2. Busca perfil na tabela `usuarios` */
+    const perfil = await db.auth.getPerfil(session.user.id)
+    if (!perfil) {
+      await db.auth.signOut()
+      throw new Error('Usuário autenticado mas sem perfil cadastrado. Contate o suporte.')
+    }
+    if (!perfil.ativo) {
+      await db.auth.signOut()
+      throw new Error('Usuário desativado. Contate o suporte.')
+    }
+    if (perfil.role !== 'consultor') {
+      await db.auth.signOut()
+      throw new Error('Esta área é apenas para Consultores. Use o login normal.')
+    }
+
+    /* 3. Marca último acesso */
+    db.auth.marcarAcesso(perfil.id).catch(() => {})
+
+    /* 4. Popula o `consultor` global pra manter compatibilidade com o resto do app */
+    consultor = {
+      id: perfil.id,
+      nome: perfil.nome,
+      email: perfil.email,
+      login: email.split('@')[0],
+      _supabase: true,                /* flag indicando que veio do Supabase */
+      _authId: session.user.id
+    }
+    consultorLogado = true
+    saveConsultor()                   /* persiste localmente pra próxima abertura */
+
+    fecharModal('mConsLogin'); resetConsLogin()
+    abrirPainelConsultor()
+    toast(`Bem-vindo de volta, ${perfil.nome.split(' ')[0]}!`, 3000)
+  } catch (err) {
+    let msg = err.message || 'Erro ao fazer login.'
+    /* Traduz mensagens comuns do Supabase pra português */
+    if (msg.includes('Invalid login credentials')) msg = 'E-mail ou senha incorretos.'
+    else if (msg.includes('Email not confirmed')) msg = 'E-mail ainda não foi confirmado.'
+    else if (msg.includes('rate limit')) msg = 'Muitas tentativas. Aguarde alguns minutos.'
+    else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) msg = 'Sem conexão com o servidor. Verifique a internet.'
+    mostrarAuthError('cons-log-err', msg)
+  } finally {
+    if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false }
+  }
+}
+
+/* Recupera senha do Consultor */
+async function recuperarSenhaConsultor() {
+  const email = document.getElementById('cons_log_login').value.trim().toLowerCase()
+  if (!email || !email.includes('@')) {
+    return mostrarAuthError('cons-log-err', 'Digite seu e-mail no campo acima antes de clicar em "Esqueci minha senha".')
+  }
+  if (!confirm(`Enviar e-mail de recuperação de senha para ${email}?`)) return
+  try {
+    await db.auth.recuperarSenha(email)
+    mostrarAuthError('cons-log-err', '')
+    alert('✓ E-mail de recuperação enviado!\n\nVerifique sua caixa de entrada (e SPAM) e clique no link.')
+  } catch (err) {
+    mostrarAuthError('cons-log-err', 'Erro ao enviar recuperação: ' + (err.message || ''))
+  }
 }
 
 function abrirPainelConsultor() {
@@ -1756,8 +1898,10 @@ function abrirPainelConsultor() {
   renderPainelConsultor()
 }
 
-function sairConsultor() {
+async function sairConsultor() {
   if (!confirm('Sair do painel do Consultor?')) return
+  /* Desloga do Supabase se houver sessão */
+  try { await db.auth.signOut() } catch (e) { console.warn('signOut error:', e) }
   consultorLogado = false
   modoConsultor = false
   document.getElementById('consultor-screen').classList.add('hidden')
@@ -8889,14 +9033,37 @@ if (sbFoot && !sbFoot.querySelector('.btn-limpar')) {
 }
 
 /* ──── Fluxo de autenticação ────
-   - Se há usuário logado válido → entra no app
+   - Se há sessão Supabase ativa de Consultor → restaura e abre Painel do Consultor
+   - Se há usuário logado válido (Master/Colaborador via localStorage) → entra no app
    - Senão → mostra login (ou cadastro Master se não há nenhum usuário ainda) */
-if (usuarioAtual) {
-  entrarNoApp()
-  if (_loaded) setTimeout(() => toast('Dados restaurados da sessão anterior', 2500), 600)
-} else {
-  mostrarTelaAuth()
+async function inicializarSessao() {
+  try {
+    const session = await db.auth.getSession()
+    if (session) {
+      const perfil = await db.auth.getPerfil(session.user.id)
+      if (perfil && perfil.ativo && perfil.role === 'consultor') {
+        consultor = {
+          id: perfil.id, nome: perfil.nome, email: perfil.email,
+          login: perfil.email.split('@')[0], _supabase: true, _authId: session.user.id
+        }
+        consultorLogado = true
+        saveConsultor()
+        abrirPainelConsultor()
+        setTimeout(() => toast(`Bem-vindo de volta, ${perfil.nome.split(' ')[0]}!`, 2500), 400)
+        return
+      }
+    }
+  } catch (e) { console.warn('Sessão Supabase não restaurada:', e) }
+
+  /* Fluxo legacy para Master/Colaborador (ou consultor sem sessão Supabase) */
+  if (usuarioAtual) {
+    entrarNoApp()
+    if (_loaded) setTimeout(() => toast('Dados restaurados da sessão anterior', 2500), 600)
+  } else {
+    mostrarTelaAuth()
+  }
 }
+inicializarSessao()
 
 
 
