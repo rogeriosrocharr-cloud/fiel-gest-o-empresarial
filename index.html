@@ -1660,7 +1660,7 @@ try {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     })
     _supabaseOk = true
-    console.info('[FIEL] Supabase conectado:', SUPABASE_URL)
+    console.log('[FIEL] Supabase conectado:', SUPABASE_URL)
   } else {
     console.warn('[FIEL] Supabase JS Client não carregou — funções online indisponíveis.')
   }
@@ -9212,7 +9212,7 @@ let _swPromptEvento = null
 function registrarServiceWorker() {
   if (!('serviceWorker' in navigator)) return
   if (location.protocol === 'file:') {
-    console.info('PWA: Service Worker desativado em file:// — sirva o app via HTTP(S) para habilitar.')
+    console.log('PWA: Service Worker desativado em file:// — sirva o app via HTTP(S) para habilitar.')
     return
   }
   /* Gera o código do SW como blob URL */
@@ -9260,7 +9260,7 @@ function registrarServiceWorker() {
   const blob = new Blob([swCode], { type: 'application/javascript' })
   const swUrl = URL.createObjectURL(blob)
   navigator.serviceWorker.register(swUrl).then(reg => {
-    console.info('PWA: Service Worker registrado.', reg.scope)
+    console.log('PWA: Service Worker registrado.', reg.scope)
   }).catch(err => {
     console.warn('PWA: falha ao registrar SW.', err)
   })
