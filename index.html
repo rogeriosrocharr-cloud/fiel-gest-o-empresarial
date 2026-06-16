@@ -1643,14 +1643,16 @@ const STORAGE_KEY_CONSULTOR = 'autogestao_v3_consultor'
    ═══════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://zejdfvdadhccdkducpqa.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_wWux08QICJJmbuXqapwOkg_kGXvnZ-9'
-let supabase = null
+let sbClient = null
 let _supabaseOk = false
 
 /* Inicializa o cliente — se a lib não carregou (offline ou CDN bloqueada),
-   o app continua funcionando em modo localStorage. */
+   o app continua funcionando em modo localStorage.
+   IMPORTANTE: não nomear a variável como 'supabase' — conflita com o nome
+   global da própria biblioteca (window.supabase). */
 try {
   if (window.supabase && typeof window.supabase.createClient === 'function') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     })
     _supabaseOk = true
@@ -1670,34 +1672,34 @@ const db = {
   auth: {
     async signIn(email, password) {
       if (!_supabaseOk) throw new Error('Sistema offline. Não conseguimos conectar com o Supabase. Verifique sua conexão e atualize a página.')
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await sbClient.auth.signInWithPassword({ email, password })
       if (error) throw error
       return data
     },
     async signOut() {
       if (!_supabaseOk) return
-      const { error } = await supabase.auth.signOut()
+      const { error } = await sbClient.auth.signOut()
       if (error) throw error
     },
     async getSession() {
       if (!_supabaseOk) return null
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session } } = await sbClient.auth.getSession()
       return session
     },
     async recuperarSenha(email) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
       const redirectTo = window.location.origin + window.location.pathname
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo })
       if (error) throw error
     },
     async atualizarSenha(novaSenha) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { error } = await supabase.auth.updateUser({ password: novaSenha })
+      const { error } = await sbClient.auth.updateUser({ password: novaSenha })
       if (error) throw error
     },
     async getPerfil(authId) {
       if (!_supabaseOk) return null
-      const { data, error } = await supabase
+      const { data, error } = await sbClient
         .from('usuarios')
         .select('id, nome, email, role, permissoes, loja_id, ativo, ultimo_acesso')
         .eq('auth_id', authId)
@@ -1707,7 +1709,7 @@ const db = {
     },
     async marcarAcesso(usuarioId) {
       if (!_supabaseOk) return
-      await supabase.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', usuarioId)
+      await sbClient.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', usuarioId)
     }
   }
 }
