@@ -306,12 +306,31 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 .mov-row-saida{border-left:3px solid var(--re)!important}
 
 /* ── TELA DE AUTENTICAÇÃO (estilo FIEL Finance) ────────── */
-.auth-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#000 0%,#0a0814 40%,#1a0d3a 100%);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Calibri,'Calibri Bold','Trebuchet MS',var(--f)}
+.auth-screen{position:fixed;inset:0;z-index:9999;background:#06040d;display:flex;font-family:Calibri,'Calibri Bold','Trebuchet MS',var(--f)}
 .auth-screen.hidden{display:none}
+
+/* Lado esquerdo: branding/showcase (apenas desktop) */
+.auth-brand-side{flex:1;background:linear-gradient(135deg,#0a0814 0%,#1a0d3a 50%,#2a1452 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:60px}
+.auth-brand-side::before{content:'';position:absolute;top:-50%;right:-30%;width:80%;height:120%;background:radial-gradient(circle,rgba(92,20,220,.25) 0%,transparent 70%);pointer-events:none}
+.auth-brand-side::after{content:'';position:absolute;bottom:-30%;left:-20%;width:60%;height:80%;background:radial-gradient(circle,rgba(212,169,66,.15) 0%,transparent 70%);pointer-events:none}
+.auth-brand-content{position:relative;z-index:1;max-width:480px;color:#fff}
+.auth-brand-icon-big{width:88px;height:88px;border-radius:18px;background:linear-gradient(135deg,#5c14dc,#7c3ff0);border:1px solid rgba(212,169,66,.5);box-shadow:0 16px 40px rgba(92,20,220,.4);display:flex;align-items:center;justify-content:center;color:#d4a942;font-size:42px;margin-bottom:28px}
+.auth-brand-title{font-size:48px;font-weight:700;letter-spacing:.04em;line-height:1;color:#fff;margin-bottom:8px}
+.auth-brand-tagline{font-size:14px;color:#d4a942;letter-spacing:.18em;text-transform:uppercase;margin-bottom:36px;font-weight:600}
+.auth-brand-divider{width:60px;height:3px;background:linear-gradient(90deg,#d4a942,transparent);margin-bottom:32px;border-radius:2px}
+.auth-brand-desc{font-size:18px;color:rgba(255,255,255,.78);line-height:1.5;margin-bottom:30px;font-weight:300}
+.auth-features{list-style:none;padding:0;margin:0}
+.auth-features li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;color:rgba(255,255,255,.7);font-size:14px;line-height:1.4}
+.auth-features li i{color:#3dd396;font-size:18px;flex-shrink:0;margin-top:1px}
+.auth-features li b{color:#fff;font-weight:600}
+.auth-brand-foot{position:absolute;bottom:30px;left:60px;right:60px;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.1em}
+
+/* Lado direito: formulários */
+.auth-form-side{width:560px;background:#06040d;display:flex;align-items:center;justify-content:center;padding:40px;overflow-y:auto}
 .auth-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .auth-bg::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(212,169,66,.08) 0%,transparent 60%);top:-200px;right:-200px}
 .auth-bg::after{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(124,63,240,.12) 0%,transparent 60%);bottom:-150px;left:-150px}
-.auth-card{position:relative;width:100%;max-width:520px;background:linear-gradient(180deg,#0e0a1c 0%,#06040d 100%);border:1px solid rgba(212,169,66,.18);border-radius:14px;padding:48px 56px;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.02) inset}
+.auth-card{position:relative;width:100%;max-width:440px;padding:0}
 .auth-logo{text-align:center;margin-bottom:32px}
 .auth-logo-box{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#5c14dc,#1c1238);border:1px solid rgba(212,169,66,.4);box-shadow:0 8px 24px rgba(92,20,220,.4);margin-bottom:14px;font-size:28px;color:#d4a942}
 .auth-brand{font-family:Calibri,'Calibri Bold',var(--f);font-weight:900;font-size:30px;color:#fff;letter-spacing:-.02em;margin-bottom:4px;line-height:1}
@@ -398,7 +417,14 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
 /* Desktop-first: reduz responsive mobile */
 @media(min-width:769px){
-  .auth-card{padding:48px 56px;max-width:520px}
+  .auth-card{max-width:440px}
+  .auth-card .auth-logo{display:none}  /* No desktop o branding está no lado esquerdo */
+}
+@media(max-width:768px){
+  .auth-screen{flex-direction:column}
+  .auth-brand-side{display:none}
+  .auth-form-side{width:100%;padding:24px 18px;min-height:100vh}
+  .auth-card{max-width:480px}
 }
 @media(max-width:1100px){.tl-row{grid-template-columns:1fr;gap:8px}.tl-act{justify-content:flex-start}}
 @media(max-width:768px){
@@ -485,64 +511,96 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
 <!-- ═════ TELA DE AUTENTICAÇÃO ═════ -->
 <div class="auth-screen" id="auth-screen">
-  <div class="auth-bg"></div>
-  <div class="auth-card">
-    <div class="auth-logo" onclick="contarClickLogo()" style="cursor:pointer" title="FIEL">
-      <div class="auth-logo-box"><i class="ti ti-tool"></i></div>
-      <div class="auth-brand">FIEL</div>
-      <div class="auth-sub">Gestão de Empresas</div>
-      <div class="auth-bar"></div>
+  <!-- LADO ESQUERDO: BRANDING / SHOWCASE (só desktop) -->
+  <div class="auth-brand-side">
+    <div class="auth-brand-content">
+      <div class="auth-brand-icon-big" onclick="contarClickLogo()" style="cursor:pointer" title="FIEL"><i class="ti ti-tool"></i></div>
+      <div class="auth-brand-title">FIEL</div>
+      <div class="auth-brand-tagline">Gestão de Empresas</div>
+      <div class="auth-brand-divider"></div>
+      <div class="auth-brand-desc">Sistema completo para gestão de oficinas mecânicas — orçamentos, ordens de serviço, financeiro e muito mais, em um só lugar.</div>
+      <ul class="auth-features">
+        <li><i class="ti ti-circle-check-filled"></i><div><b>Multi-loja</b> · Dados totalmente isolados entre filiais</div></li>
+        <li><i class="ti ti-circle-check-filled"></i><div><b>Sincronização em nuvem</b> · Acesse de qualquer dispositivo</div></li>
+        <li><i class="ti ti-circle-check-filled"></i><div><b>Funciona offline</b> · PWA com cache inteligente</div></li>
+        <li><i class="ti ti-circle-check-filled"></i><div><b>OFX bancário</b> · Conciliação automática de extratos</div></li>
+        <li><i class="ti ti-circle-check-filled"></i><div><b>WhatsApp integrado</b> · Envie orçamentos com 1 clique</div></li>
+      </ul>
     </div>
+    <div class="auth-brand-foot">FIEL · Soluções para gestão · v3.0</div>
+  </div>
 
-    <!-- Form: Cadastro Master (primeira vez que a loja é acessada e não tem Master) -->
-    <div id="auth-cadastro" style="display:none">
-      <div class="auth-title">Primeiro acesso</div>
-      <div class="auth-desc">Configure a conta de <b style="color:#d4a942">Gestor Master</b> para começar.<br>Este será o administrador da oficina.</div>
-      <div class="auth-error" id="cad-error"></div>
-      <div class="auth-field"><label>Nome completo</label><input id="cad_nome" type="text" placeholder="Ex: Carlos Souza" autocomplete="off"></div>
-      <div class="auth-field"><label>WhatsApp</label><input id="cad_whats" type="text" placeholder="(65) 99999-0000" autocomplete="off"></div>
-      <div class="auth-field"><label>Usuário (login)</label><input id="cad_login" type="text" placeholder="ex: admin" autocomplete="off" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')"></div>
-      <div class="auth-field"><label>Senha</label><input id="cad_senha" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password"></div>
-      <div class="auth-field"><label>Confirmar senha</label><input id="cad_senha2" type="password" placeholder="Digite novamente" autocomplete="new-password" onkeydown="if(event.key==='Enter')cadastrarMaster()"></div>
-      <button class="auth-btn" onclick="cadastrarMaster()">Criar conta Master</button>
-    </div>
-
-    <!-- Form: Login do Gestor Master (tela inicial padrão) -->
-    <div id="auth-login-master">
-      <div class="auth-title">Gestor Master</div>
-      <div class="auth-desc">Acesso administrativo da oficina.</div>
-      <div class="auth-error" id="log-error"></div>
-      <div class="auth-field"><label>Usuário</label><input id="log_login" type="text" placeholder="seu_usuario" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
-      <div class="auth-field"><label>Senha</label><input id="log_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
-      <button class="auth-btn" onclick="fazerLogin()">Entrar</button>
-      <div class="auth-foot" style="margin-top:22px">
-        <button onclick="alternarParaColaborador()" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:10px 20px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:Calibri,var(--f);transition:all .15s;width:100%" onmouseenter="this.style.borderColor='rgba(212,169,66,.4)';this.style.color='#d4a942'" onmouseleave="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.6)'">
-          <i class="ti ti-user" style="margin-right:6px"></i> Sou Colaborador
-        </button>
+  <!-- LADO DIREITO: FORMULÁRIOS -->
+  <div class="auth-form-side">
+    <div class="auth-card">
+      <!-- Logo (versão mobile, escondida em desktop pois já está no branding) -->
+      <div class="auth-logo" onclick="contarClickLogo()" style="cursor:pointer" title="FIEL">
+        <div class="auth-logo-box"><i class="ti ti-tool"></i></div>
+        <div class="auth-brand">FIEL</div>
+        <div class="auth-sub">Gestão de Empresas</div>
+        <div class="auth-bar"></div>
       </div>
-    </div>
 
-    <!-- Form: Login do Colaborador -->
-    <div id="auth-login-colab" style="display:none">
-      <div class="auth-title">Colaborador</div>
-      <div class="auth-desc">Acesso com permissões definidas pelo Gestor Master.</div>
-      <div class="auth-error" id="log-colab-error"></div>
-      <div class="auth-field"><label>Usuário</label><input id="log_colab_login" type="text" placeholder="seu_usuario" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
-      <div class="auth-field"><label>Senha</label><input id="log_colab_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginColaborador()"></div>
-      <button class="auth-btn" onclick="loginColaborador()" style="background:linear-gradient(180deg,#7c3ff0,#5c14dc);color:#fff">Entrar como Colaborador</button>
-      <div class="auth-foot" style="margin-top:22px">
-        <button onclick="alternarParaMaster()" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:10px 20px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:Calibri,var(--f);transition:all .15s;width:100%" onmouseenter="this.style.borderColor='rgba(212,169,66,.4)';this.style.color='#d4a942'" onmouseleave="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.6)'">
-          <i class="ti ti-shield-lock" style="margin-right:6px"></i> Sou Gestor Master
-        </button>
+      <!-- Form: Aguardando configuração (quando não há nenhuma loja cadastrada) -->
+      <div id="auth-no-lojas" style="display:none">
+        <div class="auth-title">Aguardando configuração</div>
+        <div class="auth-desc">Sua oficina ainda não foi cadastrada no sistema. Por favor, contate o administrador FIEL para concluir a configuração da sua loja.</div>
+        <div style="background:rgba(212,169,66,.08);border:1px solid rgba(212,169,66,.2);border-radius:8px;padding:14px 16px;margin:20px 0;font-size:13px;color:#d4a942;line-height:1.5">
+          <i class="ti ti-info-circle" style="vertical-align:middle"></i> Se você é o administrador (Consultor) do sistema, clique abaixo para fazer login.
+        </div>
+        <button class="auth-btn" onclick="abrirAcessoConsultor()" style="background:#d4a942;color:#0a0814;font-weight:700"><i class="ti ti-key"></i> Entrar como Consultor</button>
       </div>
-      <div class="auth-foot">Esqueceu a senha? Solicite ao <b>Gestor Master</b>.</div>
-    </div>
 
-    <!-- Link discreto de acesso ao Consultor (alternativa ao 5x no logo) -->
-    <div style="margin-top:18px;text-align:center;border-top:1px solid rgba(255,255,255,.08);padding-top:14px">
-      <a href="#" onclick="event.preventDefault();abrirAcessoConsultor()" style="font-size:11px;color:rgba(212,169,66,.6);text-decoration:none;letter-spacing:.05em">
-        <i class="ti ti-key" style="font-size:12px;vertical-align:middle"></i> Acesso administrativo (Consultor)
-      </a>
+      <!-- Form: Cadastro Master (primeira vez que a loja é acessada e não tem Master) -->
+      <div id="auth-cadastro" style="display:none">
+        <div class="auth-title">Primeiro acesso</div>
+        <div class="auth-desc">Configure a conta de <b style="color:#d4a942">Gestor Master</b> para começar.<br>Este será o administrador da oficina.</div>
+        <div class="auth-error" id="cad-error"></div>
+        <div class="auth-field"><label>Nome completo</label><input id="cad_nome" type="text" placeholder="Ex: Carlos Souza" autocomplete="off"></div>
+        <div class="auth-field"><label>WhatsApp</label><input id="cad_whats" type="text" placeholder="(65) 99999-0000" autocomplete="off"></div>
+        <div class="auth-field"><label>Usuário (login)</label><input id="cad_login" type="text" placeholder="ex: admin" autocomplete="off" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')"></div>
+        <div class="auth-field"><label>Senha</label><input id="cad_senha" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password"></div>
+        <div class="auth-field"><label>Confirmar senha</label><input id="cad_senha2" type="password" placeholder="Digite novamente" autocomplete="new-password" onkeydown="if(event.key==='Enter')cadastrarMaster()"></div>
+        <button class="auth-btn" onclick="cadastrarMaster()">Criar conta Master</button>
+      </div>
+
+      <!-- Form: Login do Gestor Master (tela inicial padrão) -->
+      <div id="auth-login-master">
+        <div class="auth-title">Gestor Master</div>
+        <div class="auth-desc">Acesso administrativo da oficina.</div>
+        <div class="auth-error" id="log-error"></div>
+        <div class="auth-field"><label>Usuário</label><input id="log_login" type="text" placeholder="seu_usuario" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
+        <div class="auth-field"><label>Senha</label><input id="log_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+        <button class="auth-btn" onclick="fazerLogin()">Entrar</button>
+        <div class="auth-foot" style="margin-top:22px">
+          <button onclick="alternarParaColaborador()" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:10px 20px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:Calibri,var(--f);transition:all .15s;width:100%" onmouseenter="this.style.borderColor='rgba(212,169,66,.4)';this.style.color='#d4a942'" onmouseleave="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.6)'">
+            <i class="ti ti-user" style="margin-right:6px"></i> Sou Colaborador
+          </button>
+        </div>
+      </div>
+
+      <!-- Form: Login do Colaborador -->
+      <div id="auth-login-colab" style="display:none">
+        <div class="auth-title">Colaborador</div>
+        <div class="auth-desc">Acesso com permissões definidas pelo Gestor Master.</div>
+        <div class="auth-error" id="log-colab-error"></div>
+        <div class="auth-field"><label>Usuário</label><input id="log_colab_login" type="text" placeholder="seu_usuario" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
+        <div class="auth-field"><label>Senha</label><input id="log_colab_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginColaborador()"></div>
+        <button class="auth-btn" onclick="loginColaborador()" style="background:linear-gradient(180deg,#7c3ff0,#5c14dc);color:#fff">Entrar como Colaborador</button>
+        <div class="auth-foot" style="margin-top:22px">
+          <button onclick="alternarParaMaster()" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:10px 20px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:Calibri,var(--f);transition:all .15s;width:100%" onmouseenter="this.style.borderColor='rgba(212,169,66,.4)';this.style.color='#d4a942'" onmouseleave="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.6)'">
+            <i class="ti ti-shield-lock" style="margin-right:6px"></i> Sou Gestor Master
+          </button>
+        </div>
+        <div class="auth-foot">Esqueceu a senha? Solicite ao <b>Gestor Master</b>.</div>
+      </div>
+
+      <!-- Link discreto de acesso ao Consultor (alternativa ao 5x no logo) -->
+      <div style="margin-top:18px;text-align:center;border-top:1px solid rgba(255,255,255,.08);padding-top:14px">
+        <a href="#" onclick="event.preventDefault();abrirAcessoConsultor()" style="font-size:11px;color:rgba(212,169,66,.6);text-decoration:none;letter-spacing:.05em">
+          <i class="ti ti-key" style="font-size:12px;vertical-align:middle"></i> Acesso administrativo (Consultor)
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -2470,7 +2528,18 @@ function mostrarTelaAuth() {
     carregarDadosDaLoja(lojaAtual.id)
   }
 
-  /* Checa se já existe Master cadastrado */
+  /* Se NÃO há lojas cadastradas, mostra tela "Aguardando configuração" */
+  if (lojasData.length === 0) {
+    document.getElementById('auth-no-lojas').style.display = ''
+    document.getElementById('auth-cadastro').style.display = 'none'
+    document.getElementById('auth-login-master').style.display = 'none'
+    document.getElementById('auth-login-colab').style.display = 'none'
+    return
+  }
+
+  document.getElementById('auth-no-lojas').style.display = 'none'
+
+  /* Checa se já existe Master cadastrado nesta loja */
   const temMaster = usuariosData.some(u => u.tipo === 'master')
 
   document.getElementById('auth-cadastro').style.display = temMaster ? 'none' : ''
@@ -2482,12 +2551,14 @@ function mostrarTelaAuth() {
 
 /* Alterna entre telas de Master e Colaborador */
 function alternarParaColaborador() {
+  document.getElementById('auth-no-lojas').style.display = 'none'
   document.getElementById('auth-login-master').style.display = 'none'
   document.getElementById('auth-login-colab').style.display = ''
   document.getElementById('log-colab-error')?.classList.remove('show')
   setTimeout(() => document.getElementById('log_colab_login')?.focus(), 80)
 }
 function alternarParaMaster() {
+  document.getElementById('auth-no-lojas').style.display = 'none'
   document.getElementById('auth-login-colab').style.display = 'none'
   document.getElementById('auth-login-master').style.display = ''
   document.getElementById('log-error')?.classList.remove('show')
