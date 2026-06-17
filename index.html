@@ -2166,6 +2166,199 @@ const db = {
       const { error } = await sbClient.from('servicos_catalogo').delete().eq('id', id)
       if (error) throw error
     }
+  },
+
+  /* ─── ORÇAMENTOS ─── */
+  orcamentos: {
+    _mapFromDB(o) {
+      /* obs pode conter metadata JSON no formato: texto\n###META###\n{json} */
+      let obs = o.obs || '', mec = '', validade = '—', mostrarDesc = true, osId = null
+      const metaIdx = (obs || '').indexOf('\n###META###\n')
+      if (metaIdx >= 0) {
+        try {
+          const meta = JSON.parse(obs.substring(metaIdx + 13))
+          mec = meta.mec || ''; validade = meta.validade || '—'; mostrarDesc = meta.mostrarDesc !== false; osId = meta.osId || null
+          obs = obs.substring(0, metaIdx)
+        } catch (_) {}
+      }
+      return {
+        id: o.id, numero: o.numero,
+        cliId: o.cliente_id, cliNome: o.cli_nome || '',
+        vei: o.vei || '', pla: o.pla || '', km: o.km || 0,
+        data: o.data || '',
+        srvs: o.servicos || [], pecs: o.pecas || [],
+        descSrv: Number(o.desc_srv) || 0, descPec: Number(o.desc_pec) || 0,
+        tSrv: Number(o.v_srv) || 0, tPec: Number(o.v_pec) || 0,
+        total: Number(o.total) || 0,
+        status: o.status || 'Aguardando aprovação',
+        obs, mec, validade, mostrarDesc, osId
+      }
+    },
+    _mapToDB(d) {
+      const o = {}
+      if (d.cliId !== undefined) o.cliente_id = d.cliId || null
+      if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
+      ;['vei','pla','data','status'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
+      if (d.km !== undefined) o.km = parseInt(d.km) || null
+      if (d.srvs !== undefined) o.servicos = d.srvs
+      if (d.pecs !== undefined) o.pecas = d.pecs
+      if (d.descSrv !== undefined) o.desc_srv = Number(d.descSrv) || 0
+      if (d.descPec !== undefined) o.desc_pec = Number(d.descPec) || 0
+      if (d.tSrv !== undefined) o.v_srv = Number(d.tSrv) || 0
+      if (d.tPec !== undefined) o.v_pec = Number(d.tPec) || 0
+      if (d.total !== undefined) o.total = Number(d.total) || 0
+      /* Embute mec, validade, mostrarDesc, osId como metadata no obs */
+      const obsText = d.obs || ''
+      const meta = {}
+      if (d.mec !== undefined) meta.mec = d.mec
+      if (d.validade !== undefined) meta.validade = d.validade
+      if (d.mostrarDesc !== undefined) meta.mostrarDesc = d.mostrarDesc
+      if (d.osId !== undefined) meta.osId = d.osId
+      o.obs = Object.keys(meta).length ? obsText + '\n###META###\n' + JSON.stringify(meta) : obsText || null
+      return o
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('orcamentos').select('*').eq('loja_id', lojaId).order('numero', { ascending: false })
+      if (error) throw error
+      return (data || []).map(o => this._mapFromDB(o))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      /* Pega próximo número atômico */
+      const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'orc' })
+      if (numErr) throw numErr
+      const payload = { loja_id: lojaId, numero: numData, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('orcamentos').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('orcamentos').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('orcamentos').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── ORDENS DE SERVIÇO ─── */
+  os: {
+    _mapFromDB(o) {
+      return {
+        id: o.id, numero: o.numero,
+        orcId: o.orcamento_id || null,
+        cliId: o.cliente_id, cliNome: o.cli_nome || '',
+        data: o.data || '', dataConclusao: o.data_conclusao || '',
+        vei: o.vei || '', pla: o.pla || '', km: o.km || 0,
+        srv: o.srv || '', mec: o.mec || '',
+        vsrv: Number(o.v_srv) || 0, vpec: Number(o.v_pec) || 0,
+        total: Number(o.total) || 0,
+        status: o.status || 'Aberta',
+        prior: o.prior || '', prev: o.prev || '',
+        obsCheck: o.obs_check || '',
+        servicos: o.servicos || [], pecas: o.pecas || [],
+        checklist: o.checklist || null,
+        garantiaAte: o.garantia_ate || '', garantiaDias: o.garantia_dias || 0,
+        finId: o.fin_id || null,
+        obs: o.obs || ''
+      }
+    },
+    _mapToDB(d) {
+      const o = {}
+      if (d.orcId !== undefined) o.orcamento_id = d.orcId || null
+      if (d.cliId !== undefined) o.cliente_id = d.cliId || null
+      if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
+      ;['vei','pla','data','srv','mec','status','prior','prev','obs'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
+      if (d.dataConclusao !== undefined) o.data_conclusao = d.dataConclusao || null
+      if (d.km !== undefined) o.km = parseInt(d.km) || null
+      if (d.vsrv !== undefined) o.v_srv = Number(d.vsrv) || 0
+      if (d.vpec !== undefined) o.v_pec = Number(d.vpec) || 0
+      if (d.total !== undefined) o.total = Number(d.total) || 0
+      if (d.obsCheck !== undefined) o.obs_check = d.obsCheck || null
+      if (d.servicos !== undefined) o.servicos = d.servicos
+      if (d.pecas !== undefined) o.pecas = d.pecas
+      if (d.checklist !== undefined) o.checklist = d.checklist
+      if (d.garantiaAte !== undefined) o.garantia_ate = d.garantiaAte || null
+      if (d.garantiaDias !== undefined) o.garantia_dias = parseInt(d.garantiaDias) || 0
+      if (d.finId !== undefined) o.fin_id = d.finId || null
+      return o
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('ordens_servico').select('*').eq('loja_id', lojaId).order('numero', { ascending: false })
+      if (error) throw error
+      return (data || []).map(o => this._mapFromDB(o))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'os' })
+      if (numErr) throw numErr
+      const payload = { loja_id: lojaId, numero: numData, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('ordens_servico').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('ordens_servico').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('ordens_servico').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── ESTOQUE ─── */
+  estoque: {
+    _mapFromDB(e) {
+      return {
+        id: e.id, cod: e.cod || '', nome: e.nome, cat: e.cat || '',
+        fornecedor: e.fornecedor || '',
+        qtd: parseInt(e.qtd) || 0, min: parseInt(e.qtd_min) || 0,
+        custo: Number(e.custo) || 0, preco: Number(e.preco) || 0
+      }
+    },
+    _mapToDB(d) {
+      const o = {}
+      ;['cod','nome','cat','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
+      if (d.qtd !== undefined) o.qtd = parseInt(d.qtd) || 0
+      if (d.min !== undefined) o.qtd_min = parseInt(d.min) || 0
+      if (d.custo !== undefined) o.custo = Number(d.custo) || 0
+      if (d.preco !== undefined) o.preco = Number(d.preco) || 0
+      return o
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('estoque').select('*').eq('loja_id', lojaId).order('nome')
+      if (error) throw error
+      return (data || []).map(e => this._mapFromDB(e))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { loja_id: lojaId, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('estoque').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('estoque').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('estoque').delete().eq('id', id)
+      if (error) throw error
+    }
   }
 }
 const STORAGE_KEY_LOJAS = 'autogestao_v3_lojas'
@@ -3120,17 +3313,23 @@ async function entrarNoApp() {
 async function carregarCadastrosDaLoja() {
   if (!lojaAtual?.id) return
   try {
-    const [clientes, fornecedores, mecanicos, catalogo] = await Promise.all([
+    const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas] = await Promise.all([
       db.clientes.list(lojaAtual.id),
       db.fornecedores.list(lojaAtual.id),
       db.mecanicos.list(lojaAtual.id),
-      db.catalogo.list(lojaAtual.id)
+      db.catalogo.list(lojaAtual.id),
+      db.orcamentos.list(lojaAtual.id),
+      db.os.list(lojaAtual.id),
+      db.estoque.list(lojaAtual.id)
     ])
     cliData = clientes
     fornData = fornecedores
     mecData = mecanicos
     srvCatData = catalogo
-    console.log(`[FIEL] Cadastros carregados: ${cliData.length} clientes, ${fornData.length} fornecedores, ${mecData.length} mecânicos, ${srvCatData.length} serviços`)
+    orcData = orcamentos
+    osData = ordens
+    estData = pecas
+    console.log(`[FIEL] Dados carregados: ${cliData.length} clientes, ${fornData.length} fornecedores, ${mecData.length} mecânicos, ${srvCatData.length} serviços, ${orcData.length} orçamentos, ${osData.length} OS, ${estData.length} peças`)
   } catch (e) {
     console.error('Erro ao carregar cadastros:', e)
     toast('Erro ao carregar dados da loja: ' + (e.message || ''), 5000)
@@ -6282,7 +6481,7 @@ function atualizarTotalOrc() {
   document.getElementById('orc-t-tot').textContent = fmt(total)
 }
 
-function salvarOrc() {
+async function salvarOrc() {
   const cliId = parseInt(document.getElementById('orc_cli').value)
   const cli = cliData.find(c => c.id === cliId)
   const pla = document.getElementById('orc_vei').value
@@ -6296,33 +6495,48 @@ function salvarOrc() {
   const vei = cli.veiculos.find(v => v.pla === pla) || cli.veiculos[0]
   const vd = document.getElementById('orc_val').value
 
-  /* Se está em modo edição, atualiza o existente */
-  if (orcEditId) {
-    const o = orcData.find(x => x.id === orcEditId)
-    if (o) {
-      o.cliId = cliId; o.cliNome = cli.nome; o.vei = vei.vei; o.pla = vei.pla
-      o.srvs = [...orcTempSrvs]; o.pecs = [...orcTempPecs]
-      o.tSrv = tS; o.tPec = tP; o.descSrv = dS; o.descPec = dP; o.total = total
-      o.mostrarDesc = document.getElementById('orc_mostrarDesc').checked
-      o.validade = vd ? new Date(vd + 'T12:00').toLocaleDateString('pt-BR') : o.validade
-      o.obs = document.getElementById('orc_obs').value
-      o.mec = document.getElementById('orc_mec').value
-      orcEditId = null
-      orcTempSrvs = []; orcTempPecs = []
-      fecharModal('mOrcAdd')
-      toast(o.id + ' atualizado.')
-      renderOrc(); renderTimeline(); updateBadge(); saveState()
-      return
-    }
+  const dadosOrc = {
+    cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla,
+    srvs: [...orcTempSrvs], pecs: [...orcTempPecs],
+    tSrv: tS, tPec: tP, descSrv: dS, descPec: dP, total,
+    mostrarDesc: document.getElementById('orc_mostrarDesc').checked,
+    validade: vd ? new Date(vd + 'T12:00').toLocaleDateString('pt-BR') : '—',
+    obs: document.getElementById('orc_obs').value,
+    mec: document.getElementById('orc_mec').value,
+    data: fmtD()
   }
 
-  const id = 'ORC-0' + String(++orcCounter).padStart(2, '0')
-  orcData.unshift({ id, data: fmtD(), cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla, srvs: [...orcTempSrvs], pecs: [...orcTempPecs], tSrv: tS, tPec: tP, descSrv: dS, descPec: dP, mostrarDesc: document.getElementById('orc_mostrarDesc').checked, total, validade: vd ? new Date(vd + 'T12:00').toLocaleDateString('pt-BR') : '—', obs: document.getElementById('orc_obs').value, mec: document.getElementById('orc_mec').value, status: 'Aguardando aprovação', osId: null })
-  orcTempSrvs = []; orcTempPecs = []
-  atualizarTotalOrc()
-  fecharModal('mOrcAdd')
-  toast('Orçamento criado. Aguardando aprovação do cliente.', 4000)
-  renderOrc(); renderTimeline(); updateBadge(); saveState()
+  try {
+    if (orcEditId) {
+      const o = orcData.find(x => x.id === orcEditId)
+      if (o) {
+        dadosOrc.status = o.status
+        dadosOrc.osId = o.osId
+        dadosOrc.data = o.data
+        const atualizado = await db.orcamentos.update(orcEditId, dadosOrc)
+        Object.assign(o, atualizado)
+        orcEditId = null
+        orcTempSrvs = []; orcTempPecs = []
+        fecharModal('mOrcAdd')
+        toast('Orçamento atualizado.')
+        renderOrc(); renderTimeline(); updateBadge()
+        return
+      }
+    }
+
+    dadosOrc.status = 'Aguardando aprovação'
+    const novo = await db.orcamentos.create(lojaAtual.id, dadosOrc)
+    novo.id = novo.id  /* bigint do DB */
+    orcData.unshift(novo)
+    orcTempSrvs = []; orcTempPecs = []
+    atualizarTotalOrc()
+    fecharModal('mOrcAdd')
+    toast('Orçamento criado. Aguardando aprovação do cliente.', 4000)
+    renderOrc(); renderTimeline(); updateBadge()
+  } catch (e) {
+    console.error('Erro salvarOrc:', e)
+    toast('Erro ao salvar orçamento: ' + (e.message || ''), 5000)
+  }
 }
 
 /* Navegação entre steps do modal de orçamento */
@@ -6366,19 +6580,21 @@ function editarOrc(id) {
   abrirModal('mOrcAdd')
 }
 
-function reabrirOrc(id) {
+async function reabrirOrc(id) {
   const o = orcData.find(x => x.id === id); if (!o) return
   if (o.status === 'OS gerada' && o.osId) {
-    if (!confirm(`Este orçamento já gerou ${o.osId}. Reabrir vai cancelar a OS associada. Continuar?`)) return
+    if (!confirm(`Este orçamento já gerou uma OS. Reabrir vai cancelar a OS associada. Continuar?`)) return
     const os = osData.find(x => x.id === o.osId)
     if (os) {
-      if (os.finId) { toast('⚠️ OS ' + os.id + ' já tem receita lançada. Cancele a receita antes.', 4500); return }
+      if (os.finId) { toast('⚠️ OS já tem receita lançada. Cancele a receita antes.', 4500); return }
       os.status = 'Cancelada'
+      try { await db.os.update(os.id, { status: 'Cancelada' }) } catch (_) {}
     }
     o.osId = null
   }
   o.status = 'Aguardando aprovação'
-  toast(o.id + ' reaberto para edição.', 3500)
+  try { await db.orcamentos.update(o.id, { status: 'Aguardando aprovação', osId: null }) } catch (_) {}
+  toast('Orçamento reaberto para edição.', 3500)
   renderOrc(); renderTimeline(); updateBadge(); saveState()
 }
 
@@ -6501,33 +6717,52 @@ function recusarOrc(id) {
   renderOrc(); renderTimeline(); updateBadge(); saveState()
 }
 
-function gerarOS(orcId) {
+async function gerarOS(orcId) {
   const o = orcData.find(x => x.id === orcId); if (!o) return
-  const id = 'OS-00' + String(osCounter++).padStart(2, '0')
-  const srvDesc = o.srvs.map(s => s.desc).join(' | ')
+  const srvDesc = (o.srvs || []).map(s => s.desc).join(' | ')
   const cli = cliData.find(c => c.id === o.cliId)
   const vei = cli?.veiculos.find(v => v.pla === o.pla) || cli?.veiculos[0]
-  osData.unshift({ id, data: fmtD(), orcId: o.id, cliId: o.cliId, cliNome: o.cliNome, vei: o.vei, pla: o.pla, km: vei?.km || 0, srv: srvDesc, mec: o.mec, vsrv: o.tSrv, vpec: o.tPec, descSrv: o.descSrv || 0, descPec: o.descPec || 0, total: o.total, status: 'Aberta', prior: 'Normal', prev: 'A confirmar', check: '', finId: null })
-  o.status = 'OS gerada'; o.osId = id
 
-  /* Baixa automática no estoque para peças vindas do catálogo */
-  const baixas = []
-  ;(o.pecs || []).forEach(p => {
-    if (p.estoqueId) {
-      const item = estData.find(e => e.id === p.estoqueId)
-      if (item) {
-        const novaQtd = Math.max(0, item.qtd - (p.qtd || 1))
-        baixas.push(`${item.nome}: ${item.qtd} → ${novaQtd}`)
-        item.qtd = novaQtd
+  try {
+    const novaOS = await db.os.create(lojaAtual.id, {
+      orcId: o.id,
+      cliId: o.cliId, cliNome: o.cliNome,
+      vei: o.vei, pla: o.pla, km: vei?.km || 0,
+      srv: srvDesc, mec: o.mec,
+      vsrv: o.tSrv, vpec: o.tPec,
+      total: o.total,
+      status: 'Aberta', prior: 'Normal', prev: 'A confirmar',
+      data: fmtD()
+    })
+    osData.unshift(novaOS)
+
+    /* Atualiza status do orçamento */
+    o.status = 'OS gerada'; o.osId = novaOS.id
+    await db.orcamentos.update(o.id, { status: 'OS gerada', osId: novaOS.id })
+
+    /* Baixa automática no estoque para peças vindas do catálogo */
+    const baixas = []
+    for (const p of (o.pecs || [])) {
+      if (p.estoqueId) {
+        const item = estData.find(e => e.id === p.estoqueId)
+        if (item) {
+          const novaQtd = Math.max(0, item.qtd - (p.qtd || 1))
+          baixas.push(`${item.nome}: ${item.qtd} → ${novaQtd}`)
+          item.qtd = novaQtd
+          try { await db.estoque.update(item.id, { qtd: novaQtd }) } catch (_) {}
+        }
       }
     }
-  })
-  if (baixas.length) {
-    setTimeout(() => toast(`Estoque atualizado: ${baixas.length} item(ns) com baixa.`, 4000), 800)
-  }
+    if (baixas.length) {
+      setTimeout(() => toast(`Estoque atualizado: ${baixas.length} item(ns) com baixa.`, 4000), 800)
+    }
 
-  toast(id + ' gerada automaticamente. Indo para Ordens de Serviço...', 4500)
-  setTimeout(() => irParaPasso(3), 1200); saveState()
+    toast(`OS #${novaOS.numero} gerada automaticamente. Indo para Ordens de Serviço...`, 4500)
+    setTimeout(() => irParaPasso(3), 1200)
+  } catch (e) {
+    console.error('Erro gerarOS:', e)
+    toast('Erro ao gerar OS: ' + (e.message || ''), 5000)
+  }
 }
 
 /* ── ORDENS DE SERVIÇO ───────────────────────────── */
@@ -6538,16 +6773,19 @@ function populateOSSelects() {
     osData.filter(o => o.status === 'Concluída' && !o.finId).map(o => `<option value="${o.id}">${o.id} — ${o.cliNome} (${fmt(o.total)})</option>`).join('')
 }
 
-function changeOSStatus(id, s) {
+async function changeOSStatus(id, s) {
   const o = osData.find(x => x.id === id); if (!o) return
   if (s === 'Cancelada' && o.status !== 'Cancelada') {
     if (!confirmar(`Cancelar a OS ${id}? Esta ação pode ser desfeita.`)) { renderOS(); return }
   }
   const statusAnterior = o.status
   o.status = s
+  const updatePayload = { status: s }
+
   /* Preenche dataConclusao automaticamente quando vira "Concluída" */
   if (s === 'Concluída' && statusAnterior !== 'Concluída') {
     o.dataConclusao = fmtD()
+    updatePayload.dataConclusao = o.dataConclusao
     /* Calcula data fim da garantia baseado no maior prazo dos serviços usados */
     let maxDias = 0
     if (Array.isArray(o.servicos) && o.servicos.length) {
@@ -6557,23 +6795,30 @@ function changeOSStatus(id, s) {
         if (dias > maxDias) maxDias = dias
       })
     }
-    /* Fallback: 90 dias padrão se nada configurado mas a oficina quer rastrear */
     if (maxDias > 0) {
       const fim = new Date(); fim.setDate(fim.getDate() + maxDias)
       o.garantiaAte = fim.toLocaleDateString('pt-BR')
       o.garantiaDias = maxDias
+      updatePayload.garantiaAte = o.garantiaAte
+      updatePayload.garantiaDias = maxDias
     }
     populateOSSelects()
     logAtividade('os_concluida', `${id} concluída — ${o.cliNome || ''}${maxDias > 0 ? ` · Garantia ${maxDias}d` : ''}`)
     toast(`OS concluída.${maxDias > 0 ? ' Garantia até ' + o.garantiaAte + '.' : ''} Clique em 💰 para lançar receita.`, 5000)
   } else if (s !== 'Concluída' && statusAnterior === 'Concluída') {
-    /* Se reabrir uma OS concluída, limpa a data */
     delete o.dataConclusao
+    updatePayload.dataConclusao = ''
     toast(id + ' → ' + s)
   } else {
     toast(id + ' → ' + s)
   }
   logAtividade('os_status', `${id} → ${s}`)
+
+  try {
+    await db.os.update(o.id, updatePayload)
+  } catch (e) {
+    console.warn('Erro ao salvar status OS:', e)
+  }
   renderOS(); renderTimeline(); updateBadge(); saveState()
 }
 
@@ -6653,7 +6898,7 @@ function renderOS() {
   updateSbSteps()
 }
 
-function salvarOSManual() {
+async function salvarOSManual() {
   const cliId = parseInt(document.getElementById('os_cli').value)
   const cli = cliData.find(c => c.id === cliId)
   const srv = document.getElementById('os_srv').value.trim()
@@ -6663,26 +6908,39 @@ function salvarOSManual() {
   const vsrv = parseFloat(document.getElementById('os_vsrv').value) || 0
   const vpec = parseFloat(document.getElementById('os_vpec').value) || 0
 
-  /* Modo edição */
-  if (osEditId) {
-    const o = osData.find(x => x.id === osEditId)
-    if (o) {
-      o.cliId = cliId; o.cliNome = cli.nome; o.vei = vei.vei; o.pla = vei.pla; o.km = vei.km || 0
-      o.srv = srv; o.mec = document.getElementById('os_mec2').value
-      o.vsrv = vsrv; o.vpec = vpec; o.total = vsrv + vpec
-      o.prior = document.getElementById('os_prior').value
-      o.prev = document.getElementById('os_prev').value || o.prev
-      o.check = document.getElementById('os_check').value
-      osEditId = null
-      fecharModal('mOsAdd'); toast(o.id + ' atualizada.')
-      renderOS(); renderTimeline(); updateBadge()
-      return
-    }
+  const dadosOS = {
+    cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla, km: vei.km || 0,
+    srv, mec: document.getElementById('os_mec2').value || mecData[0]?.nome,
+    vsrv, vpec, total: vsrv + vpec,
+    prior: document.getElementById('os_prior').value,
+    prev: document.getElementById('os_prev').value || 'A confirmar',
+    obsCheck: document.getElementById('os_check').value,
+    data: fmtD()
   }
 
-  const id = 'OS-00' + String(osCounter++).padStart(2, '0')
-  osData.unshift({ id, data: fmtD(), orcId: null, cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla, km: vei.km || 0, srv, mec: document.getElementById('os_mec2').value || mecData[0]?.nome, vsrv, vpec, total: vsrv + vpec, status: 'Aberta', prior: document.getElementById('os_prior').value, prev: document.getElementById('os_prev').value || 'A confirmar', check: document.getElementById('os_check').value, finId: null })
-  fecharModal('mOsAdd'); toast(id + ' aberta manualmente.'); renderOS(); renderTimeline(); updateBadge(); saveState()
+  try {
+    if (osEditId) {
+      const o = osData.find(x => x.id === osEditId)
+      if (o) {
+        dadosOS.status = o.status
+        const atualizado = await db.os.update(osEditId, dadosOS)
+        Object.assign(o, atualizado)
+        osEditId = null
+        fecharModal('mOsAdd'); toast('OS atualizada.')
+        renderOS(); renderTimeline(); updateBadge()
+        return
+      }
+    }
+
+    dadosOS.status = 'Aberta'
+    const novaOS = await db.os.create(lojaAtual.id, dadosOS)
+    osData.unshift(novaOS)
+    fecharModal('mOsAdd'); toast(`OS #${novaOS.numero} aberta manualmente.`)
+    renderOS(); renderTimeline(); updateBadge()
+  } catch (e) {
+    console.error('Erro salvarOSManual:', e)
+    toast('Erro ao salvar OS: ' + (e.message || ''), 5000)
+  }
 }
 
 /* ── FINANCEIRO ──────────────────────────────────── */
@@ -7656,10 +7914,25 @@ function renderEst() {
     </tr>`
   }).join('') : `<tr><td colspan="8"><div class="empty">Nenhuma peça encontrada</div></td></tr>`
 }
-function salvarPeca() {
+async function salvarPeca() {
   const nome = document.getElementById('pec_nome').value.trim(); if (!nome) { toast('Informe o nome da peça'); return }
-  estData.unshift({ id: estCounter++, cod: document.getElementById('pec_cod').value || `PEC-${estCounter}`, nome, cat: document.getElementById('pec_cat').value, qtd: parseInt(document.getElementById('pec_qtd').value) || 0, min: parseInt(document.getElementById('pec_min').value) || 1, custo: parseFloat(document.getElementById('pec_custo').value) || 0, preco: parseFloat(document.getElementById('pec_preco').value) || 0 })
-  fecharModal('mPecaAdd'); toast('"' + nome + '" cadastrada.'); renderEst(); renderEstMetrics(); saveState()
+  const dados = {
+    cod: document.getElementById('pec_cod').value || `PEC-${String(estData.length + 1).padStart(3,'0')}`,
+    nome,
+    cat: document.getElementById('pec_cat').value,
+    qtd: parseInt(document.getElementById('pec_qtd').value) || 0,
+    min: parseInt(document.getElementById('pec_min').value) || 1,
+    custo: parseFloat(document.getElementById('pec_custo').value) || 0,
+    preco: parseFloat(document.getElementById('pec_preco').value) || 0
+  }
+  try {
+    const novo = await db.estoque.create(lojaAtual.id, dados)
+    estData.unshift(novo)
+    fecharModal('mPecaAdd'); toast('"' + nome + '" cadastrada.')
+    renderEst(); renderEstMetrics()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 5000)
+  }
 }
 
 /* ── CATÁLOGO DE SERVIÇOS ───────────────────────── */
@@ -8622,7 +8895,7 @@ function chkRowEstado(item, cur, tipo) {
   </div>`
 }
 
-function salvarChecklist() {
+async function salvarChecklist() {
   const o = osData.find(x => x.id === _chkOsAtual); if (!o) return
   const avariasExt = {}, itensInt = {}, acessorios = {}
 
@@ -8653,6 +8926,10 @@ function salvarChecklist() {
   }
   /* Atualiza km da OS também */
   if (o.checklist.km) o.km = o.checklist.km
+
+  try {
+    await db.os.update(o.id, { checklist: o.checklist, km: o.km })
+  } catch (e) { console.warn('Erro ao salvar checklist no Supabase:', e) }
 
   logAtividade('os_status', `Checklist preenchido para OS-${o.id}`)
   fecharModal('mChecklist')
