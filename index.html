@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="FIEL Oficina">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="FIEL — Sistema de gestão de oficinas mecânicas">
-<title>FIEL v3 — Gestão de Empresas</title>
+<title>FIEL v4 — Gestão de Empresas</title>
 <script>
 /* Aplica tema ANTES de qualquer render pra evitar flash */
 (function(){
@@ -527,7 +527,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
         <li><i class="ti ti-circle-check-filled"></i><div><b>WhatsApp integrado</b> · Envie orçamentos com 1 clique</div></li>
       </ul>
     </div>
-    <div class="auth-brand-foot">FIEL · Soluções para gestão · v3.0</div>
+    <div class="auth-brand-foot">FIEL · Soluções para gestão · v4.0</div>
   </div>
 
   <!-- LADO DIREITO: FORMULÁRIOS -->
@@ -735,7 +735,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     </div>
     <button class="sb-user-logout" onclick="fazerLogout()" title="Sair"><i class="ti ti-logout"></i></button>
   </div>
-  <div class="sb-foot"><span class="sdot"></span> v3.0 &nbsp;·&nbsp; Online</div>
+  <div class="sb-foot"><span class="sdot"></span> v4.0 &nbsp;·&nbsp; Online</div>
 </aside>
 
 <div class="main">
@@ -1600,7 +1600,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
 <script>
 /* ===================================================
-   FIEL v3 — JavaScript
+   FIEL v4 — JavaScript
    Fluxo TRAVADO: 1 Clientes → 2 Orçamentos → 3 OS → 4 Financeiro
    =================================================== */
 
@@ -9233,7 +9233,7 @@ document.addEventListener('click', e => {
 /* Botão de limpar dados (no rodapé da sidebar) */
 const sbFoot = document.querySelector('.sb-foot')
 if (sbFoot && !sbFoot.querySelector('.btn-limpar')) {
-  sbFoot.innerHTML = `<span class="sdot"></span> v3.0 &nbsp;·&nbsp; Online &nbsp;·&nbsp; <button class="btn-limpar" onclick="limparDados()" style="background:transparent;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:0;text-decoration:underline" title="Apagar todos os dados">limpar</button>`
+  sbFoot.innerHTML = `<span class="sdot"></span> v4.0 &nbsp;·&nbsp; Online &nbsp;·&nbsp; <button class="btn-limpar" onclick="limparDados()" style="background:transparent;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:0;text-decoration:underline" title="Apagar todos os dados">limpar</button>`
 }
 
 /* ──── Fluxo de autenticação ────
