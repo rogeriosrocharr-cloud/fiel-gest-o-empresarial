@@ -2359,6 +2359,173 @@ const db = {
       const { error } = await sbClient.from('estoque').delete().eq('id', id)
       if (error) throw error
     }
+  },
+
+  /* ─── ENTRADAS (receitas) ─── */
+  entradas: {
+    _mapFromDB(r) {
+      return {
+        id: r.id, numero: r.numero, data: r.data || '', dataVenc: r.data_venc || null,
+        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: r.descricao || '',
+        cat: r.cat || '', tipo: r.tipo || 'os',
+        vsrv: Number(r.v_srv) || 0, vpec: Number(r.v_pec) || 0,
+        descSrv: Number(r.desc_srv) || 0, descPec: Number(r.desc_pec) || 0,
+        subSrv: Number(r.sub_srv) || 0, subPec: Number(r.sub_pec) || 0,
+        total: Number(r.total) || 0,
+        forma: r.forma || '', status: r.status || 'Recebido',
+        reconciliada: !!r.reconciliada, ofxDesc: r.ofx_desc || ''
+      }
+    },
+    _mapToDB(d) {
+      const o = {}
+      if (d.data !== undefined) o.data = d.data || null
+      if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
+      if (d.osId !== undefined) o.os_id = d.osId || null
+      if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
+      if (d.desc !== undefined) o.descricao = d.desc || null
+      ;['cat','tipo','forma','status'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
+      if (d.vsrv !== undefined) o.v_srv = Number(d.vsrv) || 0
+      if (d.vpec !== undefined) o.v_pec = Number(d.vpec) || 0
+      if (d.descSrv !== undefined) o.desc_srv = Number(d.descSrv) || 0
+      if (d.descPec !== undefined) o.desc_pec = Number(d.descPec) || 0
+      if (d.subSrv !== undefined) o.sub_srv = Number(d.subSrv) || 0
+      if (d.subPec !== undefined) o.sub_pec = Number(d.subPec) || 0
+      if (d.total !== undefined) o.total = Number(d.total) || 0
+      if (d.reconciliada !== undefined) o.reconciliada = !!d.reconciliada
+      if (d.ofxDesc !== undefined) o.ofx_desc = d.ofxDesc || null
+      return o
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('entradas').select('*').eq('loja_id', lojaId).order('id', { ascending: false })
+      if (error) throw error
+      return (data || []).map(r => this._mapFromDB(r))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'ent' })
+      if (numErr) throw numErr
+      const payload = { loja_id: lojaId, numero: numData, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('entradas').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('entradas').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('entradas').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── SAÍDAS (despesas) ─── */
+  saidas: {
+    _mapFromDB(d) {
+      return {
+        id: d.id, numero: d.numero, data: d.data || '', dataVenc: d.data_venc || null,
+        desc: d.descricao || '', cat: d.cat || '',
+        fornecedor: d.fornecedor || '', fornId: d.fornecedor_id || null,
+        valor: Number(d.valor) || 0, forma: d.forma || '',
+        status: d.status || 'Pago'
+      }
+    },
+    _mapToDB(d) {
+      const o = {}
+      if (d.data !== undefined) o.data = d.data || null
+      if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
+      if (d.desc !== undefined) o.descricao = d.desc || null
+      ;['cat','forma','status','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
+      if (d.fornId !== undefined) o.fornecedor_id = d.fornId || null
+      if (d.valor !== undefined) o.valor = Number(d.valor) || 0
+      return o
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('saidas').select('*').eq('loja_id', lojaId).order('id', { ascending: false })
+      if (error) throw error
+      return (data || []).map(d => this._mapFromDB(d))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'sai' })
+      if (numErr) throw numErr
+      const payload = { loja_id: lojaId, numero: numData, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('saidas').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('saidas').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('saidas').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── BANCO / OFX ─── */
+  banco: {
+    _mapFromDB(b) {
+      return {
+        id: b.id, data: b.data || '', desc: b.descricao || '',
+        valor: Number(b.valor) || 0, tipo: b.tipo || '',
+        conciliada: !!b.conciliada, conciliadaCom: b.conciliada_com || null
+      }
+    },
+    _mapToDB(d) {
+      const o = {}
+      ;['data','tipo'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
+      if (d.desc !== undefined) o.descricao = d.desc || null
+      if (d.valor !== undefined) o.valor = Number(d.valor) || 0
+      if (d.conciliada !== undefined) o.conciliada = !!d.conciliada
+      if (d.conciliadaCom !== undefined) o.conciliada_com = d.conciliadaCom || null
+      return o
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('banco_transacoes').select('*').eq('loja_id', lojaId).order('id', { ascending: false })
+      if (error) throw error
+      return (data || []).map(b => this._mapFromDB(b))
+    },
+    async createBatch(lojaId, items) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const rows = items.map(d => ({ loja_id: lojaId, ...this._mapToDB(d) }))
+      const { data, error } = await sbClient.from('banco_transacoes').insert(rows).select()
+      if (error) throw error
+      return (data || []).map(b => this._mapFromDB(b))
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('banco_transacoes').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    }
+  },
+
+  /* ─── CATEGORIAS CUSTOMIZADAS ─── */
+  categorias: {
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('categorias_custom').select('*').eq('loja_id', lojaId).order('nome')
+      if (error) throw error
+      const rec = [], desp = []
+      ;(data || []).forEach(c => { (c.tipo === 'rec' ? rec : desp).push(c.nome) })
+      return { rec, desp }
+    },
+    async add(lojaId, tipo, nome) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('categorias_custom').insert({ loja_id: lojaId, tipo, nome })
+      if (error && !error.message.includes('duplicate')) throw error
+    }
   }
 }
 const STORAGE_KEY_LOJAS = 'autogestao_v3_lojas'
@@ -3313,14 +3480,18 @@ async function entrarNoApp() {
 async function carregarCadastrosDaLoja() {
   if (!lojaAtual?.id) return
   try {
-    const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas] = await Promise.all([
+    const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias] = await Promise.all([
       db.clientes.list(lojaAtual.id),
       db.fornecedores.list(lojaAtual.id),
       db.mecanicos.list(lojaAtual.id),
       db.catalogo.list(lojaAtual.id),
       db.orcamentos.list(lojaAtual.id),
       db.os.list(lojaAtual.id),
-      db.estoque.list(lojaAtual.id)
+      db.estoque.list(lojaAtual.id),
+      db.entradas.list(lojaAtual.id),
+      db.saidas.list(lojaAtual.id),
+      db.banco.list(lojaAtual.id),
+      db.categorias.list(lojaAtual.id)
     ])
     cliData = clientes
     fornData = fornecedores
@@ -3329,7 +3500,12 @@ async function carregarCadastrosDaLoja() {
     orcData = orcamentos
     osData = ordens
     estData = pecas
-    console.log(`[FIEL] Dados carregados: ${cliData.length} clientes, ${fornData.length} fornecedores, ${mecData.length} mecânicos, ${srvCatData.length} serviços, ${orcData.length} orçamentos, ${osData.length} OS, ${estData.length} peças`)
+    recData = entradas
+    despData = saidas
+    bancData = banco
+    recCatCustom = categorias.rec
+    despCatCustom = categorias.desp
+    console.log(`[FIEL] Dados carregados: ${cliData.length} clientes, ${fornData.length} fornecedores, ${mecData.length} mecânicos, ${srvCatData.length} serviços, ${orcData.length} orçamentos, ${osData.length} OS, ${estData.length} peças, ${recData.length} entradas, ${despData.length} saídas, ${bancData.length} transações banco`)
   } catch (e) {
     console.error('Erro ao carregar cadastros:', e)
     toast('Erro ao carregar dados da loja: ' + (e.message || ''), 5000)
@@ -7314,89 +7490,97 @@ function popularFornecedoresList() {
   dl.innerHTML = todos.map(f => `<option value="${f.replace(/"/g, '&quot;')}">`).join('')
 }
 
-function salvarReceita() {
+async function salvarReceita() {
   const dataVencISO = document.getElementById('rec_venc').value
   const dataVencFmt = dataVencISO ? new Date(dataVencISO + 'T12:00').toLocaleDateString('pt-BR') : null
 
-  if (_recTipoModo === 'os') {
-    const vsrv = parseFloat(document.getElementById('rec_vsrv').value) || 0
-    const vpec = parseFloat(document.getElementById('rec_vpec').value) || 0
-    const dsrv = parseFloat(document.getElementById('rec_dsrv').value) || 0
-    const dpec = parseFloat(document.getElementById('rec_dpec').value) || 0
-    const data = document.getElementById('rec_data').value
-    if (!data || (vsrv + vpec) === 0) { toast('Preencha data e valores', 4000); return }
-    const subSrv = vsrv * (1 - dsrv / 100)
-    const subPec = vpec * (1 - dpec / 100)
-    const total = subSrv + subPec
-    const osId = document.getElementById('rec_os').value
-    const os = osData.find(o => o.id === osId)
-    const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
+  try {
+    if (_recTipoModo === 'os') {
+      const vsrv = parseFloat(document.getElementById('rec_vsrv').value) || 0
+      const vpec = parseFloat(document.getElementById('rec_vpec').value) || 0
+      const dsrv = parseFloat(document.getElementById('rec_dsrv').value) || 0
+      const dpec = parseFloat(document.getElementById('rec_dpec').value) || 0
+      const data = document.getElementById('rec_data').value
+      if (!data || (vsrv + vpec) === 0) { toast('Preencha data e valores', 4000); return }
+      const subSrv = vsrv * (1 - dsrv / 100)
+      const subPec = vpec * (1 - dpec / 100)
+      const total = subSrv + subPec
+      const osId = document.getElementById('rec_os').value
+      const os = osData.find(o => o.id == osId)
+      const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
 
-    if (recEditId) {
-      const r = recData.find(x => x.id === recEditId); if (!r) return
-      Object.assign(r, {
-        data: dataFmt, dataVenc: dataVencFmt, osId: osId || null, cliNome: os ? os.cliNome : r.cliNome,
-        vsrv, vpec, descSrv: dsrv, descPec: dpec, subSrv, subPec, total,
+      const dados = {
+        data: dataFmt, dataVenc: dataVencFmt, osId: osId || null,
+        cliNome: os ? os.cliNome : '', vsrv, vpec, descSrv: dsrv, descPec: dpec,
+        subSrv, subPec, total,
         cat: vsrv > 0 && vpec > 0 ? 'Serviços + Peças (OS)' : (vpec > 0 ? 'Peças (OS)' : 'Serviços (OS)'),
         forma: document.getElementById('rec_forma').value,
         status: document.getElementById('rec_status').value,
         tipo: 'os'
-      })
-      logAtividade('rec_edit', `Entrada OS-${osId || r.id} editada`)
-      toast('Entrada atualizada.', 3500)
-    } else {
-      const id = recCounter++
-      recData.unshift({
-        id, data: dataFmt, dataVenc: dataVencFmt, osId: osId || null,
-        cliNome: os ? os.cliNome : '—', vsrv, vpec, descSrv: dsrv, descPec: dpec, subSrv, subPec, total,
-        cat: vsrv > 0 && vpec > 0 ? 'Serviços + Peças (OS)' : (vpec > 0 ? 'Peças (OS)' : 'Serviços (OS)'),
-        forma: document.getElementById('rec_forma').value,
-        status: document.getElementById('rec_status').value,
-        reconciliada: false, tipo: 'os'
-      })
-      if (os) os.finId = id
-      logAtividade('rec_novo', `Entrada OS-${osId || id} · ${fmt(total)}`)
-      toast('Entrada lançada.', 3000)
-    }
-  } else {
-    /* Modo avulsa */
-    const desc = document.getElementById('rec_av_desc').value.trim()
-    const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
-    const data = document.getElementById('rec_av_data').value
-    if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 4000); return }
-    const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
-    const cat = document.getElementById('rec_av_cat').value
-    const cli = document.getElementById('rec_av_cli').value.trim()
+      }
 
-    if (recEditId) {
-      const r = recData.find(x => x.id === recEditId); if (!r) return
-      Object.assign(r, {
+      if (recEditId) {
+        const r = recData.find(x => x.id === recEditId); if (!r) return
+        const atualizado = await db.entradas.update(recEditId, dados)
+        Object.assign(r, atualizado)
+        logAtividade('rec_edit', `Entrada OS editada`)
+        toast('Entrada atualizada.', 3500)
+      } else {
+        const novo = await db.entradas.create(lojaAtual.id, dados)
+        recData.unshift(novo)
+        if (os) {
+          os.finId = novo.id
+          try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
+        }
+        logAtividade('rec_novo', `Entrada OS · ${fmt(total)}`)
+        toast('Entrada lançada.', 3000)
+      }
+    } else {
+      /* Modo avulsa */
+      const desc = document.getElementById('rec_av_desc').value.trim()
+      const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
+      const data = document.getElementById('rec_av_data').value
+      if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 4000); return }
+      const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
+      const cat = document.getElementById('rec_av_cat').value
+      const cli = document.getElementById('rec_av_cli').value.trim()
+
+      const dados = {
         data: dataFmt, dataVenc: dataVencFmt, osId: null, cliNome: cli || desc, desc, cat,
         vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
         forma: document.getElementById('rec_forma').value,
         status: document.getElementById('rec_status').value,
         tipo: 'avulsa'
-      })
-      logAtividade('rec_edit', `Receita avulsa editada`)
-      toast('Entrada atualizada.', 3500)
-    } else {
-      recData.unshift({
-        id: recCounter++, data: dataFmt, dataVenc: dataVencFmt, osId: null,
-        cliNome: cli || desc, desc, cat,
-        vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
-        forma: document.getElementById('rec_forma').value,
-        status: document.getElementById('rec_status').value,
-        reconciliada: false, tipo: 'avulsa'
-      })
-      logAtividade('rec_novo', `Receita avulsa: ${desc} · ${fmt(valor)}`)
-      toast('Receita avulsa lançada.', 3000)
+      }
+
+      if (recEditId) {
+        const r = recData.find(x => x.id === recEditId); if (!r) return
+        const atualizado = await db.entradas.update(recEditId, dados)
+        Object.assign(r, atualizado)
+        logAtividade('rec_edit', `Receita avulsa editada`)
+        toast('Entrada atualizada.', 3500)
+      } else {
+        const novo = await db.entradas.create(lojaAtual.id, dados)
+        recData.unshift(novo)
+        logAtividade('rec_novo', `Receita avulsa: ${desc} · ${fmt(valor)}`)
+        toast('Receita avulsa lançada.', 3000)
+      }
+
+      /* Salvar categoria customizada se for nova */
+      if (cat && !REC_CAT_PADRAO.includes(cat) && !recCatCustom.includes(cat)) {
+        recCatCustom.push(cat)
+        try { await db.categorias.add(lojaAtual.id, 'rec', cat) } catch (_) {}
+      }
     }
+    fecharModal('mFinRec'); resetModalRec()
+    renderFinMetrics(); renderMov(); renderBancoExtrato(); updateBadge(); renderDash()
+  } catch (e) {
+    console.error('Erro salvarReceita:', e)
+    toast('Erro ao salvar entrada: ' + (e.message || ''), 5000)
   }
-  fecharModal('mFinRec'); resetModalRec()
-  renderFinMetrics(); renderMov(); renderBancoExtrato(); updateBadge(); renderDash(); saveState()
 }
 
-function salvarDespesa() {
+async function salvarDespesa() {
   const desc = document.getElementById('desp_desc').value.trim()
   const valor = parseFloat(document.getElementById('desp_valor').value) || 0
   const data = document.getElementById('desp_data').value
@@ -7407,38 +7591,50 @@ function salvarDespesa() {
   const fornecedor = document.getElementById('desp_fornecedor').value.trim()
   const fornMatch = fornecedor ? fornData.find(f => (f.nome || '').toLowerCase() === fornecedor.toLowerCase()) : null
   const fornId = fornMatch ? fornMatch.id : null
+  const cat = document.getElementById('desp_cat').value
 
-  if (despEditId) {
-    const d = despData.find(x => x.id === despEditId); if (!d) return
-    Object.assign(d, {
-      data: dataFmt, dataVenc: dataVencFmt, desc, fornecedor, fornId,
-      cat: document.getElementById('desp_cat').value,
-      valor, forma: document.getElementById('desp_forma').value,
-      status: document.getElementById('desp_status').value
-    })
-    logAtividade('desp_edit', `Saída editada: ${desc}`)
-    toast('Saída atualizada.', 3500)
-  } else {
-    despData.unshift({
-      id: despCounter++, data: dataFmt, dataVenc: dataVencFmt, desc, fornecedor, fornId,
-      cat: document.getElementById('desp_cat').value,
-      valor, forma: document.getElementById('desp_forma').value,
-      status: document.getElementById('desp_status').value
-    })
-    logAtividade('desp_novo', `${desc} · ${fmt(valor)}${fornecedor ? ' · ' + fornecedor : ''}`)
-    toast('Saída registrada.', 3000)
+  const dados = {
+    data: dataFmt, dataVenc: dataVencFmt, desc, fornecedor, fornId,
+    cat, valor,
+    forma: document.getElementById('desp_forma').value,
+    status: document.getElementById('desp_status').value
   }
-  fecharModal('mFinDesp'); resetModalDesp()
-  if (fornecedor && !fornMatch) {
-    setTimeout(() => {
-      if (confirm(`O fornecedor "${fornecedor}" não está cadastrado.\n\nDeseja cadastrá-lo agora para acompanhar o histórico de gastos?`)) {
-        resetModalForn()
-        document.getElementById('forn_nome').value = fornecedor
-        abrirModal('mFornAdd')
-      }
-    }, 200)
+
+  try {
+    if (despEditId) {
+      const d = despData.find(x => x.id === despEditId); if (!d) return
+      const atualizado = await db.saidas.update(despEditId, dados)
+      Object.assign(d, atualizado)
+      logAtividade('desp_edit', `Saída editada: ${desc}`)
+      toast('Saída atualizada.', 3500)
+    } else {
+      const novo = await db.saidas.create(lojaAtual.id, dados)
+      despData.unshift(novo)
+      logAtividade('desp_novo', `${desc} · ${fmt(valor)}${fornecedor ? ' · ' + fornecedor : ''}`)
+      toast('Saída registrada.', 3000)
+    }
+
+    /* Salvar categoria customizada se for nova */
+    if (cat && !DESP_CAT_PADRAO.includes(cat) && !despCatCustom.includes(cat)) {
+      despCatCustom.push(cat)
+      try { await db.categorias.add(lojaAtual.id, 'desp', cat) } catch (_) {}
+    }
+
+    fecharModal('mFinDesp'); resetModalDesp()
+    if (fornecedor && !fornMatch) {
+      setTimeout(() => {
+        if (confirm(`O fornecedor "${fornecedor}" não está cadastrado.\n\nDeseja cadastrá-lo agora para acompanhar o histórico de gastos?`)) {
+          resetModalForn()
+          document.getElementById('forn_nome').value = fornecedor
+          abrirModal('mFornAdd')
+        }
+      }, 200)
+    }
+    renderFinMetrics(); renderMov()
+  } catch (e) {
+    console.error('Erro salvarDespesa:', e)
+    toast('Erro ao salvar despesa: ' + (e.message || ''), 5000)
   }
-  renderFinMetrics(); renderMov(); saveState()
 }
 
 /* Editar receita existente — abre modal preenchido no modo correto */
@@ -10083,51 +10279,68 @@ function renderOFXPreview() {
 function ofxMarcarTodos(v) { ofxTransacoes.forEach(t => t.marcado = v); renderOFXPreview() }
 function ofxMarcarTipo(tipo) { ofxTransacoes.forEach(t => t.marcado = (t.tipo === tipo)); renderOFXPreview() }
 
-function confirmarImportOFX() {
+async function confirmarImportOFX() {
   const sel = ofxTransacoes.filter(t => t.marcado)
   if (!sel.length) { toast('Selecione pelo menos uma transação'); return }
   const modoConc = document.getElementById('ofx-modo-conc')?.checked
   let nDesp = 0, nRec = 0, nBanc = 0, nAuto = 0
-  sel.forEach(t => {
-    if (t.tipo === 'Despesa') {
-      despData.unshift({ id: despCounter++, data: t.data, desc: t.desc + ' [OFX]', cat: t.cat, valor: t.valor, forma: 'Transferência', status: 'Pago' })
-      nDesp++
-    } else {
-      /* RECEITA: se modo conciliação ativado, manda para bancData (caixa de entrada) */
-      if (modoConc) {
-        /* Tenta auto-conciliar imediatamente */
-        const candidato = recData.filter(r => !r.reconciliada && Math.abs(r.total - t.valor) < 0.01)
-          .map(r => {
-            const db = parseDate(t.data), dr = parseDate(r.data)
-            const dias = db && dr ? Math.abs((db - dr) / (1000 * 60 * 60 * 24)) : 999
-            return { r, dias }
-          })
-          .filter(x => x.dias <= 10)
-          .sort((a, b) => a.dias - b.dias)[0]
-        const banc = { id: bancCounter++, data: t.data, desc: t.desc, valor: t.valor, tipo: 'credito', conciliada: false, conciliadaCom: null }
-        if (candidato) {
-          candidato.r.reconciliada = true
-          candidato.r.ofxDesc = t.desc
-          if (candidato.r.status === 'A receber') candidato.r.status = 'Recebido'
-          banc.conciliada = true; banc.conciliadaCom = candidato.r.id
-          nAuto++
-        }
-        bancData.push(banc)
-        nBanc++
+
+  try {
+    for (const t of sel) {
+      if (t.tipo === 'Despesa') {
+        const novo = await db.saidas.create(lojaAtual.id, {
+          data: t.data, desc: t.desc + ' [OFX]', cat: t.cat, valor: t.valor,
+          forma: 'Transferência', status: 'Pago'
+        })
+        despData.unshift(novo)
+        nDesp++
       } else {
-        /* Modo antigo: cria receita avulsa direto */
-        recData.unshift({ id: recCounter++, data: t.data, osId: null, cliNome: t.desc + ' [OFX]', vsrv: t.valor, vpec: 0, total: t.valor, forma: 'Transferência', status: 'Recebido', reconciliada: true, ofxDesc: t.desc })
-        nRec++
+        if (modoConc) {
+          /* Tenta auto-conciliar */
+          const candidato = recData.filter(r => !r.reconciliada && Math.abs(r.total - t.valor) < 0.01)
+            .map(r => {
+              const db2 = parseDate(t.data), dr = parseDate(r.data)
+              const dias = db2 && dr ? Math.abs((db2 - dr) / (1000 * 60 * 60 * 24)) : 999
+              return { r, dias }
+            })
+            .filter(x => x.dias <= 10)
+            .sort((a, b) => a.dias - b.dias)[0]
+          const banc = await db.banco.create(lojaAtual.id, {
+            data: t.data, desc: t.desc, valor: t.valor, tipo: 'credito',
+            conciliada: !!candidato, conciliadaCom: candidato ? candidato.r.id : null
+          })
+          bancData.push(banc)
+          if (candidato) {
+            candidato.r.reconciliada = true
+            candidato.r.ofxDesc = t.desc
+            if (candidato.r.status === 'A receber') candidato.r.status = 'Recebido'
+            try { await db.entradas.update(candidato.r.id, { reconciliada: true, ofxDesc: t.desc, status: candidato.r.status }) } catch (_) {}
+            nAuto++
+          }
+          nBanc++
+        } else {
+          const novo = await db.entradas.create(lojaAtual.id, {
+            data: t.data, osId: null, cliNome: t.desc + ' [OFX]',
+            vsrv: t.valor, vpec: 0, total: t.valor,
+            forma: 'Transferência', status: 'Recebido',
+            reconciliada: true, ofxDesc: t.desc, tipo: 'avulsa'
+          })
+          recData.unshift(novo)
+          nRec++
+        }
       }
     }
-  })
-  fecharModal('mOFX'); resetOFX()
-  const partes = []
-  if (nDesp) partes.push(`${nDesp} despesa(s)`)
-  if (nRec) partes.push(`${nRec} receita(s) avulsa(s)`)
-  if (nBanc) partes.push(`${nBanc} transação(ões) → conciliação` + (nAuto ? ` (${nAuto} auto-conciliada(s))` : ''))
-  toast(`Importado: ${partes.join(', ')}.`, 5000)
-  renderFinMetrics(); renderReceitas(); renderDespesas(); renderDash(); renderResumoConciliacao(); saveState()
+    fecharModal('mOFX'); resetOFX()
+    const partes = []
+    if (nDesp) partes.push(`${nDesp} despesa(s)`)
+    if (nRec) partes.push(`${nRec} receita(s) avulsa(s)`)
+    if (nBanc) partes.push(`${nBanc} transação(ões) → conciliação` + (nAuto ? ` (${nAuto} auto-conciliada(s))` : ''))
+    toast(`Importado: ${partes.join(', ')}.`, 5000)
+    renderFinMetrics(); renderReceitas(); renderDespesas(); renderDash(); renderResumoConciliacao()
+  } catch (e) {
+    console.error('Erro importOFX:', e)
+    toast('Erro ao importar: ' + (e.message || ''), 5000)
+  }
 }
 
 /* ── INIT ────────────────────────────────────────── */
