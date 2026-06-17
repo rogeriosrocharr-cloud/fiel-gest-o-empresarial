@@ -1932,6 +1932,240 @@ const db = {
         throw e
       }
     }
+  },
+
+  /* ─── CLIENTES ─── */
+  clientes: {
+    /* Mapeia objeto do DB pra formato esperado pelo JS (campos com nomes do código) */
+    _mapFromDB(c) {
+      return {
+        id: c.id,
+        nome: c.nome,
+        cpf: c.cpf || '',
+        rg: c.rg || '',
+        dataNasc: c.data_nasc || '',
+        tel: c.tel || '',
+        email: c.email || '',
+        cep: c.cep || '',
+        end: c.endereco || '',
+        numero: c.numero || '',
+        complemento: c.complemento || '',
+        bairro: c.bairro || '',
+        cid: c.cid || '',
+        uf: c.uf || '',
+        obs: c.obs || '',
+        codOriginal: c.cod_original || '',
+        cadAntigo: c.cad_antigo || '',
+        veiculos: []
+      }
+    },
+    _mapVeiFromDB(v) {
+      return { _id: v.id, vei: v.vei || '', pla: v.pla || '', ano: v.ano || 0, km: v.km || 0, cor: v.cor || '', comb: v.comb || '', chassi: v.chassi || '' }
+    },
+    _mapToDB(dados) {
+      const out = {}
+      if (dados.nome !== undefined) out.nome = dados.nome
+      if (dados.cpf !== undefined) out.cpf = dados.cpf || null
+      if (dados.rg !== undefined) out.rg = dados.rg || null
+      if (dados.dataNasc !== undefined) out.data_nasc = dados.dataNasc || null
+      if (dados.tel !== undefined) out.tel = dados.tel || null
+      if (dados.email !== undefined) out.email = dados.email || null
+      if (dados.cep !== undefined) out.cep = dados.cep || null
+      if (dados.end !== undefined) out.endereco = dados.end || null
+      if (dados.numero !== undefined) out.numero = dados.numero || null
+      if (dados.complemento !== undefined) out.complemento = dados.complemento || null
+      if (dados.bairro !== undefined) out.bairro = dados.bairro || null
+      if (dados.cid !== undefined) out.cid = dados.cid || null
+      if (dados.uf !== undefined) out.uf = dados.uf || null
+      if (dados.obs !== undefined) out.obs = dados.obs || null
+      return out
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data: clientes, error: e1 } = await sbClient
+        .from('clientes').select('*').eq('loja_id', lojaId).order('nome')
+      if (e1) throw e1
+      const { data: veiculos, error: e2 } = await sbClient
+        .from('veiculos').select('*').eq('loja_id', lojaId)
+      if (e2) throw e2
+      const mapVei = {}
+      ;(veiculos || []).forEach(v => {
+        if (!mapVei[v.cliente_id]) mapVei[v.cliente_id] = []
+        mapVei[v.cliente_id].push(this._mapVeiFromDB(v))
+      })
+      return (clientes || []).map(c => ({ ...this._mapFromDB(c), veiculos: mapVei[c.id] || [] }))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { loja_id: lojaId, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('clientes').insert(payload).select().single()
+      if (error) throw error
+      return { ...this._mapFromDB(data), veiculos: [] }
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = this._mapToDB(dados)
+      const { data, error } = await sbClient.from('clientes').update(payload).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('clientes').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── VEÍCULOS ─── */
+  veiculos: {
+    _mapFromDB(v) { return { _id: v.id, vei: v.vei || '', pla: v.pla || '', ano: v.ano || 0, km: v.km || 0, cor: v.cor || '', comb: v.comb || '', chassi: v.chassi || '' } },
+    _mapToDB(dados) {
+      const out = {}
+      ;['vei','pla','cor','comb','chassi'].forEach(k => { if (dados[k] !== undefined) out[k] = dados[k] || null })
+      if (dados.ano !== undefined) out.ano = dados.ano ? String(dados.ano) : null
+      if (dados.km !== undefined) out.km = dados.km ? parseInt(dados.km) : null
+      return out
+    },
+    async create(lojaId, clienteId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { loja_id: lojaId, cliente_id: clienteId, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('veiculos').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('veiculos').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('veiculos').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── FORNECEDORES ─── */
+  fornecedores: {
+    _mapFromDB(f) {
+      return { id: f.id, nome: f.nome, doc: f.doc || '', tel: f.tel || '', email: f.email || '', contato: f.contato || '', cat: f.cat || '', end: f.endereco || '', obs: f.obs || '', criadoEm: f.criado_em }
+    },
+    _mapToDB(dados) {
+      const out = {}
+      ;['nome','doc','tel','email','contato','cat','obs'].forEach(k => { if (dados[k] !== undefined) out[k] = dados[k] || null })
+      if (dados.end !== undefined) out.endereco = dados.end || null
+      return out
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('fornecedores').select('*').eq('loja_id', lojaId).order('nome')
+      if (error) throw error
+      return (data || []).map(f => this._mapFromDB(f))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { loja_id: lojaId, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('fornecedores').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('fornecedores').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('fornecedores').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── MECÂNICOS ─── */
+  mecanicos: {
+    _mapFromDB(m) {
+      const sigla = (m.nome || '').split(' ').slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase()
+      return {
+        id: m.id, nome: m.nome, sigla,
+        esp: m.esp || '', com: Number(m.com) || 0,
+        tel: m.tel || '', email: m.email || '',
+        ativo: m.ativo !== false,
+        sal: 0, os: 0, concl: 0, val: 0, meta: 0  /* derivados/calculados na UI */
+      }
+    },
+    _mapToDB(dados) {
+      const out = {}
+      ;['nome','esp','tel','email'].forEach(k => { if (dados[k] !== undefined) out[k] = dados[k] || null })
+      if (dados.com !== undefined) out.com = Number(dados.com) || 0
+      if (dados.ativo !== undefined) out.ativo = !!dados.ativo
+      return out
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('mecanicos').select('*').eq('loja_id', lojaId).order('nome')
+      if (error) throw error
+      return (data || []).map(m => this._mapFromDB(m))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { loja_id: lojaId, ativo: true, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('mecanicos').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('mecanicos').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('mecanicos').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── CATÁLOGO DE SERVIÇOS ─── */
+  catalogo: {
+    _mapFromDB(s) {
+      return { id: s.id, cod: s.cod || '', nome: s.nome, cat: s.cat || '', h: Number(s.h) || 0, valor: Number(s.valor) || 0, garantiaDias: s.garantia_dias || 0 }
+    },
+    _mapToDB(dados) {
+      const out = {}
+      ;['cod','nome','cat'].forEach(k => { if (dados[k] !== undefined) out[k] = dados[k] || null })
+      if (dados.h !== undefined) out.h = Number(dados.h) || 0
+      if (dados.valor !== undefined) out.valor = Number(dados.valor) || 0
+      if (dados.garantiaDias !== undefined) out.garantia_dias = parseInt(dados.garantiaDias) || 0
+      return out
+    },
+    async list(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('servicos_catalogo').select('*').eq('loja_id', lojaId).order('nome')
+      if (error) throw error
+      return (data || []).map(s => this._mapFromDB(s))
+    },
+    async create(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { loja_id: lojaId, ...this._mapToDB(dados) }
+      payload.valor = payload.valor ?? 0
+      const { data, error } = await sbClient.from('servicos_catalogo').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('servicos_catalogo').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('servicos_catalogo').delete().eq('id', id)
+      if (error) throw error
+    }
   }
 }
 const STORAGE_KEY_LOJAS = 'autogestao_v3_lojas'
@@ -2859,7 +3093,7 @@ function alternarParaMaster() {
   setTimeout(() => document.getElementById('log_login')?.focus(), 80)
 }
 
-function entrarNoApp() {
+async function entrarNoApp() {
   document.getElementById('auth-screen').classList.add('hidden')
   document.querySelector('.app').style.display = ''
   /* Atualiza sub-logo com nome da loja */
@@ -2872,8 +3106,35 @@ function entrarNoApp() {
   document.getElementById('sb-user-av').textContent = u.nome.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
   if (u._consultor) document.getElementById('sb-user-av').style.background = 'linear-gradient(135deg,#d4a942,#b08c2d)'
   aplicarPermissoes()
+
+  /* Carrega dados do Supabase (Fase 4: clientes, fornecedores, mecânicos, catálogo) */
+  await carregarCadastrosDaLoja()
+
   /* Garante que o painel está visível */
   goTab('dashboard', document.querySelector('.sb-step[onclick*="dashboard"]'))
+}
+
+/* Carrega cadastros básicos da loja atual a partir do Supabase
+   e popula os arrays globais usados pelo resto do app (cliData, fornData, mecData, srvCatData).
+   Dados operacionais (orcamentos, OS, financeiro) ainda vêm do localStorage por enquanto. */
+async function carregarCadastrosDaLoja() {
+  if (!lojaAtual?.id) return
+  try {
+    const [clientes, fornecedores, mecanicos, catalogo] = await Promise.all([
+      db.clientes.list(lojaAtual.id),
+      db.fornecedores.list(lojaAtual.id),
+      db.mecanicos.list(lojaAtual.id),
+      db.catalogo.list(lojaAtual.id)
+    ])
+    cliData = clientes
+    fornData = fornecedores
+    mecData = mecanicos
+    srvCatData = catalogo
+    console.log(`[FIEL] Cadastros carregados: ${cliData.length} clientes, ${fornData.length} fornecedores, ${mecData.length} mecânicos, ${srvCatData.length} serviços`)
+  } catch (e) {
+    console.error('Erro ao carregar cadastros:', e)
+    toast('Erro ao carregar dados da loja: ' + (e.message || ''), 5000)
+  }
 }
 
 function temPermissao(tab) {
@@ -5622,14 +5883,19 @@ function renderClienteVeiculos(c) {
     </div>`).join('')
 }
 
-function removerVeiculo(cliId, idx) {
+async function removerVeiculo(cliId, idx) {
   const c = cliData.find(x => x.id === cliId); if (!c) return
   const v = c.veiculos?.[idx]; if (!v) return
   if (!confirmar(`Remover o veículo "${v.vei}" (placa ${v.pla}) deste cliente?`)) return
-  c.veiculos.splice(idx, 1)
-  renderClienteVeiculos(c)
-  renderClientes(); saveState()
-  toast('Veículo removido.')
+  try {
+    if (v._id) await db.veiculos.remove(v._id)
+    c.veiculos.splice(idx, 1)
+    renderClienteVeiculos(c)
+    renderClientes()
+    toast('Veículo removido.')
+  } catch (e) {
+    toast('Erro ao remover: ' + (e.message || ''), 4500)
+  }
 }
 
 function adicionarVeiculo(cliId) {
@@ -5666,16 +5932,15 @@ function editarVeiculo(cliId, idx) {
   abrirModal('mVeiAdd')
 }
 
-function salvarVeiculo() {
+async function salvarVeiculo() {
   if (!_veiAddCliId) return
   const c = cliData.find(x => x.id === _veiAddCliId); if (!c) return
 
   const vei = document.getElementById('vei_modelo').value.trim()
   const pla = document.getElementById('vei_placa').value.trim()
   if (!vei || !pla) { toast('⚠ Preencha marca/modelo e placa', 4000); return }
-  if (!validaPlaca(pla)) { toast('⚠ Placa inválida (formato Mercosul AAA1A11 ou antiga AAA1234)', 4500); return }
+  if (!validaPlaca(pla)) { toast('⚠ Placa inválida', 4500); return }
 
-  /* Verifica placa duplicada (ignora o veículo em edição) */
   const placaNorm = pla.toUpperCase().replace(/[^A-Z0-9]/g, '')
   const dup = cliData.find(cli =>
     (cli.veiculos || []).some((v, idx) => {
@@ -5697,32 +5962,40 @@ function salvarVeiculo() {
     chassi: document.getElementById('vei_chassi').value.trim(),
   }
 
-  if (!c.veiculos) c.veiculos = []
-  if (_veiEditIdx !== null && c.veiculos[_veiEditIdx]) {
-    Object.assign(c.veiculos[_veiEditIdx], novoVei)
-    toast(`Veículo atualizado.`, 3500)
-  } else {
-    c.veiculos.push(novoVei)
-    toast(`Veículo "${vei}" adicionado a ${c.nome}.`, 3500)
-  }
+  try {
+    if (!c.veiculos) c.veiculos = []
+    if (_veiEditIdx !== null && c.veiculos[_veiEditIdx]) {
+      const existente = c.veiculos[_veiEditIdx]
+      if (existente._id) {
+        const editado = await db.veiculos.update(existente._id, novoVei)
+        Object.assign(existente, editado)
+      } else {
+        Object.assign(existente, novoVei)
+      }
+      toast(`Veículo atualizado.`, 3500)
+    } else {
+      const criado = await db.veiculos.create(lojaAtual.id, c.id, novoVei)
+      c.veiculos.push(criado)
+      toast(`Veículo "${vei}" adicionado a ${c.nome}.`, 3500)
+    }
 
-  /* Se o modal de cliente está aberto editando este cliente, atualiza a lista */
-  if (cliEditId === _veiAddCliId) renderClienteVeiculos(c)
-  renderClientes(); saveState()
+    if (cliEditId === _veiAddCliId) renderClienteVeiculos(c)
+    renderClientes()
 
-  /* Continuar adicionando outro veículo? */
-  const continuar = document.getElementById('vei_continuar').checked && _veiEditIdx === null
-  if (continuar) {
-    /* Mantém modal aberto, limpa form */
-    _veiEditIdx = null
-    ;['vei_modelo','vei_placa','vei_ano','vei_km','vei_cor','vei_chassi'].forEach(id => { document.getElementById(id).value = '' })
-    document.getElementById('vei_comb').value = 'Flex'
-    document.getElementById('vei_continuar').checked = false
-    setTimeout(() => document.getElementById('vei_modelo')?.focus(), 100)
-  } else {
-    fecharModal('mVeiAdd')
-    _veiAddCliId = null
-    _veiEditIdx = null
+    const continuar = document.getElementById('vei_continuar').checked && _veiEditIdx === null
+    if (continuar) {
+      _veiEditIdx = null
+      ;['vei_modelo','vei_placa','vei_ano','vei_km','vei_cor','vei_chassi'].forEach(id => { document.getElementById(id).value = '' })
+      document.getElementById('vei_comb').value = 'Flex'
+      document.getElementById('vei_continuar').checked = false
+      setTimeout(() => document.getElementById('vei_modelo')?.focus(), 100)
+    } else {
+      fecharModal('mVeiAdd')
+      _veiAddCliId = null
+      _veiEditIdx = null
+    }
+  } catch (e) {
+    toast('Erro ao salvar veículo: ' + (e.message || ''), 5000)
   }
 }
 
@@ -5767,7 +6040,7 @@ function editarCliente(cliId) {
   abrirModal('mCliAdd')
 }
 
-function salvarCliente() {
+async function salvarCliente() {
   const nome = document.getElementById('cli_nome').value.trim()
   const tel = document.getElementById('cli_tel').value.trim()
   const cpf = document.getElementById('cli_cpf').value.trim()
@@ -5778,9 +6051,8 @@ function salvarCliente() {
   if (!nome || !tel) { toast('⚠ Preencha nome e telefone', 4000); return }
   if (!validaCPF(cpf)) { toast('⚠ CPF/CNPJ inválido', 4000); return }
   if (!validaEmail(email)) { toast('⚠ E-mail inválido', 4000); return }
-  /* Veículo é opcional, mas se preenchido precisa ter placa válida */
   if (vei && !pla) { toast('⚠ Informe a placa do veículo', 4000); return }
-  if (pla && !validaPlaca(pla)) { toast('⚠ Placa inválida (formato Mercosul AAA1A11 ou antiga AAA1234)', 4500); return }
+  if (pla && !validaPlaca(pla)) { toast('⚠ Placa inválida', 4500); return }
 
   /* Duplicatas (ignora o próprio cliente em edição) */
   if (cpf && cliData.some(c => c.id !== cliEditId && c.cpf && c.cpf.replace(/\D/g, '') === cpf.replace(/\D/g, ''))) {
@@ -5794,59 +6066,10 @@ function salvarCliente() {
     }
   }
 
-  const veiculos = []
-  if (vei && pla) {
-    veiculos.push({
-      vei,
-      pla: normPlaca(pla),
-      ano: parseInt(document.getElementById('cli_ano').value) || 0,
-      km: parseInt(document.getElementById('cli_km').value) || 0,
-      cor: document.getElementById('cli_cor').value,
-      comb: document.getElementById('cli_comb').value
-    })
-  }
-
-  /* Modo edição: atualiza dados sem perder veículos extras */
-  if (cliEditId) {
-    const c = cliData.find(x => x.id === cliEditId)
-    if (c) {
-      c.nome = nome; c.cpf = cpf; c.tel = tel; c.email = email
-      c.rg = document.getElementById('cli_rg').value.trim()
-      c.dataNasc = document.getElementById('cli_dataNasc').value.trim()
-      c.cep = document.getElementById('cli_cep').value.trim()
-      c.end = document.getElementById('cli_end').value.trim()
-      c.numero = document.getElementById('cli_numero').value.trim()
-      c.complemento = document.getElementById('cli_complemento').value.trim()
-      c.bairro = document.getElementById('cli_bairro').value.trim()
-      c.cid = document.getElementById('cli_cid').value.trim() || 'Rondonópolis'
-      c.uf = document.getElementById('cli_uf').value.trim() || 'MT'
-      c.obs = document.getElementById('cli_obs').value.trim()
-      /* Veículo principal: se preenchido, atualiza o primeiro (ou adiciona) */
-      if (veiculos.length) {
-        if (!c.veiculos) c.veiculos = []
-        if (c.veiculos.length === 0) c.veiculos.push(veiculos[0])
-        else Object.assign(c.veiculos[0], veiculos[0])
-      }
-      cliEditId = null
-      const mh = document.querySelector('#mCliAdd .mh h3')
-      if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-user-plus"></i></div>Cadastrar Cliente`
-      fecharModal('mCliAdd')
-      logAtividade('cli_edit', `Cliente ${c.nome} atualizado`)
-      toast('Cliente atualizado.', 3500)
-      renderClientes(); saveState()
-      return
-    }
-  }
-
-  const novoId = cliCounter++
-  cliData.push({
-    id: novoId,
-    nome,
-    cpf,
+  const dadosCli = {
+    nome, cpf, tel, email,
     rg: document.getElementById('cli_rg').value.trim(),
     dataNasc: document.getElementById('cli_dataNasc').value.trim(),
-    tel,
-    email,
     cep: document.getElementById('cli_cep').value.trim(),
     end: document.getElementById('cli_end').value.trim(),
     numero: document.getElementById('cli_numero').value.trim(),
@@ -5854,20 +6077,65 @@ function salvarCliente() {
     bairro: document.getElementById('cli_bairro').value.trim(),
     cid: document.getElementById('cli_cid').value.trim() || 'Rondonópolis',
     uf: document.getElementById('cli_uf').value.trim() || 'MT',
-    obs: document.getElementById('cli_obs').value.trim(),
-    veiculos
-  })
-  fecharModal('mCliAdd'); resetModalCli()
-  logAtividade('cli_novo', `Cliente cadastrado: ${nome}`)
-  toast('Cliente cadastrado.', 3500)
-  renderClientes(); updateBadge(); saveState()
-  /* Se cadastrou já com um veículo, oferecer cadastrar outro */
-  if (veiculos.length > 0) {
-    setTimeout(() => {
-      if (confirm(`Cliente "${nome}" cadastrado.\n\nDeseja adicionar outro veículo a este cliente?`)) {
-        adicionarVeiculo(novoId)
+    obs: document.getElementById('cli_obs').value.trim()
+  }
+  const dadosVei = vei && pla ? {
+    vei, pla: normPlaca(pla),
+    ano: parseInt(document.getElementById('cli_ano').value) || 0,
+    km: parseInt(document.getElementById('cli_km').value) || 0,
+    cor: document.getElementById('cli_cor').value,
+    comb: document.getElementById('cli_comb').value
+  } : null
+
+  try {
+    if (cliEditId) {
+      /* MODO EDIÇÃO */
+      const c = cliData.find(x => x.id === cliEditId)
+      if (!c) { toast('Cliente não encontrado.'); return }
+      const atualizado = await db.clientes.update(cliEditId, dadosCli)
+      Object.assign(c, atualizado)
+      /* Veículo principal: cria ou atualiza o primeiro */
+      if (dadosVei) {
+        if (!c.veiculos) c.veiculos = []
+        if (c.veiculos.length === 0) {
+          const novoVei = await db.veiculos.create(lojaAtual.id, c.id, dadosVei)
+          c.veiculos.push(novoVei)
+        } else if (c.veiculos[0]._id) {
+          const editado = await db.veiculos.update(c.veiculos[0]._id, dadosVei)
+          Object.assign(c.veiculos[0], editado)
+        }
       }
-    }, 300)
+      cliEditId = null
+      const mh = document.querySelector('#mCliAdd .mh h3')
+      if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-user-plus"></i></div>Cadastrar Cliente`
+      fecharModal('mCliAdd')
+      logAtividade('cli_edit', `Cliente ${c.nome} atualizado`)
+      toast('Cliente atualizado.', 3500)
+      renderClientes()
+      return
+    }
+
+    /* MODO CRIAÇÃO */
+    const novoCli = await db.clientes.create(lojaAtual.id, dadosCli)
+    if (dadosVei) {
+      const novoVei = await db.veiculos.create(lojaAtual.id, novoCli.id, dadosVei)
+      novoCli.veiculos = [novoVei]
+    }
+    cliData.push(novoCli)
+    fecharModal('mCliAdd'); resetModalCli()
+    logAtividade('cli_novo', `Cliente cadastrado: ${nome}`)
+    toast('Cliente cadastrado.', 3500)
+    renderClientes(); updateBadge()
+    if (dadosVei) {
+      setTimeout(() => {
+        if (confirm(`Cliente "${nome}" cadastrado.\n\nDeseja adicionar outro veículo a este cliente?`)) {
+          adicionarVeiculo(novoCli.id)
+        }
+      }, 300)
+    }
+  } catch (e) {
+    console.error('Erro salvar cliente:', e)
+    toast('Erro ao salvar: ' + (e.message || ''), 5000)
   }
 }
 
@@ -7190,7 +7458,7 @@ function editarForn(fId) {
   abrirModal('mFornAdd')
 }
 
-function salvarForn() {
+async function salvarForn() {
   const nome = document.getElementById('forn_nome').value.trim()
   if (!nome) { toast('⚠ Informe o nome do fornecedor', 4000); return }
   const dadosForn = {
@@ -7203,32 +7471,42 @@ function salvarForn() {
     end: document.getElementById('forn_end').value.trim(),
     obs: document.getElementById('forn_obs').value.trim()
   }
-  if (fornEditId) {
-    const f = fornData.find(x => x.id === fornEditId); if (!f) return
-    Object.assign(f, dadosForn)
-    logAtividade('forn_edit', `Fornecedor ${nome} atualizado`)
-    toast('Fornecedor atualizado.')
-  } else {
-    fornData.push({ id: fornCounter++, ...dadosForn, criadoEm: fmtD() })
-    logAtividade('forn_novo', `Fornecedor cadastrado: ${nome}`)
-    toast(`Fornecedor "${nome}" cadastrado.`)
+  try {
+    if (fornEditId) {
+      const f = fornData.find(x => x.id === fornEditId); if (!f) return
+      const atualizado = await db.fornecedores.update(fornEditId, dadosForn)
+      Object.assign(f, atualizado)
+      logAtividade('forn_edit', `Fornecedor ${nome} atualizado`)
+      toast('Fornecedor atualizado.')
+    } else {
+      const novo = await db.fornecedores.create(lojaAtual.id, dadosForn)
+      fornData.push(novo)
+      logAtividade('forn_novo', `Fornecedor cadastrado: ${nome}`)
+      toast(`Fornecedor "${nome}" cadastrado.`)
+    }
+    fecharModal('mFornAdd'); resetModalForn()
+    renderForn()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 5000)
   }
-  fecharModal('mFornAdd'); resetModalForn()
-  renderForn(); saveState()
 }
 
-function removerForn(fId) {
+async function removerForn(fId) {
   const f = fornData.find(x => x.id === fId); if (!f) return
   const desps = getDespesasDoFornecedor(f)
   let msg = `Remover o fornecedor "${f.nome}"?`
   if (desps.length) msg += `\n\n⚠ ${desps.length} lançamento(s) de saída ficarão sem vínculo, mas não serão apagados.`
   if (!confirmar(msg)) return
-  /* Limpa fornId das despesas vinculadas */
-  desps.forEach(d => { delete d.fornId })
-  fornData = fornData.filter(x => x.id !== fId)
-  fecharModal('mFornHist')
-  toast(`Fornecedor "${f.nome}" removido.`)
-  renderForn(); renderMov(); saveState()
+  try {
+    desps.forEach(d => { delete d.fornId })
+    await db.fornecedores.remove(fId)
+    fornData = fornData.filter(x => x.id !== fId)
+    fecharModal('mFornHist')
+    toast(`Fornecedor "${f.nome}" removido.`)
+    renderForn(); renderMov(); saveState()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 5000)
+  }
 }
 
 function abrirHistoricoForn(fId) {
@@ -7333,11 +7611,24 @@ function renderMec() {
     </div>`
   }).join('')
 }
-function salvarMec() {
-  const nome = document.getElementById('mec_nome').value.trim(); if (!nome) { toast('Informe o nome'); return }
-  const sig = nome.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-  mecData.push({ id: mecCounter++, nome, sigla: sig, esp: document.getElementById('mec_esp').value, tel: document.getElementById('mec_tel').value, sal: parseFloat(document.getElementById('mec_sal').value) || 0, com: parseFloat(document.getElementById('mec_com').value) || 0, os: 0, concl: 0, val: 0, meta: 0 })
-  fecharModal('mMecAdd'); toast(nome + ' cadastrado.'); renderMec(); populateMecs(); saveState()
+async function salvarMec() {
+  const nome = document.getElementById('mec_nome').value.trim()
+  if (!nome) { toast('Informe o nome'); return }
+  const dadosMec = {
+    nome,
+    esp: document.getElementById('mec_esp').value,
+    tel: document.getElementById('mec_tel').value,
+    com: parseFloat(document.getElementById('mec_com').value) || 0
+  }
+  try {
+    const novo = await db.mecanicos.create(lojaAtual.id, dadosMec)
+    mecData.push(novo)
+    fecharModal('mMecAdd')
+    toast(nome + ' cadastrado.')
+    renderMec(); populateMecs()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 5000)
+  }
 }
 
 /* ── ESTOQUE ─────────────────────────────────────── */
@@ -7419,41 +7710,50 @@ function editarSrvCat(id) {
   abrirModal('mSrvAdd')
 }
 
-function salvarSrvCat() {
+async function salvarSrvCat() {
   const nome = document.getElementById('srv_nome').value.trim()
   const valor = parseFloat(document.getElementById('srv_valor').value) || 0
   const garantiaDias = parseInt(document.getElementById('srv_garantia').value) || 0
   if (!nome) { toast('Informe o nome do serviço'); return }
-  if (srvEditId) {
-    const s = srvCatData.find(x => x.id === srvEditId); if (!s) return
-    s.cod = document.getElementById('srv_cod').value || s.cod
-    s.nome = nome; s.cat = document.getElementById('srv_cat').value
-    s.h = parseFloat(document.getElementById('srv_h').value) || 0
-    s.valor = valor
-    s.garantiaDias = garantiaDias
-    toast('Serviço atualizado.')
-  } else {
-    srvCatData.unshift({
-      id: srvCatCounter++,
-      cod: document.getElementById('srv_cod').value || `SRV-${String(srvCatCounter).padStart(3, '0')}`,
-      nome,
-      cat: document.getElementById('srv_cat').value,
-      h: parseFloat(document.getElementById('srv_h').value) || 0,
-      valor,
-      garantiaDias
-    })
-    toast('"' + nome + '" cadastrado no catálogo.')
+  const dados = {
+    cod: document.getElementById('srv_cod').value,
+    nome,
+    cat: document.getElementById('srv_cat').value,
+    h: parseFloat(document.getElementById('srv_h').value) || 0,
+    valor,
+    garantiaDias
   }
-  fecharModal('mSrvAdd'); resetModalSrvCat()
-  renderSrvCat(); saveState()
+  try {
+    if (srvEditId) {
+      const s = srvCatData.find(x => x.id === srvEditId); if (!s) return
+      if (!dados.cod) dados.cod = s.cod
+      const atualizado = await db.catalogo.update(srvEditId, dados)
+      Object.assign(s, atualizado)
+      toast('Serviço atualizado.')
+    } else {
+      if (!dados.cod) dados.cod = `SRV-${String(srvCatData.length + 1).padStart(3, '0')}`
+      const novo = await db.catalogo.create(lojaAtual.id, dados)
+      srvCatData.unshift(novo)
+      toast('"' + nome + '" cadastrado no catálogo.')
+    }
+    fecharModal('mSrvAdd'); resetModalSrvCat()
+    renderSrvCat()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 5000)
+  }
 }
 
-function excluirSrvCat(id) {
+async function excluirSrvCat(id) {
   const s = srvCatData.find(x => x.id === id); if (!s) return
   if (!confirmar(`Excluir o serviço "${s.nome}" do catálogo?`)) return
-  srvCatData = srvCatData.filter(x => x.id !== id)
-  toast('Serviço removido.')
-  renderSrvCat(); saveState()
+  try {
+    await db.catalogo.remove(id)
+    srvCatData = srvCatData.filter(x => x.id !== id)
+    toast('Serviço removido.')
+    renderSrvCat()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 5000)
+  }
 }
 
 /* ── PICKERS PARA O MODAL DE ORÇAMENTO ──────────── */
