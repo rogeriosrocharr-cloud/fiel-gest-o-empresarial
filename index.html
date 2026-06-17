@@ -32,8 +32,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ÍCONE SVG (inline para PWA + favicon) -->
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%235c14dc"/><path d="M30 40h40v6H30zm0 14h28v6H30zm0 14h36v6H30z" fill="%23fff"/><circle cx="74" cy="34" r="10" fill="%23d4a942"/></svg>'>
-<!-- MANIFEST PWA -->
-<link rel="manifest" href='data:application/manifest+json,{"name":"FIEL — Gestão de Empresas","short_name":"FIEL Oficina","description":"Sistema de gestão para oficinas mecânicas","start_url":".","display":"standalone","background_color":"%230c0a16","theme_color":"%235c14dc","orientation":"any","lang":"pt-BR","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22><rect width=%22192%22 height=%22192%22 rx=%2242%22 fill=%22%235c14dc%22/><path d=%22M58 76h76v12H58zm0 26h54v12H58zm0 26h68v12H58z%22 fill=%22%23fff%22/><circle cx=%22142%22 cy=%2266%22 r=%2218%22 fill=%22%23d4a942%22/></svg>","sizes":"192x192","type":"image/svg+xml","purpose":"any"},{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22><rect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22%235c14dc%22/><path d=%22M154 204h204v32H154zm0 70h144v32H154zm0 70h180v32H154z%22 fill=%22%23fff%22/><circle cx=%22378%22 cy=%22176%22 r=%2248%22 fill=%22%23d4a942%22/></svg>","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<!-- MANIFEST PWA — desabilitado por enquanto. Pra reativar, criar arquivo manifest.json separado no repositório. -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1218,8 +1217,8 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-user-plus"></i></div><span id="mUserAdd-title">Novo Colaborador</span></h3><button class="xbtn" onclick="fecharModal('mUserAdd');resetModalUser()"><i class="ti ti-x"></i></button></div>
 
   <div class="fr g2"><div class="fg"><label>Nome completo *</label><input id="user_nome" type="text" placeholder="Ex: João Silva"></div><div class="fg"><label>WhatsApp</label><input id="user_whats" type="text" placeholder="(65) 99999-0000"></div></div>
-  <div class="fr g2"><div class="fg"><label>Usuário (login) *</label><input id="user_login" type="text" placeholder="ex: joao" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')"></div><div class="fg"><label>Tipo de acesso *</label><select id="user_tipo" onchange="atualizarPermsModal()"><option value="colaborador">Colaborador</option><option value="master">Gestor Master</option></select></div></div>
-  <div class="fr g2" id="user-senha-row"><div class="fg"><label>Senha *</label><input id="user_senha" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password"></div><div class="fg"><label>Confirmar senha *</label><input id="user_senha2" type="password" placeholder="Digite novamente" autocomplete="new-password"></div></div>
+  <div class="fr g2"><div class="fg"><label>E-mail (login) *</label><input id="user_login" type="email" placeholder="colab@oficina.com"></div><div class="fg"><label>Tipo de acesso *</label><select id="user_tipo" onchange="atualizarPermsModal()"><option value="colaborador">Colaborador</option><option value="master">Gestor Master</option></select></div></div>
+  <div class="fr g2"><div class="fg" id="user-senha-row"><label>Senha *</label><input id="user_senha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div><div class="fg" id="user-senha2-row"><label>Confirmar senha *</label><input id="user_senha2" type="password" placeholder="Digite novamente" autocomplete="new-password"></div></div>
   <div id="user-senha-edit-aviso" style="display:none;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px;font-size:12px;color:var(--t3);margin-bottom:10px">
     <i class="ti ti-info-circle"></i> Deixe em branco para manter a senha atual. Preencha apenas se quiser redefini-la.
   </div>
@@ -2546,13 +2545,23 @@ async function salvarConfigConsultor() {
 
 /* ── Multi-loja: carregar/salvar dados de cada loja ── */
 function carregarDadosDaLoja(lojaId) {
+  /* SEMPRE limpa os arrays e contadores antes de carregar dados da loja.
+     Isso evita que uma loja nova (criada via Supabase) herde dados demo embutidos
+     ou dados de uma loja anterior que ainda estejam nas variáveis globais. */
+  cliData = []; mecData = []; orcData = []; osData = []; recData = []; despData = []
+  bancData = []; estData = []; srvCatData = []; fornData = []
+  cliCounter = 1; mecCounter = 1; orcCounter = 1; osCounter = 1; recCounter = 1
+  despCounter = 1; bancCounter = 1; estCounter = 1; srvCatCounter = 1; fornCounter = 1
+  recCatCustom = []; despCatCustom = []; atividadeData = []
+  usuariosData = []; usuarioCounter = 1
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY + '_' + lojaId)
     if (raw) {
       const d = JSON.parse(raw)
       const temDados = d.cliData?.length || d.osData?.length || d.mecData?.length || d.estData?.length
       if (temDados && d._v >= DATA_VERSION) {
-        /* Loja tem dados salvos reais e atualizados */
+        /* Loja tem dados salvos reais e atualizados — restaura tudo */
         cliData = d.cliData || []; mecData = d.mecData || []; orcData = d.orcData || []
         osData = d.osData || []; recData = d.recData || []; despData = d.despData || []
         bancData = d.bancData || []; estData = d.estData || []; srvCatData = d.srvCatData || []
@@ -2570,15 +2579,8 @@ function carregarDadosDaLoja(lojaId) {
         estCounter = typeof d.estCounter === 'number' ? d.estCounter : 1
         srvCatCounter = typeof d.srvCatCounter === 'number' ? d.srvCatCounter : 1
         fornCounter = typeof d.fornCounter === 'number' ? d.fornCounter : 1
-      } else if (d._initialized) {
-        /* Loja nova criada pelo consultor — começar vazia */
-        cliData = []; mecData = []; orcData = []; osData = []; recData = []; despData = []
-        bancData = []; estData = []; srvCatData = []; fornData = []
-        cliCounter = 1; mecCounter = 1; orcCounter = 1; osCounter = 1; recCounter = 1
-        despCounter = 1; bancCounter = 1; estCounter = 1; srvCatCounter = 1; fornCounter = 1
-        recCatCustom = []; despCatCustom = []; atividadeData = []
       }
-      /* Senão (dados antigos sem _v ou sem _initialized) → mantém defaults embutidos */
+      /* Senão: loja nova ou sem dados → mantém tudo vazio (já zerado acima) */
     }
   } catch (e) { console.warn(e) }
   try {
@@ -2900,11 +2902,45 @@ function aplicarPermissoes() {
 }
 
 /* ── GERENCIAMENTO DE USUÁRIOS (apenas Master) ──── */
-function renderUsuarios() {
+async function renderUsuarios() {
   if (!usuarioAtual || usuarioAtual.tipo !== 'master') {
     document.getElementById('usuarios-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-shield-off"></i>Acesso restrito ao Gestor Master</div></td></tr>`
     return
   }
+  if (!lojaAtual?.id) {
+    document.getElementById('usuarios-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-alert-triangle"></i>Loja não identificada</div></td></tr>`
+    return
+  }
+  /* Estado de loading */
+  document.getElementById('usuarios-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Carregando usuários...</div></td></tr>`
+
+  let lista = []
+  try {
+    lista = await db.usuarios.listByLoja(lojaAtual.id)
+  } catch (e) {
+    document.getElementById('usuarios-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-cloud-off"></i>Erro: ${e.message || 'sem conexão'}</div></td></tr>`
+    return
+  }
+
+  /* Popula cache local pra outras partes do código (editarUsuario etc.) */
+  usuariosData = lista.map(u => ({
+    id: u.id,
+    auth_id: u.auth_id,
+    nome: u.nome,
+    login: u.email,
+    email: u.email,
+    whats: '',
+    tipo: u.role === 'master' ? 'master' : 'colab',
+    perms: u.permissoes || [],
+    ativo: u.ativo,
+    _supabase: true
+  }))
+
+  if (!usuariosData.length) {
+    document.getElementById('usuarios-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><i class="ti ti-users-off"></i>Nenhum usuário cadastrado</div></td></tr>`
+    return
+  }
+
   document.getElementById('usuarios-tbody').innerHTML = usuariosData.map(u => {
     const isAtual = u.id === usuarioAtual.id
     const permsResumo = u.tipo === 'master'
@@ -2913,14 +2949,14 @@ function renderUsuarios() {
         ? u.perms.slice(0, 4).map(p => `<span class="pill p-pu" style="font-size:9px;padding:2px 5px;margin-right:3px">${PERMS_DISPONIVEIS.find(x => x.key === p)?.label || p}</span>`).join('') + (u.perms.length > 4 ? ` <span style="font-size:10px;color:var(--t3)">+${u.perms.length - 4}</span>` : '')
         : '<span style="color:var(--t3);font-size:11px">Sem permissões</span>')
     return `<tr>
-      <td><b>${u.nome}</b>${u.whats ? `<div style="font-size:11px;color:var(--t3)">${u.whats}</div>` : ''}</td>
-      <td style="font-family:monospace;font-size:12px;color:var(--t2)">${u.login}</td>
+      <td><b>${u.nome}</b></td>
+      <td style="font-family:monospace;font-size:12px;color:var(--t2)">${u.email}</td>
       <td>${u.tipo === 'master' ? '<span class="pill" style="background:rgba(212,169,66,.15);color:#d4a942;border:1px solid rgba(212,169,66,.3);font-size:10px"><i class="ti ti-crown"></i> Master</span>' : '<span class="pill p-pu" style="font-size:10px">Colaborador</span>'}</td>
       <td>${permsResumo}</td>
       <td>${u.ativo ? '<span class="pill p-gr" style="font-size:10px">Ativo</span>' : '<span class="pill p-re" style="font-size:10px">Desativado</span>'}</td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-sm" onclick="editarUsuario(${u.id})" title="Editar"><i class="ti ti-edit"></i></button>
-        ${!isAtual ? `<button class="btn btn-sm ${u.ativo ? 'btn-re' : 'btn-gr'}" onclick="toggleUsuario(${u.id})" title="${u.ativo ? 'Desativar' : 'Reativar'}"><i class="ti ti-${u.ativo ? 'lock' : 'lock-open'}"></i></button>` : '<span style="font-size:10px;color:var(--t3);padding:0 6px">você</span>'}
+        <button class="btn btn-sm" onclick="editarUsuario('${u.id}')" title="Editar"><i class="ti ti-edit"></i></button>
+        ${!isAtual ? `<button class="btn btn-sm ${u.ativo ? 'btn-re' : 'btn-gr'}" onclick="toggleUsuario('${u.id}')" title="${u.ativo ? 'Desativar' : 'Reativar'}"><i class="ti ti-${u.ativo ? 'lock' : 'lock-open'}"></i></button>` : '<span style="font-size:10px;color:var(--t3);padding:0 6px">você</span>'}
       </td>
     </tr>`
   }).join('')
@@ -2936,8 +2972,13 @@ function resetModalUser() {
   userEditId = null
   ;['user_nome', 'user_whats', 'user_login', 'user_senha', 'user_senha2'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   document.getElementById('user_tipo').value = 'colaborador'
+  document.getElementById('user_login').disabled = false
   document.getElementById('user-senha-edit-aviso').style.display = 'none'
-  document.getElementById('user-senha-row').querySelector('label').innerHTML = 'Senha *'
+  /* Senha visível na criação */
+  const senhaRow = document.getElementById('user-senha-row')
+  if (senhaRow) senhaRow.style.display = ''
+  const senha2Row = document.getElementById('user-senha2-row')
+  if (senha2Row) senha2Row.style.display = ''
   document.getElementById('mUserAdd-title').textContent = 'Novo Colaborador'
   atualizarPermsModal()
 }
@@ -2966,12 +3007,19 @@ function editarUsuario(id) {
   renderPermsModal()
   document.getElementById('user_nome').value = u.nome
   document.getElementById('user_whats').value = u.whats || ''
-  document.getElementById('user_login').value = u.login
-  document.getElementById('user_tipo').value = u.tipo
+  document.getElementById('user_login').value = u.email
+  document.getElementById('user_login').disabled = true   /* não pode mudar email (usado pra login Supabase) */
+  document.getElementById('user_tipo').value = u.tipo === 'master' ? 'master' : 'colaborador'
   document.getElementById('user_senha').value = ''
   document.getElementById('user_senha2').value = ''
   document.getElementById('user-senha-edit-aviso').style.display = ''
-  document.getElementById('user-senha-row').querySelector('label').innerHTML = 'Nova senha (opcional)'
+  /* Senha não pode ser alterada por aqui no Supabase. Mostra mensagem informativa. */
+  const senhaRow = document.getElementById('user-senha-row')
+  if (senhaRow) senhaRow.style.display = 'none'
+  const senha2Row = document.getElementById('user-senha2-row')
+  if (senha2Row) senha2Row.style.display = 'none'
+  const aviso = document.getElementById('user-senha-edit-aviso')
+  if (aviso) aviso.innerHTML = '<i class="ti ti-info-circle"></i> Para redefinir senha, peça ao colaborador para usar "Esqueci minha senha" na tela de login.'
   document.getElementById('mUserAdd-title').textContent = 'Editar Usuário'
   /* Marcar permissões */
   document.querySelectorAll('.user-perm-check').forEach(c => {
@@ -2983,67 +3031,80 @@ function editarUsuario(id) {
 
 async function salvarUsuario() {
   const nome = document.getElementById('user_nome').value.trim()
-  const whats = document.getElementById('user_whats').value.trim()
-  const login = document.getElementById('user_login').value.trim()
+  const email = document.getElementById('user_login').value.trim().toLowerCase()
   const senha = document.getElementById('user_senha').value
   const senha2 = document.getElementById('user_senha2').value
-  const tipo = document.getElementById('user_tipo').value
+  const tipoSelect = document.getElementById('user_tipo').value
 
-  if (!nome || !login) { toast('Preencha nome e usuário', 4000); return }
-  if (login.length < 3) { toast('Usuário deve ter pelo menos 3 caracteres', 4000); return }
-
-  /* Verifica login duplicado (exceto o próprio em edição) */
-  const dup = usuariosData.find(u => u.login === login && u.id !== userEditId)
-  if (dup) { toast('Já existe usuário com este login', 4000); return }
+  if (!nome) { toast('Informe o nome', 4000); return }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('E-mail inválido', 4000); return }
 
   /* Permissões */
-  const perms = tipo === 'master'
+  const role = tipoSelect === 'master' ? 'master' : 'colaborador'
+  const perms = role === 'master'
     ? PERMS_DISPONIVEIS.map(p => p.key)
     : Array.from(document.querySelectorAll('.user-perm-check:checked')).map(c => c.value)
 
-  if (userEditId) {
-    /* EDIÇÃO */
-    const u = usuariosData.find(x => x.id === userEditId); if (!u) return
-    u.nome = nome; u.whats = whats; u.login = login; u.tipo = tipo; u.perms = perms
-    /* Senha só se preenchida */
-    if (senha) {
-      if (senha.length < 4) { toast('Nova senha deve ter pelo menos 4 caracteres', 4000); return }
-      if (senha !== senha2) { toast('As senhas não coincidem', 4000); return }
-      u.senhaHash = await hashSenha(senha)
+  const btn = document.querySelector('#mUserAdd button[onclick="salvarUsuario()"]')
+  const txtOriginal = btn ? btn.innerHTML : ''
+  if (btn) { btn.innerHTML = '<i class="ti ti-loader"></i> Salvando...'; btn.disabled = true }
+
+  try {
+    if (userEditId) {
+      /* EDIÇÃO — atualiza no Supabase (sem mexer em senha aqui) */
+      await db.usuarios.update(userEditId, {
+        nome,
+        role,
+        permissoes: perms
+      })
+      toast('Usuário atualizado.')
+    } else {
+      /* CRIAÇÃO — signUp + INSERT em usuarios via criarComAuth */
+      if (!senha) { throw new Error('Defina a senha do colaborador.') }
+      if (senha.length < 6) { throw new Error('Senha deve ter pelo menos 6 caracteres.') }
+      if (senha !== senha2) { throw new Error('As senhas não coincidem.') }
+      await db.usuarios.criarComAuth({
+        email, senha, nome,
+        loja_id: lojaAtual.id,
+        role,
+        permissoes: perms
+      })
+      toast(`✓ ${role === 'master' ? 'Master' : 'Colaborador'} cadastrado.`, 4500)
     }
-    /* Se editou o próprio usuário, atualiza referência */
-    if (usuarioAtual && u.id === usuarioAtual.id) usuarioAtual = u
-    toast('Usuário atualizado.')
-  } else {
-    /* CRIAÇÃO */
-    if (!senha) { toast('Defina a senha do colaborador', 4000); return }
-    if (senha.length < 4) { toast('Senha deve ter pelo menos 4 caracteres', 4000); return }
-    if (senha !== senha2) { toast('As senhas não coincidem', 4000); return }
-    usuariosData.push({
-      id: usuarioCounter++,
-      nome, login, whats,
-      senhaHash: await hashSenha(senha),
-      tipo, perms,
-      ativo: true,
-      criadoEm: fmtD(),
-      criadoPor: usuarioAtual?.id,
-    })
-    toast('Colaborador cadastrado.')
+    fecharModal('mUserAdd'); resetModalUser()
+    await renderUsuarios()
+    aplicarPermissoes()
+  } catch (e) {
+    let msg = e.message || 'Erro desconhecido'
+    if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('User already')) {
+      msg = 'Este e-mail já está cadastrado em outra loja ou no sistema.'
+    } else if (msg.includes('Password should be')) {
+      msg = 'Senha deve ter no mínimo 6 caracteres.'
+    } else if (msg.includes('Invalid email')) {
+      msg = 'E-mail inválido.'
+    }
+    toast('Erro: ' + msg, 5500)
+    console.error(e)
+  } finally {
+    if (btn) { btn.innerHTML = txtOriginal; btn.disabled = false }
   }
-  fecharModal('mUserAdd'); resetModalUser()
-  renderUsuarios(); aplicarPermissoes(); saveAuth()
 }
 
-function toggleUsuario(id) {
+async function toggleUsuario(id) {
   const u = usuariosData.find(x => x.id === id); if (!u) return
   if (u.id === usuarioAtual.id) { toast('Você não pode desativar o próprio usuário.', 4000); return }
   if (u.tipo === 'master' && u.ativo) {
     const outrosMasters = usuariosData.filter(x => x.tipo === 'master' && x.ativo && x.id !== id).length
     if (outrosMasters === 0) { toast('Não é possível desativar o único Master ativo.', 4500); return }
   }
-  u.ativo = !u.ativo
-  toast(`${u.nome} ${u.ativo ? 'reativado' : 'desativado'}.`)
-  renderUsuarios(); saveAuth()
+  if (!confirm(`${u.ativo ? 'Desativar' : 'Reativar'} "${u.nome}"?`)) return
+  try {
+    await db.usuarios.toggleAtivo(id, !u.ativo)
+    toast(`${u.nome} ${!u.ativo ? 'reativado' : 'desativado'}.`)
+    await renderUsuarios()
+  } catch (e) {
+    toast('Erro: ' + (e.message || ''), 4500)
+  }
 }
 
 
@@ -9573,11 +9634,13 @@ let _swPromptEvento = null
 
 /* SW gerado em runtime via blob URL — funciona apenas em HTTP/HTTPS, não em file:// */
 function registrarServiceWorker() {
+  /* Service Worker via blob: URL não é mais suportado em navegadores modernos quando 
+     hospedado em HTTPS (segurança). Pra reativar, é preciso um arquivo sw.js separado 
+     no diretório do site. Por enquanto, mantemos desabilitado pra console limpo. */
+  return
+  /* eslint-disable no-unreachable */
   if (!('serviceWorker' in navigator)) return
-  if (location.protocol === 'file:') {
-    console.log('PWA: Service Worker desativado em file:// — sirva o app via HTTP(S) para habilitar.')
-    return
-  }
+  if (location.protocol === 'file:') return
   /* Gera o código do SW como blob URL */
   const swCode = `
     const CACHE_NAME = 'fiel-oficina-v1';
