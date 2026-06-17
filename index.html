@@ -2528,25 +2528,27 @@ function mostrarTelaAuth() {
     carregarDadosDaLoja(lojaAtual.id)
   }
 
-  /* Se NÃO há lojas cadastradas, mostra tela "Aguardando configuração" */
-  if (lojasData.length === 0) {
-    document.getElementById('auth-no-lojas').style.display = ''
-    document.getElementById('auth-cadastro').style.display = 'none'
-    document.getElementById('auth-login-master').style.display = 'none'
-    document.getElementById('auth-login-colab').style.display = 'none'
-    return
-  }
+  /* SEMPRE oculta a tela "no-lojas" — a tela inicial é login Master/Colaborador */
+  const noLojas = document.getElementById('auth-no-lojas')
+  if (noLojas) noLojas.style.display = 'none'
 
-  document.getElementById('auth-no-lojas').style.display = 'none'
-
-  /* Checa se já existe Master cadastrado nesta loja */
+  /* Checa se já existe Master cadastrado */
   const temMaster = usuariosData.some(u => u.tipo === 'master')
 
-  document.getElementById('auth-cadastro').style.display = temMaster ? 'none' : ''
-  document.getElementById('auth-login-master').style.display = temMaster ? '' : 'none'
-  document.getElementById('auth-login-colab').style.display = 'none'
-
-  setTimeout(() => document.getElementById(temMaster ? 'log_login' : 'cad_nome')?.focus(), 80)
+  /* Por padrão: mostra Login Master.
+     Só mostra "Cadastrar Master" se há loja cadastrada SEM Master (caso muito raro,
+     geralmente acontece se o sistema foi resetado parcialmente). */
+  if (lojasData.length > 0 && !temMaster) {
+    document.getElementById('auth-cadastro').style.display = ''
+    document.getElementById('auth-login-master').style.display = 'none'
+    document.getElementById('auth-login-colab').style.display = 'none'
+    setTimeout(() => document.getElementById('cad_nome')?.focus(), 80)
+  } else {
+    document.getElementById('auth-cadastro').style.display = 'none'
+    document.getElementById('auth-login-master').style.display = ''
+    document.getElementById('auth-login-colab').style.display = 'none'
+    setTimeout(() => document.getElementById('log_login')?.focus(), 80)
+  }
 }
 
 /* Alterna entre telas de Master e Colaborador */
