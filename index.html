@@ -2526,6 +2526,42 @@ const db = {
       const { error } = await sbClient.from('categorias_custom').insert({ loja_id: lojaId, tipo, nome })
       if (error && !error.message.includes('duplicate')) throw error
     }
+  },
+
+  /* ─── ATIVIDADES (feed de auditoria) ─── */
+  atividades: {
+    _mapFromDB(a) {
+      return {
+        ts: a.ts || (a.criado_em ? new Date(a.criado_em).getTime() : Date.now()),
+        user: a.usuario_nome || 'Sistema',
+        userId: a.usuario_id || '',
+        tipo: a.tipo || '',
+        msg: a.mensagem || ''
+      }
+    },
+    async list(lojaId, limite) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient
+        .from('atividades').select('*')
+        .eq('loja_id', lojaId)
+        .order('criado_em', { ascending: false })
+        .limit(limite || 500)
+      if (error) throw error
+      return (data || []).map(a => this._mapFromDB(a))
+    },
+    async add(lojaId, dados) {
+      if (!_supabaseOk) return  /* fire-and-forget: não bloqueia se offline */
+      const payload = {
+        loja_id: lojaId,
+        tipo: dados.tipo || '',
+        mensagem: dados.msg || '',
+        usuario_nome: dados.user || 'Sistema',
+        usuario_id: dados.userId || null
+      }
+      try {
+        await sbClient.from('atividades').insert(payload)
+      } catch (_) {}  /* silencioso — atividade é best-effort */
+    }
   }
 }
 const STORAGE_KEY_LOJAS = 'autogestao_v3_lojas'
@@ -2838,15 +2874,43 @@ async function renderPainelConsultor() {
     return
   }
 
-  /* Stats globais (clientes/OS/faturamento ainda vêm do localStorage por enquanto) */
+  /* Stats globais — queries agregadas por loja */
   const ativas = lojas.filter(l => l.ativa).length
   const total = lojas.length
 
+  let cliCounts = {}, osCounts = {}, fatCounts = {}
+  let totalCli = 0, totalOsAbertas = 0, totalFat = 0
+
+  try {
+    const lojaIds = lojas.map(l => l.id)
+    if (lojaIds.length) {
+      const [cliRes, osRes, fatRes] = await Promise.all([
+        sbClient.from('clientes').select('loja_id').in('loja_id', lojaIds),
+        sbClient.from('ordens_servico').select('loja_id, status').in('loja_id', lojaIds),
+        sbClient.from('entradas').select('loja_id, total').in('loja_id', lojaIds)
+      ])
+      /* Conta clientes por loja */
+      ;(cliRes.data || []).forEach(r => { cliCounts[r.loja_id] = (cliCounts[r.loja_id] || 0) + 1; totalCli++ })
+      /* Conta OS abertas por loja */
+      const osAbertaStatus = ['Aberta', 'Em execução', 'Aguardando peça']
+      ;(osRes.data || []).forEach(r => {
+        if (osAbertaStatus.includes(r.status)) {
+          osCounts[r.loja_id] = (osCounts[r.loja_id] || 0) + 1; totalOsAbertas++
+        }
+      })
+      /* Soma faturamento por loja */
+      ;(fatRes.data || []).forEach(r => {
+        const v = Number(r.total) || 0
+        fatCounts[r.loja_id] = (fatCounts[r.loja_id] || 0) + v; totalFat += v
+      })
+    }
+  } catch (e) { console.warn('Erro ao carregar stats consultor:', e) }
+
   if (stats) stats.innerHTML = `
     <div class="consultor-stat"><div class="consultor-stat-l">Lojas ativas</div><div class="consultor-stat-v">${ativas}<span style="font-size:14px;color:rgba(255,255,255,.4);font-weight:600">/${total}</span></div><div class="consultor-stat-s">no total</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">Clientes</div><div class="consultor-stat-v">—</div><div class="consultor-stat-s">migração pendente</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">OS abertas</div><div class="consultor-stat-v">—</div><div class="consultor-stat-s">migração pendente</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">Faturamento</div><div class="consultor-stat-v">—</div><div class="consultor-stat-s">migração pendente</div></div>`
+    <div class="consultor-stat"><div class="consultor-stat-l">Clientes</div><div class="consultor-stat-v">${totalCli}</div><div class="consultor-stat-s">todas as lojas</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">OS abertas</div><div class="consultor-stat-v">${totalOsAbertas}</div><div class="consultor-stat-s">em andamento</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">Faturamento</div><div class="consultor-stat-v">${fmt(totalFat)}</div><div class="consultor-stat-s">total registrado</div></div>`
 
   /* Cards de lojas */
   if (!lojas.length) {
@@ -2879,9 +2943,9 @@ async function renderPainelConsultor() {
         <span style="color:rgba(255,255,255,.35);font-size:10px">Cadastrada em ${criado}</span>
       </div>
       <div class="loja-card-metrics">
-        <div class="loja-card-metric"><div class="loja-card-metric-v">—</div><div class="loja-card-metric-l">Clientes</div></div>
-        <div class="loja-card-metric"><div class="loja-card-metric-v">—</div><div class="loja-card-metric-l">OS abertas</div></div>
-        <div class="loja-card-metric"><div class="loja-card-metric-v">—</div><div class="loja-card-metric-l">Faturado</div></div>
+        <div class="loja-card-metric"><div class="loja-card-metric-v">${cliCounts[loja.id] || 0}</div><div class="loja-card-metric-l">Clientes</div></div>
+        <div class="loja-card-metric"><div class="loja-card-metric-v">${osCounts[loja.id] || 0}</div><div class="loja-card-metric-l">OS abertas</div></div>
+        <div class="loja-card-metric"><div class="loja-card-metric-v">${fmt(fatCounts[loja.id] || 0).replace('R$ ','')}</div><div class="loja-card-metric-l">Faturado</div></div>
       </div>
       <div class="loja-card-acts">
         <button class="primary" onclick="acessarLoja('${loja.id}')"><i class="ti ti-login"></i> Acessar</button>
@@ -3480,7 +3544,7 @@ async function entrarNoApp() {
 async function carregarCadastrosDaLoja() {
   if (!lojaAtual?.id) return
   try {
-    const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias] = await Promise.all([
+    const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias, atividades] = await Promise.all([
       db.clientes.list(lojaAtual.id),
       db.fornecedores.list(lojaAtual.id),
       db.mecanicos.list(lojaAtual.id),
@@ -3491,7 +3555,8 @@ async function carregarCadastrosDaLoja() {
       db.entradas.list(lojaAtual.id),
       db.saidas.list(lojaAtual.id),
       db.banco.list(lojaAtual.id),
-      db.categorias.list(lojaAtual.id)
+      db.categorias.list(lojaAtual.id),
+      db.atividades.list(lojaAtual.id, 500)
     ])
     cliData = clientes
     fornData = fornecedores
@@ -3505,7 +3570,8 @@ async function carregarCadastrosDaLoja() {
     bancData = banco
     recCatCustom = categorias.rec
     despCatCustom = categorias.desp
-    console.log(`[FIEL] Dados carregados: ${cliData.length} clientes, ${fornData.length} fornecedores, ${mecData.length} mecânicos, ${srvCatData.length} serviços, ${orcData.length} orçamentos, ${osData.length} OS, ${estData.length} peças, ${recData.length} entradas, ${despData.length} saídas, ${bancData.length} transações banco`)
+    atividadeData = atividades
+    console.log(`[FIEL] Dados carregados: ${cliData.length} cli, ${fornData.length} forn, ${mecData.length} mec, ${srvCatData.length} srv, ${orcData.length} orc, ${osData.length} os, ${estData.length} est, ${recData.length} ent, ${despData.length} sai, ${bancData.length} banc, ${atividadeData.length} ativ`)
   } catch (e) {
     console.error('Erro ao carregar cadastros:', e)
     toast('Erro ao carregar dados da loja: ' + (e.message || ''), 5000)
@@ -5511,14 +5577,19 @@ const ATIVIDADE_MAX = 500
 
 function logAtividade(tipo, msg) {
   if (!usuarioAtual) return
-  atividadeData.unshift({
+  const entry = {
     ts: Date.now(),
     user: usuarioAtual._consultor ? 'Consultor' : (usuarioAtual.nome || 'Sistema'),
     userId: usuarioAtual._consultor ? '_consultor' : (usuarioAtual.id || 0),
     tipo,
     msg
-  })
+  }
+  atividadeData.unshift(entry)
   if (atividadeData.length > ATIVIDADE_MAX) atividadeData = atividadeData.slice(0, ATIVIDADE_MAX)
+  /* Salva no Supabase (fire-and-forget, não bloqueia a UI) */
+  if (lojaAtual?.id) {
+    db.atividades.add(lojaAtual.id, entry)
+  }
 }
 
 /* Ícone + cor por tipo de atividade */
