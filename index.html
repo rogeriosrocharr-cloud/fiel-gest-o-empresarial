@@ -308,6 +308,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 /* ── TELA DE AUTENTICAÇÃO (estilo FIEL Finance) ────────── */
 .auth-screen{position:fixed;inset:0;z-index:9999;background:#06040d;display:flex;font-family:Calibri,'Calibri Bold','Trebuchet MS',var(--f)}
 .auth-screen.hidden{display:none}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 /* Lado esquerdo: branding/showcase (apenas desktop) */
 .auth-brand-side{flex:1;background:linear-gradient(135deg,#0a0814 0%,#1a0d3a 50%,#2a1452 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:60px}
@@ -569,9 +570,12 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
         <div class="auth-title">Gestor Master</div>
         <div class="auth-desc">Acesso administrativo da oficina.</div>
         <div class="auth-error" id="log-error"></div>
-        <div class="auth-field"><label>Usuário</label><input id="log_login" type="text" placeholder="seu_usuario" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
+        <div class="auth-field"><label>E-mail</label><input id="log_login" type="email" placeholder="seu@email.com" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
         <div class="auth-field"><label>Senha</label><input id="log_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
         <button class="auth-btn" onclick="fazerLogin()">Entrar</button>
+        <div style="margin-top:10px;text-align:right">
+          <a href="#" onclick="event.preventDefault();recuperarSenhaMaster()" style="font-size:12px;color:rgba(212,169,66,.7);text-decoration:none">Esqueci minha senha</a>
+        </div>
         <div class="auth-foot" style="margin-top:22px">
           <button onclick="alternarParaColaborador()" style="background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:10px 20px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:Calibri,var(--f);transition:all .15s;width:100%" onmouseenter="this.style.borderColor='rgba(212,169,66,.4)';this.style.color='#d4a942'" onmouseleave="this.style.borderColor='rgba(255,255,255,.12)';this.style.color='rgba(255,255,255,.6)'">
             <i class="ti ti-user" style="margin-right:6px"></i> Sou Colaborador
@@ -584,7 +588,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
         <div class="auth-title">Colaborador</div>
         <div class="auth-desc">Acesso com permissões definidas pelo Gestor Master.</div>
         <div class="auth-error" id="log-colab-error"></div>
-        <div class="auth-field"><label>Usuário</label><input id="log_colab_login" type="text" placeholder="seu_usuario" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
+        <div class="auth-field"><label>E-mail</label><input id="log_colab_login" type="email" placeholder="seu@email.com" autocomplete="username" oninput="this.value=this.value.toLowerCase()"></div>
         <div class="auth-field"><label>Senha</label><input id="log_colab_senha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginColaborador()"></div>
         <button class="auth-btn" onclick="loginColaborador()" style="background:linear-gradient(180deg,#7c3ff0,#5c14dc);color:#fff">Entrar como Colaborador</button>
         <div class="auth-foot" style="margin-top:22px">
@@ -681,7 +685,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <div class="slabel" style="margin-bottom:8px;margin-top:14px">Gestor Master inicial</div>
     <p style="font-size:11px;color:var(--t3);margin-bottom:10px;margin-top:-4px">Esta é a pessoa que vai administrar a loja. Poderá cadastrar colaboradores depois.</p>
     <div class="fr g2"><div class="fg"><label>Nome *</label><input id="loja_master_nome" type="text" placeholder="Carlos Silva"></div><div class="fg"><label>WhatsApp</label><input id="loja_master_whats" type="text" placeholder="(65) 99999-0000"></div></div>
-    <div class="fr g3"><div class="fg"><label>Usuário (login) *</label><input id="loja_master_login" type="text" placeholder="admin" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,'')"></div><div class="fg"><label>Senha *</label><input id="loja_master_senha" type="password" placeholder="••••••••" autocomplete="new-password"></div><div class="fg"><label>Confirmar *</label><input id="loja_master_senha2" type="password" placeholder="••••••••" autocomplete="new-password"></div></div>
+    <div class="fr g3"><div class="fg"><label>E-mail (login) *</label><input id="loja_master_login" type="email" placeholder="master@oficina.com" autocomplete="off"></div><div class="fg"><label>Senha *</label><input id="loja_master_senha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div><div class="fg"><label>Confirmar *</label><input id="loja_master_senha2" type="password" placeholder="••••••••" autocomplete="new-password"></div></div>
   </div>
 
   <div class="mf"><button class="btn" onclick="fecharModal('mNovaLoja');resetNovaLoja()">Cancelar</button><button class="btn btn-pu" onclick="salvarNovaLoja()"><i class="ti ti-check"></i> Cadastrar Loja</button></div>
@@ -1773,6 +1777,162 @@ const db = {
       if (!_supabaseOk) return
       await sbClient.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', usuarioId)
     }
+  },
+
+  /* ─── LOJAS ─── */
+  lojas: {
+    async list() {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient
+        .from('lojas')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      if (error) throw error
+      return data || []
+    },
+    async get(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient.from('lojas').select('*').eq('id', id).maybeSingle()
+      if (error) throw error
+      return data
+    },
+    async create(dadosLoja) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const userId = (await sbClient.auth.getUser()).data.user?.id
+      const { data, error } = await sbClient
+        .from('lojas')
+        .insert({
+          nome: dadosLoja.nome,
+          cnpj: dadosLoja.cnpj || null,
+          tel: dadosLoja.tel || null,
+          email: dadosLoja.email || null,
+          endereco: dadosLoja.endereco || null,
+          cidade: dadosLoja.cidade || 'Rondonópolis',
+          uf: dadosLoja.uf || 'MT',
+          logo: dadosLoja.logo || null,
+          ativa: true,
+          criado_por: userId
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    async update(id, dadosLoja) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = { atualizado_em: new Date().toISOString() }
+      ;['nome','cnpj','tel','email','endereco','cidade','uf','logo','ativa'].forEach(k => {
+        if (dadosLoja[k] !== undefined) payload[k] = dadosLoja[k]
+      })
+      const { data, error } = await sbClient.from('lojas').update(payload).eq('id', id).select().single()
+      if (error) throw error
+      return data
+    },
+    async toggle(id, ativa) {
+      return await this.update(id, { ativa })
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('lojas').delete().eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  /* ─── USUÁRIOS (Masters e Colaboradores) ─── */
+  usuarios: {
+    async listByLoja(lojaId) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient
+        .from('usuarios')
+        .select('*')
+        .eq('loja_id', lojaId)
+        .order('criado_em', { ascending: true })
+      if (error) throw error
+      return data || []
+    },
+    async create(dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { data, error } = await sbClient
+        .from('usuarios')
+        .insert({
+          auth_id: dados.auth_id || null,
+          loja_id: dados.loja_id,
+          nome: dados.nome,
+          email: dados.email,
+          role: dados.role,
+          permissoes: dados.permissoes || [],
+          ativo: dados.ativo !== false
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const payload = {}
+      ;['auth_id','nome','email','role','permissoes','ativo'].forEach(k => {
+        if (dados[k] !== undefined) payload[k] = dados[k]
+      })
+      const { data, error } = await sbClient.from('usuarios').update(payload).eq('id', id).select().single()
+      if (error) throw error
+      return data
+    },
+    async toggleAtivo(id, ativo) {
+      return await this.update(id, { ativo })
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      const { error } = await sbClient.from('usuarios').delete().eq('id', id)
+      if (error) throw error
+    },
+    /* Cria um Master ou Colaborador: faz signUp no Auth + insere em usuarios,
+       preservando a sessão do Consultor que está logado. */
+    async criarComAuth(dados) {
+      if (!_supabaseOk) throw new Error('Sistema offline.')
+      /* 1. Salva sessão atual (do Consultor) */
+      const { data: { session: oldSession } } = await sbClient.auth.getSession()
+      if (!oldSession) throw new Error('Sessão de Consultor não encontrada.')
+
+      try {
+        /* 2. signUp do novo usuário (vai trocar a sessão pra ele) */
+        const { data: signUpData, error: signUpErr } = await sbClient.auth.signUp({
+          email: dados.email,
+          password: dados.senha
+        })
+        if (signUpErr) throw signUpErr
+        if (!signUpData.user) throw new Error('Falha ao criar usuário no Auth.')
+
+        const novoAuthId = signUpData.user.id
+
+        /* 3. Restaura sessão do Consultor (pra ter permissão de INSERT em usuarios) */
+        await sbClient.auth.setSession({
+          access_token: oldSession.access_token,
+          refresh_token: oldSession.refresh_token
+        })
+
+        /* 4. Insere o registro em usuarios (já como Consultor) */
+        const usuario = await this.create({
+          auth_id: novoAuthId,
+          loja_id: dados.loja_id,
+          nome: dados.nome,
+          email: dados.email,
+          role: dados.role,
+          permissoes: dados.permissoes || [],
+          ativo: true
+        })
+        return usuario
+      } catch (e) {
+        /* Em caso de erro, tenta restaurar sessão Consultor */
+        try {
+          await sbClient.auth.setSession({
+            access_token: oldSession.access_token,
+            refresh_token: oldSession.refresh_token
+          })
+        } catch (_) {}
+        throw e
+      }
+    }
   }
 }
 const STORAGE_KEY_LOJAS = 'autogestao_v3_lojas'
@@ -2059,28 +2219,45 @@ async function sairConsultor() {
   mostrarTelaAuth()
 }
 
-function renderPainelConsultor() {
-  /* Stats globais */
-  const ativas = lojasData.filter(l => l.ativa).length
-  const total = lojasData.length
-  let totClientes = 0, totOS = 0, totFat = 0
-  lojasData.forEach(l => {
-    const dados = lerDadosLoja(l.id)
-    if (dados) {
-      totClientes += (dados.cliData || []).length
-      totOS += (dados.osData || []).length
-      totFat += (dados.recData || []).reduce((a, b) => a + (b.total || 0), 0)
-    }
-  })
-  document.getElementById('cons-stats').innerHTML = `
+async function renderPainelConsultor() {
+  const grid = document.getElementById('lojas-grid')
+  const stats = document.getElementById('cons-stats')
+
+  /* Estado de loading */
+  if (grid) grid.innerHTML = `
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.5)">
+      <i class="ti ti-loader" style="font-size:32px;animation:spin 1s linear infinite"></i>
+      <div style="margin-top:12px;font-size:13px">Carregando lojas...</div>
+    </div>`
+
+  let lojas = []
+  try {
+    lojas = await db.lojas.list()
+  } catch (e) {
+    console.error('Erro ao listar lojas:', e)
+    if (grid) grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed rgba(196,48,48,.3);border-radius:12px">
+        <i class="ti ti-cloud-off" style="font-size:48px;color:#ff8c8c;margin-bottom:14px;display:block"></i>
+        <div style="color:#fff;font-weight:700;margin-bottom:6px;font-size:16px">Erro ao carregar lojas</div>
+        <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px">${e.message || 'Sem conexão com o servidor'}</div>
+        <button class="consultor-btn" onclick="renderPainelConsultor()"><i class="ti ti-refresh"></i> Tentar de novo</button>
+      </div>`
+    return
+  }
+
+  /* Stats globais (clientes/OS/faturamento ainda vêm do localStorage por enquanto) */
+  const ativas = lojas.filter(l => l.ativa).length
+  const total = lojas.length
+
+  if (stats) stats.innerHTML = `
     <div class="consultor-stat"><div class="consultor-stat-l">Lojas ativas</div><div class="consultor-stat-v">${ativas}<span style="font-size:14px;color:rgba(255,255,255,.4);font-weight:600">/${total}</span></div><div class="consultor-stat-s">no total</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">Clientes</div><div class="consultor-stat-v">${totClientes}</div><div class="consultor-stat-s">cadastrados (todas)</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">OS abertas/total</div><div class="consultor-stat-v">${totOS}</div><div class="consultor-stat-s">soma de todas</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">Faturamento</div><div class="consultor-stat-v">${fmt(totFat)}</div><div class="consultor-stat-s">total registrado</div></div>`
+    <div class="consultor-stat"><div class="consultor-stat-l">Clientes</div><div class="consultor-stat-v">—</div><div class="consultor-stat-s">migração pendente</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">OS abertas</div><div class="consultor-stat-v">—</div><div class="consultor-stat-s">migração pendente</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">Faturamento</div><div class="consultor-stat-v">—</div><div class="consultor-stat-s">migração pendente</div></div>`
 
   /* Cards de lojas */
-  if (!lojasData.length) {
-    document.getElementById('lojas-grid').innerHTML = `
+  if (!lojas.length) {
+    if (grid) grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed rgba(255,255,255,.08);border-radius:12px">
         <i class="ti ti-building-store" style="font-size:48px;color:rgba(212,169,66,.3);margin-bottom:14px;display:block"></i>
         <div style="color:#fff;font-weight:700;margin-bottom:6px;font-size:16px">Nenhuma loja cadastrada</div>
@@ -2090,11 +2267,8 @@ function renderPainelConsultor() {
     return
   }
 
-  document.getElementById('lojas-grid').innerHTML = lojasData.map(loja => {
-    const dados = lerDadosLoja(loja.id)
-    const nClis = dados?.cliData?.length || 0
-    const nOS = dados?.osData?.filter(o => ['Aberta','Em execução','Aguardando peça'].includes(o.status)).length || 0
-    const fat = (dados?.recData || []).reduce((a, b) => a + (b.total || 0), 0)
+  if (grid) grid.innerHTML = lojas.map(loja => {
+    const criado = loja.criado_em ? new Date(loja.criado_em).toLocaleDateString('pt-BR') : '—'
     return `<div class="loja-card ${loja.ativa ? '' : 'inativa'}">
       <div class="loja-card-top">
         <div class="loja-card-icon" ${loja.logo ? `style="background:#fff;border-color:rgba(212,169,66,.3);padding:0;overflow:hidden"` : ''}>
@@ -2107,19 +2281,19 @@ function renderPainelConsultor() {
       <div class="loja-card-nome">${loja.nome}</div>
       <div class="loja-card-cnpj">${loja.cnpj || '—'}</div>
       <div class="loja-card-info">
-        <b>${loja.cid || '—'}/${loja.uf || '—'}</b><br>
+        <b>${loja.cidade || '—'}/${loja.uf || '—'}</b><br>
         ${loja.tel || ''}${loja.tel && loja.email ? ' · ' : ''}${loja.email || ''}<br>
-        <span style="color:rgba(255,255,255,.35);font-size:10px">Cadastrada em ${loja.criadoEm}</span>
+        <span style="color:rgba(255,255,255,.35);font-size:10px">Cadastrada em ${criado}</span>
       </div>
       <div class="loja-card-metrics">
-        <div class="loja-card-metric"><div class="loja-card-metric-v">${nClis}</div><div class="loja-card-metric-l">Clientes</div></div>
-        <div class="loja-card-metric"><div class="loja-card-metric-v">${nOS}</div><div class="loja-card-metric-l">OS abertas</div></div>
-        <div class="loja-card-metric"><div class="loja-card-metric-v">${fmt(fat).replace('R$ ','')}</div><div class="loja-card-metric-l">Faturado</div></div>
+        <div class="loja-card-metric"><div class="loja-card-metric-v">—</div><div class="loja-card-metric-l">Clientes</div></div>
+        <div class="loja-card-metric"><div class="loja-card-metric-v">—</div><div class="loja-card-metric-l">OS abertas</div></div>
+        <div class="loja-card-metric"><div class="loja-card-metric-v">—</div><div class="loja-card-metric-l">Faturado</div></div>
       </div>
       <div class="loja-card-acts">
-        <button class="primary" onclick="acessarLoja(${loja.id})"><i class="ti ti-login"></i> Acessar</button>
-        <button onclick="editarLoja(${loja.id})"><i class="ti ti-edit"></i> Editar</button>
-        <button onclick="toggleLoja(${loja.id})"><i class="ti ti-${loja.ativa ? 'lock' : 'lock-open'}"></i></button>
+        <button class="primary" onclick="acessarLoja('${loja.id}')"><i class="ti ti-login"></i> Acessar</button>
+        <button onclick="editarLoja('${loja.id}')"><i class="ti ti-edit"></i> Editar</button>
+        <button onclick="toggleLoja('${loja.id}')"><i class="ti ti-${loja.ativa ? 'lock' : 'lock-open'}"></i></button>
       </div>
     </div>`
   }).join('')
@@ -2164,21 +2338,25 @@ async function salvarNovaLoja() {
 
   /* ─── MODO EDIÇÃO ─── */
   if (lojaEditId) {
-    const l = lojasData.find(x => x.id === lojaEditId)
-    if (!l) { toast('Loja não encontrada.'); return }
-    l.nome = nome
-    l.cnpj = document.getElementById('loja_cnpj').value.trim()
-    l.tel = document.getElementById('loja_tel').value.trim()
-    l.email = document.getElementById('loja_email').value.trim()
-    l.end = document.getElementById('loja_end').value.trim()
-    l.cid = document.getElementById('loja_cid').value.trim() || 'Rondonópolis'
-    l.uf = document.getElementById('loja_uf').value.trim() || 'MT'
-    if (_lojaLogoBase64 !== undefined) l.logo = _lojaLogoBase64  /* permite remover logo */
-    l.atualizadoEm = fmtD()
-    saveLojas()
-    fecharModal('mNovaLoja'); resetNovaLoja()
-    toast(`Loja "${nome}" atualizada.`, 3500)
-    renderPainelConsultor()
+    try {
+      const payload = {
+        nome,
+        cnpj: document.getElementById('loja_cnpj').value.trim() || null,
+        tel: document.getElementById('loja_tel').value.trim() || null,
+        email: document.getElementById('loja_email').value.trim() || null,
+        endereco: document.getElementById('loja_end').value.trim() || null,
+        cidade: document.getElementById('loja_cid').value.trim() || 'Rondonópolis',
+        uf: document.getElementById('loja_uf').value.trim() || 'MT'
+      }
+      if (_lojaLogoBase64 !== undefined) payload.logo = _lojaLogoBase64
+      await db.lojas.update(lojaEditId, payload)
+      fecharModal('mNovaLoja'); resetNovaLoja()
+      toast(`Loja "${nome}" atualizada.`, 3500)
+      await renderPainelConsultor()
+    } catch (e) {
+      console.error('Erro ao atualizar loja:', e)
+      toast('Erro ao atualizar: ' + (e.message || ''), 5000)
+    }
     return
   }
 
@@ -2187,67 +2365,86 @@ async function salvarNovaLoja() {
   const mLogin = document.getElementById('loja_master_login').value.trim()
   const mSenha = document.getElementById('loja_master_senha').value
   const mSenha2 = document.getElementById('loja_master_senha2').value
+  const mWhats = document.getElementById('loja_master_whats').value.trim()
 
-  if (!mNome || !mLogin || !mSenha) { toast('Preencha os dados do Gestor Master', 4000); return }
-  if (mSenha.length < 4) { toast('Senha do Master deve ter pelo menos 4 caracteres', 4500); return }
+  if (!mNome) { toast('Informe o nome do Gestor Master', 4000); return }
+  if (!mLogin) { toast('Informe o e-mail do Gestor Master', 4000); return }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mLogin)) { toast('E-mail do Master inválido', 4500); return }
+  if (!mSenha) { toast('Informe a senha do Master', 4000); return }
+  if (mSenha.length < 6) { toast('Senha do Master deve ter pelo menos 6 caracteres', 4500); return }
   if (mSenha !== mSenha2) { toast('Senhas do Master não coincidem', 4000); return }
 
-  const lojaId = lojaCounter++
-  const novaLoja = {
-    id: lojaId,
-    nome,
-    cnpj: document.getElementById('loja_cnpj').value.trim(),
-    tel: document.getElementById('loja_tel').value.trim(),
-    email: document.getElementById('loja_email').value.trim(),
-    end: document.getElementById('loja_end').value.trim(),
-    cid: document.getElementById('loja_cid').value.trim() || 'Rondonópolis',
-    uf: document.getElementById('loja_uf').value.trim() || 'MT',
-    logo: _lojaLogoBase64 || null,
-    ativa: true,
-    criadoEm: fmtD(),
-    criadoPor: consultor.login,
-  }
-  lojasData.push(novaLoja)
+  const btnSalvar = document.querySelector('#mNovaLoja button[onclick="salvarNovaLoja()"]')
+  const btnOriginalHTML = btnSalvar ? btnSalvar.innerHTML : ''
+  if (btnSalvar) { btnSalvar.disabled = true; btnSalvar.innerHTML = '<i class="ti ti-loader"></i> Cadastrando...' }
 
-  /* Cria estrutura de auth da loja com o Master inicial */
-  const masterHash = await hashSenha(mSenha)
-  const authData = {
-    usuariosData: [{
-      id: 1,
+  let lojaCriada = null
+  try {
+    /* 1. Cria a loja no Supabase */
+    lojaCriada = await db.lojas.create({
+      nome,
+      cnpj: document.getElementById('loja_cnpj').value.trim(),
+      tel: document.getElementById('loja_tel').value.trim(),
+      email: document.getElementById('loja_email').value.trim(),
+      endereco: document.getElementById('loja_end').value.trim(),
+      cidade: document.getElementById('loja_cid').value.trim() || 'Rondonópolis',
+      uf: document.getElementById('loja_uf').value.trim() || 'MT',
+      logo: _lojaLogoBase64 || null
+    })
+
+    /* 2. Cria o Master no Supabase Auth + tabela usuarios */
+    await db.usuarios.criarComAuth({
+      email: mLogin,
+      senha: mSenha,
       nome: mNome,
-      whats: document.getElementById('loja_master_whats').value.trim(),
-      login: mLogin,
-      senhaHash: masterHash,
-      tipo: 'master',
-      perms: PERMS_DISPONIVEIS.map(p => p.key),
-      ativo: true,
-      criadoEm: fmtD(),
-      criadoPor: null,
-    }],
-    usuarioCounter: 2,
-    usuarioAtualId: null,
-  }
-  localStorage.setItem(STORAGE_KEY_AUTH + '_' + lojaId, JSON.stringify(authData))
-  /* Dados iniciais da loja — vazios, com flag de inicialização */
-  localStorage.setItem(STORAGE_KEY + '_' + lojaId, JSON.stringify({ _initialized: true }))
+      loja_id: lojaCriada.id,
+      role: 'master',
+      permissoes: ['clientes','fornecedores','mecanicos','servicos','estoque','orcamentos','os','financeiro']
+    })
 
-  saveLojas()
-  fecharModal('mNovaLoja'); resetNovaLoja()
-  toast(`Loja "${nome}" cadastrada com sucesso.`, 4500)
-  renderPainelConsultor()
+    fecharModal('mNovaLoja'); resetNovaLoja()
+    toast(`✓ Loja "${nome}" cadastrada com sucesso. Master: ${mLogin}`, 5500)
+    await renderPainelConsultor()
+  } catch (e) {
+    console.error('Erro ao cadastrar loja:', e)
+    /* Se a loja foi criada mas o Master falhou, deleta a loja órfã */
+    if (lojaCriada) {
+      try { await db.lojas.remove(lojaCriada.id) } catch (_) {}
+    }
+    let msg = e.message || 'Erro desconhecido'
+    if (msg.includes('already registered') || msg.includes('already been registered')) {
+      msg = 'Este e-mail já está cadastrado em outra loja ou no sistema.'
+    } else if (msg.includes('User already')) {
+      msg = 'Este e-mail já está cadastrado.'
+    } else if (msg.includes('Password should be')) {
+      msg = 'Senha deve ter no mínimo 6 caracteres.'
+    } else if (msg.includes('Invalid email')) {
+      msg = 'E-mail inválido.'
+    }
+    toast('Erro: ' + msg, 6000)
+  } finally {
+    if (btnSalvar) { btnSalvar.disabled = false; btnSalvar.innerHTML = btnOriginalHTML }
+  }
 }
 
 let lojaEditId = null
-function editarLoja(id) {
-  const l = lojasData.find(x => x.id === id); if (!l) return
+async function editarLoja(id) {
+  let l = null
+  try {
+    l = await db.lojas.get(id)
+  } catch (e) {
+    toast('Erro ao carregar loja: ' + (e.message || ''), 4000)
+    return
+  }
+  if (!l) { toast('Loja não encontrada.'); return }
   lojaEditId = id
   document.getElementById('mNovaLoja-title').textContent = 'Editar Loja — ' + l.nome
   document.getElementById('loja_nome').value = l.nome
   document.getElementById('loja_cnpj').value = l.cnpj || ''
   document.getElementById('loja_tel').value = l.tel || ''
   document.getElementById('loja_email').value = l.email || ''
-  document.getElementById('loja_end').value = l.end || ''
-  document.getElementById('loja_cid').value = l.cid || 'Rondonópolis'
+  document.getElementById('loja_end').value = l.endereco || ''
+  document.getElementById('loja_cid').value = l.cidade || 'Rondonópolis'
   document.getElementById('loja_uf').value = l.uf || 'MT'
   /* Logo */
   _lojaLogoBase64 = l.logo || null
@@ -2266,13 +2463,18 @@ function editarLoja(id) {
   abrirModal('mNovaLoja')
 }
 
-function toggleLoja(id) {
-  const l = lojasData.find(x => x.id === id); if (!l) return
+async function toggleLoja(id) {
+  let l = null
+  try { l = await db.lojas.get(id) } catch (e) { toast('Erro: ' + (e.message || ''), 4000); return }
+  if (!l) return
   if (!confirm(`${l.ativa ? 'Suspender' : 'Reativar'} a loja "${l.nome}"?`)) return
-  l.ativa = !l.ativa
-  saveLojas()
-  toast(`Loja ${l.ativa ? 'reativada' : 'suspensa'}.`)
-  renderPainelConsultor()
+  try {
+    await db.lojas.toggle(id, !l.ativa)
+    toast(`Loja ${!l.ativa ? 'reativada' : 'suspensa'}.`)
+    await renderPainelConsultor()
+  } catch (e) {
+    toast('Erro ao atualizar: ' + (e.message || ''), 4000)
+  }
 }
 
 function lerDadosLoja(lojaId) {
@@ -2280,16 +2482,18 @@ function lerDadosLoja(lojaId) {
   catch (e) { return {} }
 }
 
-function acessarLoja(lojaId) {
-  const l = lojasData.find(x => x.id === lojaId); if (!l) return
+async function acessarLoja(lojaId) {
+  let l = null
+  try { l = await db.lojas.get(lojaId) } catch (e) { toast('Erro: ' + (e.message || ''), 4000); return }
+  if (!l) return
   if (!l.ativa && !confirm(`A loja "${l.nome}" está suspensa. Acessar mesmo assim para revisão?`)) return
   lojaAtual = l
   modoConsultor = true
-  /* Carrega os dados da loja escolhida */
+  /* Carrega os dados da loja escolhida (dados internos continuam em localStorage por enquanto) */
   carregarDadosDaLoja(lojaId)
   /* Cria um "usuário consultor" virtual com perms totais */
   usuarioAtual = {
-    id: -1, nome: consultor.nome, login: consultor.login, tipo: 'master',
+    id: -1, nome: consultor.nome, login: consultor.login || consultor.email, tipo: 'master',
     perms: PERMS_DISPONIVEIS.map(p => p.key), ativo: true, _consultor: true
   }
   document.getElementById('consultor-screen').classList.add('hidden')
@@ -2471,46 +2675,150 @@ async function cadastrarMaster() {
 }
 
 async function fazerLogin() {
-  const login = document.getElementById('log_login').value.trim().toLowerCase()
+  const email = document.getElementById('log_login').value.trim().toLowerCase()
   const senha = document.getElementById('log_senha').value
-  if (!login || !senha) return mostrarAuthError('log-error', 'Preencha usuário e senha.')
+  if (!email || !senha) return mostrarAuthError('log-error', 'Preencha e-mail e senha.')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return mostrarAuthError('log-error', 'E-mail inválido.')
 
-  const u = usuariosData.find(x => x.login === login && x.tipo === 'master')
-  if (!u) return mostrarAuthError('log-error', 'Usuário Master não encontrado.')
-  if (!u.ativo) return mostrarAuthError('log-error', 'Usuário desativado. Procure o Consultor.')
+  const btn = document.querySelector('#auth-login-master .auth-btn')
+  const txtOriginal = btn ? btn.textContent : 'Entrar'
+  if (btn) { btn.innerHTML = '<i class="ti ti-loader"></i> Entrando...'; btn.disabled = true }
 
-  const hash = await hashSenha(senha)
-  if (hash !== u.senhaHash) return mostrarAuthError('log-error', 'Senha incorreta.')
+  try {
+    const data = await db.auth.signIn(email, senha)
+    const perfil = await db.auth.getPerfil(data.user.id)
+    if (!perfil) {
+      await db.auth.signOut()
+      throw new Error('Conta não vinculada a nenhuma loja. Procure o administrador.')
+    }
+    if (perfil.role !== 'master') {
+      await db.auth.signOut()
+      throw new Error(perfil.role === 'colaborador'
+        ? 'Esta conta é de Colaborador. Use o login de Colaborador.'
+        : 'Esta conta não é de Gestor Master.')
+    }
+    if (!perfil.ativo) {
+      await db.auth.signOut()
+      throw new Error('Conta desativada. Procure o Consultor.')
+    }
 
-  usuarioAtual = u
-  document.getElementById('log_senha').value = ''
-  saveAuth()
-  entrarNoApp()
+    /* Carrega a loja do Master */
+    const loja = await db.lojas.get(perfil.loja_id)
+    if (!loja) {
+      await db.auth.signOut()
+      throw new Error('Loja não encontrada.')
+    }
+    if (!loja.ativa) {
+      await db.auth.signOut()
+      throw new Error('Loja suspensa. Entre em contato com o Consultor.')
+    }
+    lojaAtual = loja
+    carregarDadosDaLoja(loja.id)
+
+    /* Marca último acesso */
+    db.auth.marcarAcesso(perfil.id).catch(() => {})
+
+    /* Define usuário ativo no contexto */
+    usuarioAtual = {
+      id: perfil.id, nome: perfil.nome, login: perfil.email,
+      email: perfil.email, tipo: 'master',
+      perms: perfil.permissoes || PERMS_DISPONIVEIS.map(p => p.key),
+      ativo: true, _authId: data.user.id, _supabase: true
+    }
+    document.getElementById('log_senha').value = ''
+    document.getElementById('sb-sub-loja').textContent = loja.nome
+    entrarNoApp()
+  } catch (err) {
+    let msg = err.message || 'Erro ao fazer login.'
+    if (msg.includes('Invalid login credentials')) msg = 'E-mail ou senha incorretos.'
+    else if (msg.includes('Email not confirmed')) msg = 'E-mail ainda não confirmado.'
+    else if (msg.includes('rate limit')) msg = 'Muitas tentativas. Aguarde alguns minutos.'
+    else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) msg = 'Sem conexão com o servidor.'
+    mostrarAuthError('log-error', msg)
+  } finally {
+    if (btn) { btn.textContent = txtOriginal; btn.disabled = false }
+  }
 }
 
 async function loginColaborador() {
-  const login = document.getElementById('log_colab_login').value.trim().toLowerCase()
+  const email = document.getElementById('log_colab_login').value.trim().toLowerCase()
   const senha = document.getElementById('log_colab_senha').value
-  if (!login || !senha) return mostrarAuthError('log-colab-error', 'Preencha usuário e senha.')
+  if (!email || !senha) return mostrarAuthError('log-colab-error', 'Preencha e-mail e senha.')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return mostrarAuthError('log-colab-error', 'E-mail inválido.')
 
-  const u = usuariosData.find(x => x.login === login)
-  if (!u) return mostrarAuthError('log-colab-error', 'Usuário não encontrado.')
-  if (!u.ativo) return mostrarAuthError('log-colab-error', 'Usuário desativado. Procure o Gestor Master.')
+  const btn = document.querySelector('#auth-login-colab .auth-btn')
+  const txtOriginal = btn ? btn.textContent : 'Entrar como Colaborador'
+  if (btn) { btn.innerHTML = '<i class="ti ti-loader"></i> Entrando...'; btn.disabled = true }
 
-  const hash = await hashSenha(senha)
-  if (hash !== u.senhaHash) return mostrarAuthError('log-colab-error', 'Senha incorreta.')
+  try {
+    const data = await db.auth.signIn(email, senha)
+    const perfil = await db.auth.getPerfil(data.user.id)
+    if (!perfil) {
+      await db.auth.signOut()
+      throw new Error('Conta não encontrada.')
+    }
+    if (perfil.role !== 'colaborador') {
+      await db.auth.signOut()
+      throw new Error(perfil.role === 'master'
+        ? 'Esta conta é de Gestor Master. Use o login de Master.'
+        : 'Conta não é de Colaborador.')
+    }
+    if (!perfil.ativo) {
+      await db.auth.signOut()
+      throw new Error('Conta desativada. Procure o Gestor Master.')
+    }
 
-  usuarioAtual = u
-  document.getElementById('log_colab_senha').value = ''
-  saveAuth()
-  entrarNoApp()
+    const loja = await db.lojas.get(perfil.loja_id)
+    if (!loja || !loja.ativa) {
+      await db.auth.signOut()
+      throw new Error('Loja inativa.')
+    }
+    lojaAtual = loja
+    carregarDadosDaLoja(loja.id)
+
+    db.auth.marcarAcesso(perfil.id).catch(() => {})
+
+    usuarioAtual = {
+      id: perfil.id, nome: perfil.nome, login: perfil.email,
+      email: perfil.email, tipo: 'colab',
+      perms: perfil.permissoes || [],
+      ativo: true, _authId: data.user.id, _supabase: true
+    }
+    document.getElementById('log_colab_senha').value = ''
+    document.getElementById('sb-sub-loja').textContent = loja.nome
+    entrarNoApp()
+  } catch (err) {
+    let msg = err.message || 'Erro ao fazer login.'
+    if (msg.includes('Invalid login credentials')) msg = 'E-mail ou senha incorretos.'
+    else if (msg.includes('rate limit')) msg = 'Muitas tentativas. Aguarde.'
+    else if (msg.includes('Failed to fetch')) msg = 'Sem conexão.'
+    mostrarAuthError('log-colab-error', msg)
+  } finally {
+    if (btn) { btn.textContent = txtOriginal; btn.disabled = false }
+  }
 }
 
-function fazerLogout() {
+/* Recupera senha do Master via Supabase Auth */
+async function recuperarSenhaMaster() {
+  const email = (document.getElementById('log_login').value || '').trim().toLowerCase()
+  if (!email || !email.includes('@')) {
+    return mostrarAuthError('log-error', 'Digite seu e-mail no campo acima antes de clicar em "Esqueci minha senha".')
+  }
+  if (!confirm(`Enviar e-mail de recuperação de senha para ${email}?`)) return
+  try {
+    await db.auth.recuperarSenha(email)
+    mostrarAuthError('log-error', '')
+    alert('✓ E-mail de recuperação enviado!\n\nVerifique sua caixa de entrada (e SPAM) e clique no link para definir uma nova senha.')
+  } catch (err) {
+    mostrarAuthError('log-error', 'Erro: ' + (err.message || 'Falha ao enviar.'))
+  }
+}
+
+async function fazerLogout() {
   if (modoConsultor) { voltarParaConsultor(); return }
   if (!confirm('Sair do sistema?')) return
+  try { if (usuarioAtual?._supabase) await db.auth.signOut() } catch (_) {}
   usuarioAtual = null
-  saveAuth()
   document.getElementById('log_login').value = ''
   document.getElementById('log_senha').value = ''
   mostrarTelaAuth()
@@ -2522,33 +2830,15 @@ function mostrarTelaAuth() {
   document.querySelector('.app').style.display = 'none'
   document.getElementById('consultor-banner').style.display = 'none'
 
-  /* Se há lojas do consultor, usa a primeira ativa */
-  if (lojasData.length > 0 && !lojaAtual) {
-    lojaAtual = lojasData.find(l => l.ativa) || lojasData[0]
-    carregarDadosDaLoja(lojaAtual.id)
-  }
-
-  /* SEMPRE oculta a tela "no-lojas" — a tela inicial é login Master/Colaborador */
+  /* SEMPRE oculta a tela "no-lojas" e cadastro inicial — agora o cadastro do Master
+     é feito pelo Consultor via Painel. A tela inicial sempre mostra Login Master. */
   const noLojas = document.getElementById('auth-no-lojas')
   if (noLojas) noLojas.style.display = 'none'
+  document.getElementById('auth-cadastro').style.display = 'none'
+  document.getElementById('auth-login-master').style.display = ''
+  document.getElementById('auth-login-colab').style.display = 'none'
 
-  /* Checa se já existe Master cadastrado */
-  const temMaster = usuariosData.some(u => u.tipo === 'master')
-
-  /* Por padrão: mostra Login Master.
-     Só mostra "Cadastrar Master" se há loja cadastrada SEM Master (caso muito raro,
-     geralmente acontece se o sistema foi resetado parcialmente). */
-  if (lojasData.length > 0 && !temMaster) {
-    document.getElementById('auth-cadastro').style.display = ''
-    document.getElementById('auth-login-master').style.display = 'none'
-    document.getElementById('auth-login-colab').style.display = 'none'
-    setTimeout(() => document.getElementById('cad_nome')?.focus(), 80)
-  } else {
-    document.getElementById('auth-cadastro').style.display = 'none'
-    document.getElementById('auth-login-master').style.display = ''
-    document.getElementById('auth-login-colab').style.display = 'none'
-    setTimeout(() => document.getElementById('log_login')?.focus(), 80)
-  }
+  setTimeout(() => document.getElementById('log_login')?.focus(), 80)
 }
 
 /* Alterna entre telas de Master e Colaborador */
