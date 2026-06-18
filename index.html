@@ -1998,10 +1998,10 @@ const db = {
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
       const { data: clientes, error: e1 } = await sbClient
-        .from('clientes').select('*').eq('loja_id', lojaId).order('nome')
+        .from('clientes').select('*').eq('loja_id', lojaId).order('nome').limit(10000)
       if (e1) throw e1
       const { data: veiculos, error: e2 } = await sbClient
-        .from('veiculos').select('*').eq('loja_id', lojaId)
+        .from('veiculos').select('*').eq('loja_id', lojaId).limit(10000)
       if (e2) throw e2
       const mapVei = {}
       ;(veiculos || []).forEach(v => {
@@ -2074,7 +2074,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('fornecedores').select('*').eq('loja_id', lojaId).order('nome')
+      const { data, error } = await sbClient.from('fornecedores').select('*').eq('loja_id', lojaId).order('nome').limit(10000)
       if (error) throw error
       return (data || []).map(f => this._mapFromDB(f))
     },
@@ -2119,7 +2119,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('mecanicos').select('*').eq('loja_id', lojaId).order('nome')
+      const { data, error } = await sbClient.from('mecanicos').select('*').eq('loja_id', lojaId).order('nome').limit(10000)
       if (error) throw error
       return (data || []).map(m => this._mapFromDB(m))
     },
@@ -2158,7 +2158,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('servicos_catalogo').select('*').eq('loja_id', lojaId).order('nome')
+      const { data, error } = await sbClient.from('servicos_catalogo').select('*').eq('loja_id', lojaId).order('nome').limit(10000)
       if (error) throw error
       return (data || []).map(s => this._mapFromDB(s))
     },
@@ -2234,7 +2234,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('orcamentos').select('*').eq('loja_id', lojaId).order('numero', { ascending: false })
+      const { data, error } = await sbClient.from('orcamentos').select('*').eq('loja_id', lojaId).order('numero', { ascending: false }).limit(10000)
       if (error) throw error
       return (data || []).map(o => this._mapFromDB(o))
     },
@@ -2305,7 +2305,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('ordens_servico').select('*').eq('loja_id', lojaId).order('numero', { ascending: false })
+      const { data, error } = await sbClient.from('ordens_servico').select('*').eq('loja_id', lojaId).order('numero', { ascending: false }).limit(10000)
       if (error) throw error
       return (data || []).map(o => this._mapFromDB(o))
     },
@@ -2352,7 +2352,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('estoque').select('*').eq('loja_id', lojaId).order('nome')
+      const { data, error } = await sbClient.from('estoque').select('*').eq('loja_id', lojaId).order('nome').limit(10000)
       if (error) throw error
       return (data || []).map(e => this._mapFromDB(e))
     },
@@ -2412,7 +2412,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('entradas').select('*').eq('loja_id', lojaId).order('id', { ascending: false })
+      const { data, error } = await sbClient.from('entradas').select('*').eq('loja_id', lojaId).order('id', { ascending: false }).limit(10000)
       if (error) throw error
       return (data || []).map(r => this._mapFromDB(r))
     },
@@ -2461,7 +2461,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('saidas').select('*').eq('loja_id', lojaId).order('id', { ascending: false })
+      const { data, error } = await sbClient.from('saidas').select('*').eq('loja_id', lojaId).order('id', { ascending: false }).limit(10000)
       if (error) throw error
       return (data || []).map(d => this._mapFromDB(d))
     },
@@ -2507,7 +2507,7 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('banco_transacoes').select('*').eq('loja_id', lojaId).order('id', { ascending: false })
+      const { data, error } = await sbClient.from('banco_transacoes').select('*').eq('loja_id', lojaId).order('id', { ascending: false }).limit(10000)
       if (error) throw error
       return (data || []).map(b => this._mapFromDB(b))
     },
@@ -2900,9 +2900,9 @@ async function renderPainelConsultor() {
     const lojaIds = lojas.map(l => l.id)
     if (lojaIds.length) {
       const [cliRes, osRes, fatRes] = await Promise.all([
-        sbClient.from('clientes').select('loja_id').in('loja_id', lojaIds),
-        sbClient.from('ordens_servico').select('loja_id, status').in('loja_id', lojaIds),
-        sbClient.from('entradas').select('loja_id, total').in('loja_id', lojaIds)
+        sbClient.from('clientes').select('loja_id').in('loja_id', lojaIds).limit(50000),
+        sbClient.from('ordens_servico').select('loja_id, status').in('loja_id', lojaIds).limit(50000),
+        sbClient.from('entradas').select('loja_id, total').in('loja_id', lojaIds).limit(50000)
       ])
       /* Conta clientes por loja */
       ;(cliRes.data || []).forEach(r => { cliCounts[r.loja_id] = (cliCounts[r.loja_id] || 0) + 1; totalCli++ })
