@@ -2920,22 +2920,33 @@ async function renderPainelConsultor() {
   try {
     const lojaIds = lojas.map(l => l.id)
     if (lojaIds.length) {
+      /* Helper: busca tudo em batches de 1000 (contorna limite do Supabase) */
+      async function fetchAll(table, select) {
+        const PAGE = 1000
+        let result = [], pg = 0
+        while (true) {
+          const { data, error } = await sbClient.from(table).select(select)
+            .in('loja_id', lojaIds).range(pg * PAGE, (pg + 1) * PAGE - 1)
+          if (error) { console.warn(`stats ${table}:`, error.message); return result }
+          result = result.concat(data || [])
+          if (!data || data.length < PAGE) break
+          pg++
+        }
+        return result
+      }
       const [cliRes, osRes, fatRes] = await Promise.all([
-        sbClient.from('clientes').select('loja_id').in('loja_id', lojaIds).limit(50000),
-        sbClient.from('ordens_servico').select('loja_id, status').in('loja_id', lojaIds).limit(50000),
-        sbClient.from('entradas').select('loja_id, total').in('loja_id', lojaIds).limit(50000)
+        fetchAll('clientes', 'loja_id'),
+        fetchAll('ordens_servico', 'loja_id, status'),
+        fetchAll('entradas', 'loja_id, total')
       ])
-      /* Conta clientes por loja */
-      ;(cliRes.data || []).forEach(r => { cliCounts[r.loja_id] = (cliCounts[r.loja_id] || 0) + 1; totalCli++ })
-      /* Conta OS abertas por loja */
+      cliRes.forEach(r => { cliCounts[r.loja_id] = (cliCounts[r.loja_id] || 0) + 1; totalCli++ })
       const osAbertaStatus = ['Aberta', 'Em execução', 'Aguardando peça']
-      ;(osRes.data || []).forEach(r => {
+      osRes.forEach(r => {
         if (osAbertaStatus.includes(r.status)) {
           osCounts[r.loja_id] = (osCounts[r.loja_id] || 0) + 1; totalOsAbertas++
         }
       })
-      /* Soma faturamento por loja */
-      ;(fatRes.data || []).forEach(r => {
+      fatRes.forEach(r => {
         const v = Number(r.total) || 0
         fatCounts[r.loja_id] = (fatCounts[r.loja_id] || 0) + v; totalFat += v
       })
