@@ -8873,6 +8873,18 @@ function registrarServiceWorker() {
     .then(reg => console.log('[FIEL] Service Worker registrado:', reg.scope))
     .catch(err => console.warn('[FIEL] SW falhou:', err.message))
 }
+/* Atualiza indicador de online/offline na sidebar e no topbar */
+function atualizarBadgeOnline() {
+  const online = navigator.onLine
+  const dot = document.querySelector('.sb-foot .sdot')
+  if (dot) dot.style.background = online ? 'var(--gr)' : '#ff6b6b'
+  const badgeOn = document.querySelector('.badge-on')
+  if (badgeOn) {
+    badgeOn.innerHTML = online
+      ? '<span class="sdot"></span> Online'
+      : '<span class="sdot" style="background:#ff6b6b;box-shadow:0 0 6px #ff6b6b"></span> Offline'
+  }
+}
 window.addEventListener('online', () => { atualizarBadgeOnline(); toast('✓ Conexão restabelecida.', 2500) })
 window.addEventListener('offline', () => { atualizarBadgeOnline(); toast('⚠ Sem conexão — usando dados em cache.', 3500) })
 atualizarBadgeOnline()
