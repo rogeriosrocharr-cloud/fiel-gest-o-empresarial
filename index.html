@@ -3751,7 +3751,7 @@ function atualizarPermsModal() {
 }
 
 function editarUsuario(id) {
-  const u = usuariosData.find(x => x.id === id); if (!u) return
+  const u = usuariosData.find(x => x.id == id); if (!u) return
   userEditId = id
   renderPermsModal()
   document.getElementById('user_nome').value = u.nome
@@ -3840,7 +3840,7 @@ async function salvarUsuario() {
 }
 
 async function toggleUsuario(id) {
-  const u = usuariosData.find(x => x.id === id); if (!u) return
+  const u = usuariosData.find(x => x.id == id); if (!u) return
   if (u.id === usuarioAtual.id) { toast('Você não pode desativar o próprio usuário.', 4000); return }
   if (u.tipo === 'master' && u.ativo) {
     const outrosMasters = usuariosData.filter(x => x.tipo === 'master' && x.ativo && x.id !== id).length
@@ -4758,7 +4758,7 @@ function renderClienteVeiculos(c) {
 }
 
 async function removerVeiculo(cliId, idx) {
-  const c = cliData.find(x => x.id === cliId); if (!c) return
+  const c = cliData.find(x => x.id == cliId); if (!c) return
   const v = c.veiculos?.[idx]; if (!v) return
   if (!confirmar(`Remover o veículo "${v.vei}" (placa ${v.pla}) deste cliente?`)) return
   try {
@@ -4773,7 +4773,7 @@ async function removerVeiculo(cliId, idx) {
 }
 
 function adicionarVeiculo(cliId) {
-  const c = cliData.find(x => x.id === cliId); if (!c) return
+  const c = cliData.find(x => x.id == cliId); if (!c) return
   _veiAddCliId = cliId
   _veiEditIdx = null
   ;['vei_modelo','vei_placa','vei_ano','vei_km','vei_cor','vei_chassi'].forEach(id => { document.getElementById(id).value = '' })
@@ -4787,7 +4787,7 @@ function adicionarVeiculo(cliId) {
 }
 
 function editarVeiculo(cliId, idx) {
-  const c = cliData.find(x => x.id === cliId); if (!c) return
+  const c = cliData.find(x => x.id == cliId); if (!c) return
   const v = c.veiculos?.[idx]; if (!v) return
   _veiAddCliId = cliId
   _veiEditIdx = idx
@@ -4889,7 +4889,7 @@ function resetModalCli() {
 }
 
 function editarCliente(cliId) {
-  const c = cliData.find(x => x.id === cliId); if (!c) return
+  const c = cliData.find(x => x.id == cliId); if (!c) return
   cliEditId = cliId
   document.getElementById('cli_nome').value = c.nome || ''
   document.getElementById('cli_cpf').value = c.cpf || ''
@@ -5018,7 +5018,7 @@ function criarOrcParaCliente(cliId) {
   passoAtual = 2
   irParaPasso(2)
   setTimeout(() => {
-    const c = cliData.find(x => x.id === cliId)
+    const c = cliData.find(x => x.id == cliId)
     populateClis(); populateMecs()
     document.getElementById('orc_cli').value = cliId
     if (c) document.getElementById('orc_cli_busca').value = c.nome
@@ -5071,7 +5071,7 @@ function filtrarClienteOrc() {
 }
 
 function selecionarClienteOrc(cliId) {
-  const c = cliData.find(x => x.id === cliId); if (!c) return
+  const c = cliData.find(x => x.id == cliId); if (!c) return
   document.getElementById('orc_cli').value = cliId
   document.getElementById('orc_cli_busca').value = c.nome
   document.getElementById('orc_cli_drop').style.display = 'none'
@@ -5080,14 +5080,14 @@ function selecionarClienteOrc(cliId) {
 
 function preencherVeiculosOrc() {
   const cliId = parseInt(document.getElementById('orc_cli').value)
-  const cli = cliData.find(c => c.id === cliId)
+  const cli = cliData.find(c => c.id == cliId)
   document.getElementById('orc_vei').innerHTML = cli
     ? cli.veiculos.map(v => `<option value="${v.pla}">${v.vei} / ${v.pla}</option>`).join('')
     : '<option value="">Selecione o cliente primeiro</option>'
 }
 function preencherVeiculosOS() {
   const cliId = parseInt(document.getElementById('os_cli').value)
-  const cli = cliData.find(c => c.id === cliId)
+  const cli = cliData.find(c => c.id == cliId)
   document.getElementById('os_vei').innerHTML = cli
     ? cli.veiculos.map(v => `<option value="${v.pla}">${v.vei} / ${v.pla}</option>`).join('')
     : '<option value="">Selecione o cliente</option>'
@@ -5158,7 +5158,7 @@ function atualizarTotalOrc() {
 
 async function salvarOrc() {
   const cliId = parseInt(document.getElementById('orc_cli').value)
-  const cli = cliData.find(c => c.id === cliId)
+  const cli = cliData.find(c => c.id == cliId)
   const pla = document.getElementById('orc_vei').value
   if (!cli || !pla) { toast('Selecione cliente e veículo'); return }
   if (!orcTempSrvs.length && !orcTempPecs.length) { toast('Adicione pelo menos um serviço ou peça'); return }
@@ -5183,7 +5183,7 @@ async function salvarOrc() {
 
   try {
     if (orcEditId) {
-      const o = orcData.find(x => x.id === orcEditId)
+      const o = orcData.find(x => x.id == orcEditId)
       if (o) {
         dadosOrc.status = o.status
         dadosOrc.osId = o.osId
@@ -5228,7 +5228,7 @@ function orcShowStep(n) {
 
 /* ── EDIÇÃO DE ORÇAMENTO ────────────────────────── */
 function editarOrc(id) {
-  const o = orcData.find(x => x.id === id); if (!o) return
+  const o = orcData.find(x => x.id == id); if (!o) return
   /* Orçamentos com OS gerada precisam ser reabertos primeiro */
   if (o.status === 'OS gerada') { toast('⚠️ Use "Reabrir" para editar — isso desfaz a OS associada.', 4000); return }
   orcEditId = id
@@ -5256,7 +5256,7 @@ function editarOrc(id) {
 }
 
 async function reabrirOrc(id) {
-  const o = orcData.find(x => x.id === id); if (!o) return
+  const o = orcData.find(x => x.id == id); if (!o) return
   if (o.status === 'OS gerada' && o.osId) {
     if (!confirm(`Este orçamento já gerou uma OS. Reabrir vai cancelar a OS associada. Continuar?`)) return
     const os = osData.find(x => x.id === o.osId)
@@ -5275,7 +5275,7 @@ async function reabrirOrc(id) {
 
 /* ── EDIÇÃO DE OS ────────────────────────────────── */
 function editarOS(id) {
-  const o = osData.find(x => x.id === id); if (!o) return
+  const o = osData.find(x => x.id == id); if (!o) return
   if (o.finId) { toast('⚠️ OS já tem receita lançada. Cancele a receita primeiro.', 4000); return }
   osEditId = id
   populateClis(); populateMecs()
@@ -5295,7 +5295,7 @@ function editarOS(id) {
 }
 
 function reabrirOS(id) {
-  const o = osData.find(x => x.id === id); if (!o) return
+  const o = osData.find(x => x.id == id); if (!o) return
   if (o.finId) { toast('⚠️ OS já tem receita lançada. Cancele a receita primeiro.', 4000); return }
   o.status = 'Em execução'
   toast(o.id + ' reaberta para edição.', 3500)
@@ -5305,7 +5305,7 @@ function reabrirOS(id) {
 /* Cancelar receita lançada (libera a OS para edição) */
 function cancelarReceita(id) {
   if (!confirm('Cancelar este lançamento de entrada? A OS (se houver) voltará para "Concluída".')) return
-  const r = recData.find(x => x.id === id); if (!r) return
+  const r = recData.find(x => x.id == id); if (!r) return
   const os = osData.find(o => o.finId === id)
   if (os) os.finId = null
   recData = recData.filter(x => x.id !== id)
@@ -5378,22 +5378,24 @@ function renderOrc() {
   updateSbSteps()
 }
 
-function aprovarOrc(id) {
-  const o = orcData.find(x => x.id === id); if (!o) return
+async function aprovarOrc(id) {
+  const o = orcData.find(x => x.id == id); if (!o) return  /* == permite string/number */
   o.status = 'Aprovado'
+  try { await db.orcamentos.update(o.id, { status: 'Aprovado' }) } catch (e) { console.warn(e) }
   toast('Orçamento aprovado. Clique em "Gerar OS →" para avançar.', 4000)
-  renderOrc(); renderTimeline(); updateBadge(); saveState()
+  renderOrc(); renderTimeline(); updateBadge()
 }
-function recusarOrc(id) {
-  const o = orcData.find(x => x.id === id); if (!o) return
-  if (!confirmar(`Recusar o orçamento ${id}? Esta ação pode ser desfeita pelo botão Reabrir.`)) return
+async function recusarOrc(id) {
+  const o = orcData.find(x => x.id == id); if (!o) return
+  if (!confirmar(`Recusar o orçamento? Esta ação pode ser desfeita pelo botão Reabrir.`)) return
   o.status = 'Recusado'
+  try { await db.orcamentos.update(o.id, { status: 'Recusado' }) } catch (e) { console.warn(e) }
   toast('Orçamento recusado.')
-  renderOrc(); renderTimeline(); updateBadge(); saveState()
+  renderOrc(); renderTimeline(); updateBadge()
 }
 
 async function gerarOS(orcId) {
-  const o = orcData.find(x => x.id === orcId); if (!o) return
+  const o = orcData.find(x => x.id == orcId); if (!o) return
   const srvDesc = (o.srvs || []).map(s => s.desc).join(' | ')
   const cli = cliData.find(c => c.id === o.cliId)
   const vei = cli?.veiculos.find(v => v.pla === o.pla) || cli?.veiculos[0]
@@ -5449,7 +5451,7 @@ function populateOSSelects() {
 }
 
 async function changeOSStatus(id, s) {
-  const o = osData.find(x => x.id === id); if (!o) return
+  const o = osData.find(x => x.id == id); if (!o) return
   if (s === 'Cancelada' && o.status !== 'Cancelada') {
     if (!confirmar(`Cancelar a OS ${id}? Esta ação pode ser desfeita.`)) { renderOS(); return }
   }
@@ -5575,7 +5577,7 @@ function renderOS() {
 
 async function salvarOSManual() {
   const cliId = parseInt(document.getElementById('os_cli').value)
-  const cli = cliData.find(c => c.id === cliId)
+  const cli = cliData.find(c => c.id == cliId)
   const srv = document.getElementById('os_srv').value.trim()
   if (!cli || !srv) { toast('Preencha cliente e serviço'); return }
   const pla = document.getElementById('os_vei').value
@@ -5595,7 +5597,7 @@ async function salvarOSManual() {
 
   try {
     if (osEditId) {
-      const o = osData.find(x => x.id === osEditId)
+      const o = osData.find(x => x.id == osEditId)
       if (o) {
         dadosOS.status = o.status
         const atualizado = await db.os.update(osEditId, dadosOS)
@@ -6019,7 +6021,7 @@ async function salvarReceita() {
       }
 
       if (recEditId) {
-        const r = recData.find(x => x.id === recEditId); if (!r) return
+        const r = recData.find(x => x.id == recEditId); if (!r) return
         const atualizado = await db.entradas.update(recEditId, dados)
         Object.assign(r, atualizado)
         logAtividade('rec_edit', `Entrada OS editada`)
@@ -6053,7 +6055,7 @@ async function salvarReceita() {
       }
 
       if (recEditId) {
-        const r = recData.find(x => x.id === recEditId); if (!r) return
+        const r = recData.find(x => x.id == recEditId); if (!r) return
         const atualizado = await db.entradas.update(recEditId, dados)
         Object.assign(r, atualizado)
         logAtividade('rec_edit', `Receita avulsa editada`)
@@ -6101,7 +6103,7 @@ async function salvarDespesa() {
 
   try {
     if (despEditId) {
-      const d = despData.find(x => x.id === despEditId); if (!d) return
+      const d = despData.find(x => x.id == despEditId); if (!d) return
       const atualizado = await db.saidas.update(despEditId, dados)
       Object.assign(d, atualizado)
       logAtividade('desp_edit', `Saída editada: ${desc}`)
@@ -6193,7 +6195,7 @@ function editarDespesa(despId) {
 /* ── HISTÓRICO FINANCEIRO DO CLIENTE ───────────────
    Mostra todas as OS, orçamentos e receitas vinculados ao cliente */
 function abrirHistoricoCli(cliId) {
-  const c = cliData.find(x => x.id === cliId); if (!c) return
+  const c = cliData.find(x => x.id == cliId); if (!c) return
   const oss = osData.filter(o => o.cliId === cliId).slice().sort((a, b) => {
     const ad = (a.data || '').split('/').reverse().join('-')
     const bd = (b.data || '').split('/').reverse().join('-')
@@ -6666,7 +6668,7 @@ function resetModalSrvCat() {
 }
 
 function editarSrvCat(id) {
-  const s = srvCatData.find(x => x.id === id); if (!s) return
+  const s = srvCatData.find(x => x.id == id); if (!s) return
   srvEditId = id
   document.getElementById('srv_cod').value = s.cod
   document.getElementById('srv_nome').value = s.nome
@@ -6712,7 +6714,7 @@ async function salvarSrvCat() {
 }
 
 async function excluirSrvCat(id) {
-  const s = srvCatData.find(x => x.id === id); if (!s) return
+  const s = srvCatData.find(x => x.id == id); if (!s) return
   if (!confirmar(`Excluir o serviço "${s.nome}" do catálogo?`)) return
   try {
     await db.catalogo.remove(id)
@@ -6749,7 +6751,7 @@ function renderPickSrv() {
 }
 
 function adicionarSrvDoCatalogo(id) {
-  const s = srvCatData.find(x => x.id === id); if (!s) return
+  const s = srvCatData.find(x => x.id == id); if (!s) return
   orcTempSrvs.push({ desc: s.nome, h: s.h, val: s.valor, srvCatId: s.id })
   renderTempOrc(); atualizarTotalOrc()
   toast('Serviço adicionado.')
@@ -6787,7 +6789,7 @@ function renderPickPec() {
 }
 
 function adicionarPecDoEstoque(id) {
-  const p = estData.find(x => x.id === id); if (!p) return
+  const p = estData.find(x => x.id == id); if (!p) return
   const qtd = parseInt(document.getElementById(`pick-pec-qtd-${id}`).value) || 1
   if (qtd > p.qtd) { toast(`Estoque insuficiente. Disponível: ${p.qtd}`); return }
   orcTempPecs.push({ desc: p.nome, qtd, unit: p.preco, tot: qtd * p.preco, estoqueId: p.id })
@@ -8195,7 +8197,7 @@ Qualquer dúvida, conte conosco!`
 }
 
 function printOrc(id) {
-  const o = orcData.find(x => x.id === id); if (!o) return
+  const o = orcData.find(x => x.id == id); if (!o) return
   _orcAtualWhats = o
   const cli = cliData.find(c => c.id === o.cliId)
   /* Logo e nome da loja no cabeçalho */
@@ -8245,7 +8247,7 @@ function printOrc(id) {
   document.getElementById('povOrc').classList.add('open')
 }
 function printOS(id) {
-  const o = osData.find(x => x.id === id); if (!o) return
+  const o = osData.find(x => x.id == id); if (!o) return
   _osAtualWhats = o
   const cli = cliData.find(c => c.id === o.cliId)
   /* Logo e nome da loja no cabeçalho */
