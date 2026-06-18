@@ -1,0 +1,19 @@
+{
+  "name": "FIEL — Gestão de Empresas",
+  "short_name": "FIEL Oficina",
+  "description": "Sistema de gestão para oficinas mecânicas",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0c0a16",
+  "theme_color": "#5c14dc",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%235c14dc'/%3E%3Cpath d='M154 204h204v32H154zm0 70h144v32H154zm0 70h180v32H154z' fill='%23fff'/%3E%3Ccircle cx='378' cy='176' r='48' fill='%23d4a942'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
