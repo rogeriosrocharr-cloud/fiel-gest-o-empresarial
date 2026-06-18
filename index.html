@@ -3558,39 +3558,39 @@ async function entrarNoApp() {
    Dados operacionais (orcamentos, OS, financeiro) ainda vêm do localStorage por enquanto. */
 async function carregarCadastrosDaLoja() {
   if (!lojaAtual?.id) return
-  try {
-    const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias, atividades] = await Promise.all([
-      db.clientes.list(lojaAtual.id),
-      db.fornecedores.list(lojaAtual.id),
-      db.mecanicos.list(lojaAtual.id),
-      db.catalogo.list(lojaAtual.id),
-      db.orcamentos.list(lojaAtual.id),
-      db.os.list(lojaAtual.id),
-      db.estoque.list(lojaAtual.id),
-      db.entradas.list(lojaAtual.id),
-      db.saidas.list(lojaAtual.id),
-      db.banco.list(lojaAtual.id),
-      db.categorias.list(lojaAtual.id),
-      db.atividades.list(lojaAtual.id, 500)
-    ])
-    cliData = clientes
-    fornData = fornecedores
-    mecData = mecanicos
-    srvCatData = catalogo
-    orcData = orcamentos
-    osData = ordens
-    estData = pecas
-    recData = entradas
-    despData = saidas
-    bancData = banco
-    recCatCustom = categorias.rec
-    despCatCustom = categorias.desp
-    atividadeData = atividades
-    console.log(`[FIEL] Dados carregados: ${cliData.length} cli, ${fornData.length} forn, ${mecData.length} mec, ${srvCatData.length} srv, ${orcData.length} orc, ${osData.length} os, ${estData.length} est, ${recData.length} ent, ${despData.length} sai, ${bancData.length} banc, ${atividadeData.length} ativ`)
-  } catch (e) {
-    console.error('Erro ao carregar cadastros:', e)
-    toast('Erro ao carregar dados da loja: ' + (e.message || ''), 5000)
+  /* Cada query é independente — se uma falhar, as outras continuam */
+  async function safe(fn, label) {
+    try { return await fn } catch (e) { console.warn(`[FIEL] Falha ao carregar ${label}:`, e.message); return [] }
   }
+  const lid = lojaAtual.id
+  const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias, atividades] = await Promise.all([
+    safe(db.clientes.list(lid), 'clientes'),
+    safe(db.fornecedores.list(lid), 'fornecedores'),
+    safe(db.mecanicos.list(lid), 'mecânicos'),
+    safe(db.catalogo.list(lid), 'catálogo'),
+    safe(db.orcamentos.list(lid), 'orçamentos'),
+    safe(db.os.list(lid), 'OS'),
+    safe(db.estoque.list(lid), 'estoque'),
+    safe(db.entradas.list(lid), 'entradas'),
+    safe(db.saidas.list(lid), 'saídas'),
+    safe(db.banco.list(lid), 'banco'),
+    safe(db.categorias.list(lid), 'categorias').then(r => r || { rec: [], desp: [] }),
+    safe(db.atividades.list(lid, 500), 'atividades')
+  ])
+  cliData = clientes || []
+  fornData = fornecedores || []
+  mecData = mecanicos || []
+  srvCatData = catalogo || []
+  orcData = orcamentos || []
+  osData = ordens || []
+  estData = pecas || []
+  recData = entradas || []
+  despData = saidas || []
+  bancData = banco || []
+  recCatCustom = (categorias && categorias.rec) || []
+  despCatCustom = (categorias && categorias.desp) || []
+  atividadeData = atividades || []
+  console.log(`[FIEL] Dados carregados: ${cliData.length} cli, ${fornData.length} forn, ${mecData.length} mec, ${srvCatData.length} srv, ${orcData.length} orc, ${osData.length} os, ${estData.length} est, ${recData.length} ent, ${despData.length} sai, ${bancData.length} banc, ${atividadeData.length} ativ`)
 }
 
 function temPermissao(tab) {
