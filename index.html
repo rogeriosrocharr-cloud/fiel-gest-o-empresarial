@@ -3340,7 +3340,7 @@ function loadAuth() {
     const d = JSON.parse(raw)
     if (d.usuariosData) usuariosData = d.usuariosData
     if (typeof d.usuarioCounter === 'number') usuarioCounter = d.usuarioCounter
-    if (d.usuarioAtualId) usuarioAtual = usuariosData.find(u => u.id === d.usuarioAtualId) || null
+    if (d.usuarioAtualId) usuarioAtual = usuariosData.find(u => u.id == d.usuarioAtualId) || null
     return true
   } catch (e) { console.warn('Erro ao carregar auth:', e); return false }
 }
@@ -4457,13 +4457,13 @@ function getAtendimentos() {
   const lista = []
   /* Cada orçamento gera um "atendimento" (mesmo que ainda não tenha virado OS) */
   orcData.forEach(o => {
-    const os = o.osId ? osData.find(x => x.id === o.osId) : null
-    const rec = os && os.finId ? recData.find(r => r.id === os.finId) : null
+    const os = o.osId ? osData.find(x => x.id == o.osId) : null
+    const rec = os && os.finId ? recData.find(r => r.id == os.finId) : null
     lista.push({ orc: o, os, rec, cliNome: o.cliNome, vei: o.vei, pla: o.pla, total: (rec ? rec.total : (os ? os.total : o.total)), data: o.data })
   })
   /* OS manuais (sem orçamento) também entram */
   osData.filter(o => !o.orcId).forEach(os => {
-    const rec = os.finId ? recData.find(r => r.id === os.finId) : null
+    const rec = os.finId ? recData.find(r => r.id == os.finId) : null
     lista.push({ orc: null, os, rec, cliNome: os.cliNome, vei: os.vei, pla: os.pla, total: (rec ? rec.total : os.total), data: os.data })
   })
   /* Ordena: mais recentes primeiro */
@@ -4808,7 +4808,7 @@ function editarVeiculo(cliId, idx) {
 
 async function salvarVeiculo() {
   if (!_veiAddCliId) return
-  const c = cliData.find(x => x.id === _veiAddCliId); if (!c) return
+  const c = cliData.find(x => x.id == _veiAddCliId); if (!c) return
 
   const vei = document.getElementById('vei_modelo').value.trim()
   const pla = document.getElementById('vei_placa').value.trim()
@@ -4964,7 +4964,7 @@ async function salvarCliente() {
   try {
     if (cliEditId) {
       /* MODO EDIÇÃO */
-      const c = cliData.find(x => x.id === cliEditId)
+      const c = cliData.find(x => x.id == cliEditId)
       if (!c) { toast('Cliente não encontrado.'); return }
       const atualizado = await db.clientes.update(cliEditId, dadosCli)
       Object.assign(c, atualizado)
@@ -5259,7 +5259,7 @@ async function reabrirOrc(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
   if (o.status === 'OS gerada' && o.osId) {
     if (!confirm(`Este orçamento já gerou uma OS. Reabrir vai cancelar a OS associada. Continuar?`)) return
-    const os = osData.find(x => x.id === o.osId)
+    const os = osData.find(x => x.id == o.osId)
     if (os) {
       if (os.finId) { toast('⚠️ OS já tem receita lançada. Cancele a receita antes.', 4500); return }
       os.status = 'Cancelada'
@@ -5397,7 +5397,7 @@ async function recusarOrc(id) {
 async function gerarOS(orcId) {
   const o = orcData.find(x => x.id == orcId); if (!o) return
   const srvDesc = (o.srvs || []).map(s => s.desc).join(' | ')
-  const cli = cliData.find(c => c.id === o.cliId)
+  const cli = cliData.find(c => c.id == o.cliId)
   const vei = cli?.veiculos.find(v => v.pla === o.pla) || cli?.veiculos[0]
 
   try {
@@ -5421,7 +5421,7 @@ async function gerarOS(orcId) {
     const baixas = []
     for (const p of (o.pecs || [])) {
       if (p.estoqueId) {
-        const item = estData.find(e => e.id === p.estoqueId)
+        const item = estData.find(e => e.id == p.estoqueId)
         if (item) {
           const novaQtd = Math.max(0, item.qtd - (p.qtd || 1))
           baixas.push(`${item.nome}: ${item.qtd} → ${novaQtd}`)
@@ -5467,7 +5467,7 @@ async function changeOSStatus(id, s) {
     let maxDias = 0
     if (Array.isArray(o.servicos) && o.servicos.length) {
       o.servicos.forEach(srv => {
-        const cat = srvCatData.find(c => c.id === srv.id || c.nome === srv.nome)
+        const cat = srvCatData.find(c => c.id == srv.id || c.nome === srv.nome)
         const dias = (cat && cat.garantiaDias) || srv.garantiaDias || 0
         if (dias > maxDias) maxDias = dias
       })
@@ -5500,7 +5500,7 @@ async function changeOSStatus(id, s) {
 }
 
 function lancarFinanceiro(osId) {
-  const o = osData.find(x => x.id === osId); if (!o) return
+  const o = osData.find(x => x.id == osId); if (!o) { toast('OS não encontrada'); return }
   /* Não navega — abre o modal direto onde você está */
   populateOSSelects()
   /* Espera o populate criar as options */
@@ -5787,7 +5787,7 @@ function desvincularBanco(banId) {
 }
 
 function vincularBancoManual(banId) {
-  const b = bancData.find(x => x.id === banId); if (!b) return
+  const b = bancData.find(x => x.id == banId); if (!b) return
   /* Sugere receitas com valor compatível */
   const candidatas = recData.filter(r => !r.ofxId && Math.abs((r.total || 0) - Math.abs(b.valor)) < 0.01)
   if (!candidatas.length) {
@@ -5823,7 +5823,7 @@ function atualizarTotRec() {
 
 function preencherRecOS() {
   const osId = document.getElementById('rec_os').value
-  const o = osData.find(x => x.id === osId)
+  const o = osData.find(x => x.id == osId)
   if (!o) return
   document.getElementById('rec_vsrv').value = o.vsrv
   document.getElementById('rec_vpec').value = o.vpec
@@ -5832,7 +5832,7 @@ function preencherRecOS() {
   if (o.descSrv != null) dS = o.descSrv
   if (o.descPec != null) dP = o.descPec
   if (o.orcId && (dS === 0 && dP === 0)) {
-    const orc = orcData.find(x => x.id === o.orcId)
+    const orc = orcData.find(x => x.id == o.orcId)
     if (orc) { dS = orc.descSrv || 0; dP = orc.descPec || 0 }
   }
   document.getElementById('rec_dsrv').value = dS
@@ -6140,7 +6140,7 @@ async function salvarDespesa() {
 
 /* Editar receita existente — abre modal preenchido no modo correto */
 function editarReceita(recId) {
-  const r = recData.find(x => x.id === recId); if (!r) return
+  const r = recData.find(x => x.id == recId); if (!r) return
   recEditId = recId
   document.getElementById('mFinRec-title').textContent = 'Editar Entrada'
   document.getElementById('rec-btn-label').textContent = 'Salvar Alterações'
@@ -6174,7 +6174,7 @@ function editarReceita(recId) {
 
 /* Editar despesa existente */
 function editarDespesa(despId) {
-  const d = despData.find(x => x.id === despId); if (!d) return
+  const d = despData.find(x => x.id == despId); if (!d) return
   despEditId = despId
   document.getElementById('mFinDesp-title').textContent = 'Editar Saída'
   document.getElementById('desp-btn-label').textContent = 'Salvar Alterações'
@@ -6399,7 +6399,7 @@ function resetModalForn() {
 }
 
 function editarForn(fId) {
-  const f = fornData.find(x => x.id === fId); if (!f) return
+  const f = fornData.find(x => x.id == fId); if (!f) return
   fornEditId = fId
   document.getElementById('forn_nome').value = f.nome || ''
   document.getElementById('forn_doc').value = f.doc || ''
@@ -6428,7 +6428,7 @@ async function salvarForn() {
   }
   try {
     if (fornEditId) {
-      const f = fornData.find(x => x.id === fornEditId); if (!f) return
+      const f = fornData.find(x => x.id == fornEditId); if (!f) return
       const atualizado = await db.fornecedores.update(fornEditId, dadosForn)
       Object.assign(f, atualizado)
       logAtividade('forn_edit', `Fornecedor ${nome} atualizado`)
@@ -6447,7 +6447,7 @@ async function salvarForn() {
 }
 
 async function removerForn(fId) {
-  const f = fornData.find(x => x.id === fId); if (!f) return
+  const f = fornData.find(x => x.id == fId); if (!f) return
   const desps = getDespesasDoFornecedor(f)
   let msg = `Remover o fornecedor "${f.nome}"?`
   if (desps.length) msg += `\n\n⚠ ${desps.length} lançamento(s) de saída ficarão sem vínculo, mas não serão apagados.`
@@ -6465,7 +6465,7 @@ async function removerForn(fId) {
 }
 
 function abrirHistoricoForn(fId) {
-  const f = fornData.find(x => x.id === fId); if (!f) return
+  const f = fornData.find(x => x.id == fId); if (!f) return
   const desps = getDespesasDoFornecedor(f).slice().sort((a, b) => {
     const ad = (a.data || '').split('/').reverse().join('-')
     const bd = (b.data || '').split('/').reverse().join('-')
@@ -6695,7 +6695,7 @@ async function salvarSrvCat() {
   }
   try {
     if (srvEditId) {
-      const s = srvCatData.find(x => x.id === srvEditId); if (!s) return
+      const s = srvCatData.find(x => x.id == srvEditId); if (!s) return
       if (!dados.cod) dados.cod = s.cod
       const atualizado = await db.catalogo.update(srvEditId, dados)
       Object.assign(s, atualizado)
@@ -7216,7 +7216,7 @@ function relAbcClientes() {
   /* Soma receitas: por OS (via cliId da OS) ou pelo nome */
   recData.forEach(r => {
     if (r.osId) {
-      const o = osData.find(x => x.id === r.osId)
+      const o = osData.find(x => x.id == r.osId)
       if (o && cliMap[o.cliId]) cliMap[o.cliId].tot += (r.total || 0)
     } else if (r.cliNome) {
       const cli = cliData.find(c => c.nome.toLowerCase() === r.cliNome.toLowerCase())
@@ -7264,7 +7264,7 @@ function relAbcFornecedores() {
   despData.forEach(d => {
     let chave, nome
     if (d.fornId) {
-      const f = fornData.find(x => x.id === d.fornId)
+      const f = fornData.find(x => x.id == d.fornId)
       chave = `id-${d.fornId}`; nome = f ? f.nome : '(removido)'
     } else if (d.fornecedor) {
       chave = `nm-${d.fornecedor.toLowerCase()}`; nome = d.fornecedor
@@ -7534,7 +7534,7 @@ const CHK_ACESSORIOS = [
 let _chkOsAtual = null
 
 function abrirChecklist(osId) {
-  const o = osData.find(x => x.id === osId); if (!o) return
+  const o = osData.find(x => x.id == osId); if (!o) return
   _chkOsAtual = osId
   const chk = o.checklist || {}
   document.getElementById('mChecklist-title').textContent = `Checklist — OS-${osId} · ${o.cliNome || ''} (${o.vei || ''} ${o.pla || ''})`
@@ -7593,7 +7593,7 @@ function chkRowEstado(item, cur, tipo) {
 }
 
 async function salvarChecklist() {
-  const o = osData.find(x => x.id === _chkOsAtual); if (!o) return
+  const o = osData.find(x => x.id == _chkOsAtual); if (!o) return
   const avariasExt = {}, itensInt = {}, acessorios = {}
 
   /* Lê estados */
@@ -8129,7 +8129,7 @@ function telWhats(tel) {
 
 function enviarWhatsAppOrc() {
   const o = _orcAtualWhats; if (!o) { toast('Orçamento não identificado.'); return }
-  const cli = cliData.find(c => c.id === o.cliId)
+  const cli = cliData.find(c => c.id == o.cliId)
   const tel = telWhats(cli?.tel)
   if (!tel) {
     if (!confirm('O cliente não tem telefone cadastrado.\n\nDeseja apenas copiar a mensagem para enviar manualmente?')) return
@@ -8145,7 +8145,7 @@ function enviarWhatsAppOrc() {
 
 function enviarWhatsAppOS() {
   const o = _osAtualWhats; if (!o) { toast('OS não identificada.'); return }
-  const cli = cliData.find(c => c.id === o.cliId)
+  const cli = cliData.find(c => c.id == o.cliId)
   const tel = telWhats(cli?.tel)
   if (!tel) {
     if (!confirm('O cliente não tem telefone cadastrado.\n\nDeseja apenas copiar a mensagem para enviar manualmente?')) return
@@ -8199,7 +8199,7 @@ Qualquer dúvida, conte conosco!`
 function printOrc(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
   _orcAtualWhats = o
-  const cli = cliData.find(c => c.id === o.cliId)
+  const cli = cliData.find(c => c.id == o.cliId)
   /* Logo e nome da loja no cabeçalho */
   const logoBox = document.getElementById('p-orc-logo')
   const brand = document.getElementById('p-orc-brand')
@@ -8249,7 +8249,7 @@ function printOrc(id) {
 function printOS(id) {
   const o = osData.find(x => x.id == id); if (!o) return
   _osAtualWhats = o
-  const cli = cliData.find(c => c.id === o.cliId)
+  const cli = cliData.find(c => c.id == o.cliId)
   /* Logo e nome da loja no cabeçalho */
   const logoBox = document.getElementById('p-os-logo')
   const brand = document.getElementById('p-os-brand')
@@ -8268,7 +8268,7 @@ function printOS(id) {
   /* Bloco destacado de referência ao orçamento de origem */
   const blocoOrc = document.getElementById('p-os-orc-ref')
   if (o.orcId) {
-    const orc = orcData.find(x => x.id === o.orcId)
+    const orc = orcData.find(x => x.id == o.orcId)
     document.getElementById('p-os-orc-num').textContent = o.orcId
     document.getElementById('p-os-orc-info').textContent = orc
       ? `aprovado em ${orc.data} · total orçado ${fmt(orc.total)}`
@@ -8542,7 +8542,7 @@ function renderConcLists() { /* substituído por renderBancoExtrato */ }
 
 /* Marca receita como conciliada manualmente */
 function conciliarManual(recId) {
-  const r = recData.find(x => x.id === recId); if (!r) return
+  const r = recData.find(x => x.id == recId); if (!r) return
   r.reconciliada = true
   if (r.status === 'A receber') r.status = 'Recebido'
   toast('Receita marcada como conciliada')
@@ -8550,7 +8550,7 @@ function conciliarManual(recId) {
 }
 
 function desconciliarRec(recId) {
-  const r = recData.find(x => x.id === recId); if (!r) return
+  const r = recData.find(x => x.id == recId); if (!r) return
   r.reconciliada = false
   /* Se estava casada com uma transação bancária, libera a transação também */
   const b = bancData.find(x => x.conciliadaCom === recId)
@@ -8560,9 +8560,9 @@ function desconciliarRec(recId) {
 }
 
 function desconciliarBanc(bancId) {
-  const b = bancData.find(x => x.id === bancId); if (!b) return
+  const b = bancData.find(x => x.id == bancId); if (!b) return
   if (b.conciliadaCom) {
-    const r = recData.find(x => x.id === b.conciliadaCom)
+    const r = recData.find(x => x.id == b.conciliadaCom)
     if (r) r.reconciliada = false
   }
   b.conciliada = false; b.conciliadaCom = null
@@ -8572,7 +8572,7 @@ function desconciliarBanc(bancId) {
 
 /* Sugere matches para uma transação bancária (dialog simples) */
 function sugerirMatch(bancId) {
-  const b = bancData.find(x => x.id === bancId); if (!b) return
+  const b = bancData.find(x => x.id == bancId); if (!b) return
   /* Pontuação: valor exato = 100, ±1% = 80, ±5 dias = +10 */
   const candidatos = recData
     .filter(r => !r.reconciliada)
@@ -8617,8 +8617,8 @@ function sugerirMatch(bancId) {
 }
 
 function casarTransacao(bancId, recId) {
-  const b = bancData.find(x => x.id === bancId)
-  const r = recData.find(x => x.id === recId)
+  const b = bancData.find(x => x.id == bancId)
+  const r = recData.find(x => x.id == recId)
   if (!b || !r) return
   b.conciliada = true; b.conciliadaCom = recId
   r.reconciliada = true
@@ -8629,7 +8629,7 @@ function casarTransacao(bancId, recId) {
 }
 
 function criarRecAvulsa(bancId) {
-  const b = bancData.find(x => x.id === bancId); if (!b) return
+  const b = bancData.find(x => x.id == bancId); if (!b) return
   const id = recCounter++
   recData.unshift({ id, data: b.data, osId: null, cliNome: b.desc + ' [OFX]', vsrv: b.valor, vpec: 0, total: b.valor, forma: 'Transferência', status: 'Recebido', reconciliada: true, ofxDesc: b.desc })
   b.conciliada = true; b.conciliadaCom = id
