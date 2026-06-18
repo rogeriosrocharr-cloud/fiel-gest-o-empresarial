@@ -1,16 +1,9 @@
 const CACHE_NAME = 'fiel-oficina-v4';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/tabler-icons.min.css',
-  'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/fonts/tabler-icons.woff2',
-  'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
-];
 
 self.addEventListener('install', e => {
+  /* Pre-cache apenas o app HTML (recursos CDN serão cacheados sob demanda) */
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
+    caches.open(CACHE_NAME).then(cache => cache.add('./')).catch(() => {})
   );
   self.skipWaiting();
 });

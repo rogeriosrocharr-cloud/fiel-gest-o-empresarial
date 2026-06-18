@@ -830,7 +830,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <span><b>Passo 1 de 4:</b> Cadastre o cliente e seus veículos. Depois clique em <b>"Orçar"</b> para criar o orçamento.</span>
   </div>
   <div class="fb" style="margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    <div class="sb-bar"><input id="cli-busca" type="text" placeholder="Buscar cliente, CPF, telefone..." style="width:260px" oninput="renderClientes()"></div>
+    <div class="sb-bar"><input id="cli-busca" type="text" placeholder="Buscar cliente, CPF, telefone..." style="width:260px" oninput="_cliPage=0;renderClientes()"><span id="cli-count" style="font-size:12px;color:var(--t3);margin-left:12px"></span></div>
     <button class="btn" onclick="abrirImportClientes()" title="Importar lista de clientes de uma planilha CSV ou Excel"><i class="ti ti-file-spreadsheet"></i> Importar planilha</button>
     <button class="btn btn-pu" onclick="abrirModal('mCliAdd')"><i class="ti ti-user-plus"></i> Novo Cliente</button>
   </div>
@@ -839,6 +839,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>E-mail</th><th>Veículos</th><th>OS Total</th><th>Ação</th></tr></thead>
       <tbody id="cli-tbody"></tbody>
     </table></div>
+  <div id="cli-mais"></div>
   <div id="cli-prox"></div>
   </div>
 </div>
@@ -2000,18 +2001,35 @@ const db = {
     },
     async list(lojaId) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data: clientes, error: e1 } = await sbClient
-        .from('clientes').select('*').eq('loja_id', lojaId).order('nome').limit(10000)
-      if (e1) throw e1
-      const { data: veiculos, error: e2 } = await sbClient
-        .from('veiculos').select('*').eq('loja_id', lojaId).limit(10000)
-      if (e2) throw e2
+      /* Busca clientes em batches de 1000 (contorna limite padrão do Supabase) */
+      const PAGE = 1000
+      let allCli = [], pg = 0
+      while (true) {
+        const { data, error } = await sbClient
+          .from('clientes').select('*').eq('loja_id', lojaId)
+          .order('nome').range(pg * PAGE, (pg + 1) * PAGE - 1)
+        if (error) throw error
+        allCli = allCli.concat(data || [])
+        if (!data || data.length < PAGE) break
+        pg++
+      }
+      /* Busca todos os veículos */
+      let allVei = [], pgv = 0
+      while (true) {
+        const { data, error } = await sbClient
+          .from('veiculos').select('*').eq('loja_id', lojaId)
+          .range(pgv * PAGE, (pgv + 1) * PAGE - 1)
+        if (error) throw error
+        allVei = allVei.concat(data || [])
+        if (!data || data.length < PAGE) break
+        pgv++
+      }
       const mapVei = {}
-      ;(veiculos || []).forEach(v => {
+      allVei.forEach(v => {
         if (!mapVei[v.cliente_id]) mapVei[v.cliente_id] = []
         mapVei[v.cliente_id].push(this._mapVeiFromDB(v))
       })
-      return (clientes || []).map(c => ({ ...this._mapFromDB(c), veiculos: mapVei[c.id] || [] }))
+      return allCli.map(c => ({ ...this._mapFromDB(c), veiculos: mapVei[c.id] || [] }))
     },
     async create(lojaId, dados) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
@@ -4650,10 +4668,26 @@ function kCard(item, tipo) {
 }
 
 /* ── CLIENTES ────────────────────────────────────── */
+let _cliPage = 0
+const CLI_PAGE_SIZE = 100
+
 function renderClientes() {
   const b = (document.getElementById('cli-busca').value || '').toLowerCase()
-  const rows = cliData.filter(c => !b || (c.nome + (c.cpf || '') + (c.tel || '')).toLowerCase().includes(b))
-  document.getElementById('cli-tbody').innerHTML = rows.length ? rows.map(c => {
+  const todos = cliData.filter(c => !b || (c.nome + (c.cpf || '') + (c.tel || '') + (c.email || '')).toLowerCase().includes(b))
+
+  /* Paginação: mostra CLI_PAGE_SIZE * (_cliPage + 1) */
+  const limite = CLI_PAGE_SIZE * (_cliPage + 1)
+  const visiveis = todos.slice(0, limite)
+  const temMais = todos.length > limite
+
+  /* Contador */
+  const countEl = document.getElementById('cli-count')
+  if (countEl) countEl.textContent = b
+    ? `${todos.length} encontrado(s) de ${cliData.length}`
+    : `Mostrando ${Math.min(limite, todos.length)} de ${cliData.length}`
+
+  document.getElementById('cli-tbody').innerHTML = visiveis.length ? visiveis.map(c => {
+    const cid = typeof c.id === 'string' ? `'${c.id}'` : c.id
     const osN = getCliOsCount(c)
     const semVeiculo = !c.veiculos || c.veiculos.length === 0
     return `<tr>
@@ -4662,19 +4696,27 @@ function renderClientes() {
     <td>${c.tel || '—'}</td>
     <td style="color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.email || ''}">${c.email || '—'}</td>
     <td>${semVeiculo
-      ? `<button class="btn btn-xs" onclick="adicionarVeiculo(${c.id})" style="white-space:nowrap" title="Cadastrar primeiro veículo"><i class="ti ti-plus"></i> Veículo</button>`
-      : c.veiculos.map(v => `<div style="font-size:12px">${v.vei} <span style="font-family:monospace;color:var(--pul);font-size:11px">${v.pla}</span></div>`).join('') + `<button class="btn btn-xs" onclick="adicionarVeiculo(${c.id})" style="margin-top:4px;font-size:10px;padding:2px 6px"><i class="ti ti-plus"></i></button>`
+      ? `<button class="btn btn-xs" onclick="adicionarVeiculo(${cid})" style="white-space:nowrap" title="Cadastrar primeiro veículo"><i class="ti ti-plus"></i> Veículo</button>`
+      : c.veiculos.map(v => `<div style="font-size:12px">${v.vei} <span style="font-family:monospace;color:var(--pul);font-size:11px">${v.pla}</span></div>`).join('') + `<button class="btn btn-xs" onclick="adicionarVeiculo(${cid})" style="margin-top:4px;font-size:10px;padding:2px 6px"><i class="ti ti-plus"></i></button>`
     }</td>
     <td><span class="pill p-pu">${osN} OS</span></td>
     <td style="display:flex;gap:4px">
-      <button class="btn btn-sm" onclick="abrirHistoricoCli(${c.id})" title="Histórico financeiro"><i class="ti ti-history"></i></button>
-      <button class="btn btn-sm" onclick="editarCliente(${c.id})" title="Editar dados"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-sm" onclick="abrirHistoricoCli(${cid})" title="Histórico financeiro"><i class="ti ti-history"></i></button>
+      <button class="btn btn-sm" onclick="editarCliente(${cid})" title="Editar dados"><i class="ti ti-edit"></i></button>
       ${semVeiculo
         ? `<button class="btn btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Cadastre um veículo primeiro"><i class="ti ti-file-invoice"></i> Orçar →</button>`
-        : `<button class="btn btn-sm btn-pu" onclick="criarOrcParaCliente(${c.id})"><i class="ti ti-file-invoice"></i> Orçar →</button>`}
+        : `<button class="btn btn-sm btn-pu" onclick="criarOrcParaCliente(${cid})"><i class="ti ti-file-invoice"></i> Orçar →</button>`}
     </td>
   </tr>`
   }).join('') : `<tr><td colspan="7"><div class="empty"><i class="ti ti-users-off"></i>Nenhum cliente encontrado</div></td></tr>`
+
+  /* Botão "Carregar mais" */
+  const maisEl = document.getElementById('cli-mais')
+  if (maisEl) {
+    maisEl.innerHTML = temMais
+      ? `<button class="btn" onclick="_cliPage++;renderClientes()" style="width:100%;margin-top:8px;padding:10px;font-size:13px"><i class="ti ti-arrow-down"></i> Carregar mais ${Math.min(CLI_PAGE_SIZE, todos.length - limite)} clientes (${todos.length - limite} restantes)</button>`
+      : ''
+  }
 
   renderProxPasso(document.getElementById('cli-prox'), 1)
   updateSbSteps()
