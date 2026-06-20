@@ -1019,7 +1019,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
   <div class="card card-sm">
     <div class="tw"><table>
-      <thead><tr><th>Código</th><th>Peça</th><th>Categoria</th><th>Estoque</th><th>Mínimo</th><th>Custo Unit.</th><th>Preço Venda</th><th>Status</th></tr></thead>
+      <thead><tr><th>Código</th><th>Peça</th><th>Categoria</th><th>Estoque</th><th>Mínimo</th><th>Custo Unit.</th><th>Preço Venda</th><th>Status</th><th>Ação</th></tr></thead>
       <tbody id="est-tbody"></tbody>
     </table></div>
   </div>
@@ -1695,6 +1695,16 @@ function getCliOsCount(cli) { return osData.filter(o => o.cliId === cli.id).leng
 
 /* Confirmação padronizada */
 function confirmar(msg) { return window.confirm(msg) }
+
+/* Remove metadata embedada na observação (formato \n###META###\n{json}) */
+function limparMetaObs(s) {
+  if (!s) return ''
+  const i = s.indexOf('\n###META###\n')
+  if (i >= 0) return s.substring(0, i)
+  const j = s.indexOf('###META###')
+  if (j >= 0) return s.substring(0, j).trimEnd()
+  return s
+}
 
 /* Helper: ativa/desativa estado de loading num botão */
 function btnLoading(btn, loading, label) {
@@ -4714,6 +4724,7 @@ function renderClientes() {
     <td style="display:flex;gap:4px">
       <button class="btn btn-sm" onclick="abrirHistoricoCli(${cid})" title="Histórico financeiro"><i class="ti ti-history"></i></button>
       <button class="btn btn-sm" onclick="editarCliente(${cid})" title="Editar dados"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-sm btn-re" onclick="excluirCliente(${cid})" title="Excluir cliente"><i class="ti ti-trash"></i></button>
       ${semVeiculo
         ? `<button class="btn btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Cadastre um veículo primeiro"><i class="ti ti-file-invoice"></i> Orçar →</button>`
         : `<button class="btn btn-sm btn-pu" onclick="criarOrcParaCliente(${cid})"><i class="ti ti-file-invoice"></i> Orçar →</button>`}
@@ -5243,7 +5254,7 @@ function editarOrc(id) {
   document.getElementById('orc_descSrv').value = o.descSrv || 0
   document.getElementById('orc_descPec').value = o.descPec || 0
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
-  document.getElementById('orc_obs').value = o.obs || ''
+  document.getElementById('orc_obs').value = limparMetaObs(o.obs)
   document.getElementById('orc_mec').value = o.mec
   /* Validade: tenta converter DD/MM/AAAA para YYYY-MM-DD */
   document.getElementById('orc_val').value = brToIso(o.validade)
@@ -5287,7 +5298,7 @@ function editarOS(id) {
   document.getElementById('os_prior').value = o.prior
   document.getElementById('os_vsrv').value = o.vsrv
   document.getElementById('os_vpec').value = o.vpec
-  document.getElementById('os_check').value = o.check || ''
+  document.getElementById('os_check').value = o.obsCheck || ''
   document.getElementById('os_prev').value = brToIso(o.prev) || ''
   const mh = document.querySelector('#mOsAdd .mh h3')
   if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-edit"></i></div>Editar OS ${id}`
@@ -5303,21 +5314,31 @@ function reabrirOS(id) {
 }
 
 /* Cancelar receita lançada (libera a OS para edição) */
-function cancelarReceita(id) {
+async function cancelarReceita(id) {
   if (!confirm('Cancelar este lançamento de entrada? A OS (se houver) voltará para "Concluída".')) return
   const r = recData.find(x => x.id == id); if (!r) return
-  const os = osData.find(o => o.finId === id)
-  if (os) os.finId = null
-  recData = recData.filter(x => x.id !== id)
-  toast('Entrada cancelada.')
-  renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge(); saveState()
+  try {
+    await db.entradas.remove(r.id)
+    const os = osData.find(o => o.finId == id)
+    if (os) {
+      os.finId = null
+      try { await db.os.update(os.id, { finId: null }) } catch (_) {}
+    }
+    recData = recData.filter(x => x.id != id)
+    toast('Entrada cancelada.')
+    renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
-function cancelarDespesa(id) {
+async function cancelarDespesa(id) {
   if (!confirm('Cancelar este lançamento de saída?')) return
-  despData = despData.filter(x => x.id !== id)
-  toast('Saída cancelada.')
-  renderFinMetrics(); renderMov(); renderDash(); saveState()
+  const d = despData.find(x => x.id == id); if (!d) return
+  try {
+    await db.saidas.remove(d.id)
+    despData = despData.filter(x => x.id != id)
+    toast('Saída cancelada.')
+    renderFinMetrics(); renderMov(); renderDash()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
 /* Reset do modal ao fechar — volta para modo criação */
@@ -5370,6 +5391,7 @@ function renderOrc() {
         <button class="btn btn-sm btn-re" onclick="recusarOrc('${r.id}')">Recusar</button>` : ''}
       ${r.status === 'Aprovado' && !r.osId ? `
         <button class="btn btn-sm btn-pu" onclick="gerarOS('${r.id}')"><i class="ti ti-clipboard-list"></i> Gerar OS →</button>` : ''}
+      <button class="btn btn-sm btn-re" onclick="excluirOrcamento('${r.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
       ${r.osId ? `<span class="pill p-pu" style="font-size:10px">${r.osId}</span>` : ''}
     </td>
   </tr>`).join('') : `<tr><td colspan="10"><div class="empty"><i class="ti ti-file-off"></i>Nenhum orçamento encontrado</div></td></tr>`
@@ -5566,6 +5588,7 @@ function renderOS() {
           <button onclick="printOS('${r.id}');this.closest('details').open=false"><i class="ti ti-printer"></i> Imprimir / PDF</button>
           ${!r.finId && r.status !== 'Concluída' && r.status !== 'Cancelada' ? `<button onclick="editarOS('${r.id}');this.closest('details').open=false"><i class="ti ti-edit"></i> Editar OS</button>` : ''}
           ${(r.status === 'Concluída' || r.status === 'Cancelada') && !r.finId ? `<button onclick="reabrirOS('${r.id}');this.closest('details').open=false"><i class="ti ti-lock-open"></i> Reabrir para edição</button>` : ''}
+          <button onclick="excluirOS('${r.id}');this.closest('details').open=false" style="color:var(--re)"><i class="ti ti-trash"></i> Excluir OS</button>
         </div>
       </details>
     </td>
@@ -6563,6 +6586,9 @@ function renderMec() {
         <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:11px;color:var(--t3)">Meta mensal</span><span style="font-size:11px;font-weight:700;color:${bc}">${st.meta}%</span></div>
         <div class="prog"><div class="prog-f" style="width:${st.meta}%;background:${bc}"></div></div>
       </div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:4px">
+        <button class="btn btn-sm btn-re" onclick="excluirMecanico(${m.id})" title="Excluir mecânico"><i class="ti ti-trash"></i></button>
+      </div>
     </div>`
   }).join('')
 }
@@ -6608,8 +6634,9 @@ function renderEst() {
       <td style="font-weight:700;color:${r.qtd === 0 ? 'var(--ret)' : cr ? 'var(--amt)' : 'var(--t1)'}">${r.qtd}</td>
       <td style="color:var(--t3)">${r.min}</td><td>${fmt(r.custo)}</td>
       <td style="color:var(--grt)">${fmt(r.preco)}</td><td>${pill(cr ? 'Crítico' : 'OK')}</td>
+      <td><button class="btn btn-sm btn-re" onclick="excluirPeca(${r.id})" title="Excluir"><i class="ti ti-trash"></i></button></td>
     </tr>`
-  }).join('') : `<tr><td colspan="8"><div class="empty">Nenhuma peça encontrada</div></td></tr>`
+  }).join('') : `<tr><td colspan="9"><div class="empty">Nenhuma peça encontrada</div></td></tr>`
 }
 async function salvarPeca() {
   const nome = document.getElementById('pec_nome').value.trim(); if (!nome) { toast('Informe o nome da peça'); return }
@@ -6724,6 +6751,110 @@ async function excluirSrvCat(id) {
   } catch (e) {
     toast('Erro: ' + (e.message || ''), 5000)
   }
+}
+
+/* ─── EXCLUSÕES (Fase 5/6) ─── */
+async function excluirOrcamento(id) {
+  const o = orcData.find(x => x.id == id); if (!o) return
+  if (o.status === 'OS gerada' && o.osId) {
+    if (!confirm(`Este orçamento gerou uma OS. Excluir vai apagar o vínculo (mas não a OS). Continuar?`)) return
+  } else if (!confirmar(`Excluir orçamento ${o.numero || o.id}? Esta ação é permanente.`)) return
+  try {
+    await db.orcamentos.remove(o.id)
+    orcData = orcData.filter(x => x.id != id)
+    toast('Orçamento excluído.')
+    logAtividade('orc_del', `Orçamento ${o.numero || o.id} excluído`)
+    renderOrc(); renderTimeline(); updateBadge()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
+}
+
+async function excluirOS(id) {
+  const o = osData.find(x => x.id == id); if (!o) return
+  if (o.finId) { toast('⚠️ OS tem receita lançada. Cancele a receita antes.', 4500); return }
+  if (!confirmar(`Excluir OS #${o.numero || o.id}? Esta ação é permanente.`)) return
+  try {
+    await db.os.remove(o.id)
+    osData = osData.filter(x => x.id != id)
+    if (o.orcId) {
+      const orc = orcData.find(x => x.id == o.orcId)
+      if (orc) {
+        orc.status = 'Aprovado'; orc.osId = null
+        try { await db.orcamentos.update(orc.id, { status: 'Aprovado', osId: null }) } catch (_) {}
+      }
+    }
+    toast('OS excluída.')
+    logAtividade('os_del', `OS #${o.numero || o.id} excluída`)
+    renderOS(); renderOrc(); renderTimeline(); updateBadge()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
+}
+
+async function excluirReceita(id) {
+  const r = recData.find(x => x.id == id); if (!r) return
+  if (!confirmar(`Excluir esta receita de ${fmt(r.total || 0)}? Esta ação é permanente.`)) return
+  try {
+    await db.entradas.remove(r.id)
+    if (r.osId) {
+      const os = osData.find(x => x.id == r.osId)
+      if (os && os.finId == r.id) {
+        os.finId = null
+        try { await db.os.update(os.id, { finId: null }) } catch (_) {}
+      }
+    }
+    recData = recData.filter(x => x.id != id)
+    toast('Receita excluída.')
+    logAtividade('rec_del', `Receita excluída · ${fmt(r.total || 0)}`)
+    renderFinMetrics(); renderMov(); renderDash(); updateBadge()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
+}
+
+async function excluirDespesa(id) {
+  const d = despData.find(x => x.id == id); if (!d) return
+  if (!confirmar(`Excluir esta saída de ${fmt(d.valor || 0)}? Esta ação é permanente.`)) return
+  try {
+    await db.saidas.remove(d.id)
+    despData = despData.filter(x => x.id != id)
+    toast('Saída excluída.')
+    logAtividade('desp_del', `Despesa excluída · ${fmt(d.valor || 0)}`)
+    renderFinMetrics(); renderMov(); renderDash()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
+}
+
+async function excluirPeca(id) {
+  const p = estData.find(x => x.id == id); if (!p) return
+  if (!confirmar(`Excluir a peça "${p.nome}" do estoque? Esta ação é permanente.`)) return
+  try {
+    await db.estoque.remove(p.id)
+    estData = estData.filter(x => x.id != id)
+    toast('Peça removida.')
+    renderEst(); renderEstMetrics()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
+}
+
+async function excluirMecanico(id) {
+  const m = mecData.find(x => x.id == id); if (!m) return
+  if (!confirmar(`Excluir o mecânico "${m.nome}"? Esta ação é permanente.`)) return
+  try {
+    await db.mecanicos.remove(m.id)
+    mecData = mecData.filter(x => x.id != id)
+    toast('Mecânico removido.')
+    renderMec(); populateMecs()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
+}
+
+async function excluirCliente(id) {
+  const c = cliData.find(x => x.id == id); if (!c) return
+  const osCount = osData.filter(o => o.cliId == id).length
+  const orcCount = orcData.filter(o => o.cliId == id).length
+  let msg = `Excluir o cliente "${c.nome}"? Esta ação é permanente.`
+  if (osCount || orcCount) msg += `\n\n⚠ Este cliente possui ${osCount} OS e ${orcCount} orçamento(s). Eles ficarão sem vínculo.`
+  if (!confirmar(msg)) return
+  try {
+    await db.clientes.remove(c.id)
+    cliData = cliData.filter(x => x.id != id)
+    toast(`Cliente "${c.nome}" excluído.`)
+    logAtividade('cli_del', `Cliente excluído: ${c.nome}`)
+    renderClientes(); updateBadge()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
 /* ── PICKERS PARA O MODAL DE ORÇAMENTO ──────────── */
@@ -8241,7 +8372,7 @@ function printOrc(id) {
     if (linha) linha.style.display = 'none'
   }
   document.getElementById('p-orc-tot').textContent = fmt(o.total)
-  document.getElementById('p-orc-obs').textContent = o.obs || 'Orçamento válido até a data indicada. Sujeito à disponibilidade de peças.'
+  document.getElementById('p-orc-obs').textContent = limparMetaObs(o.obs) || 'Orçamento válido até a data indicada. Sujeito à disponibilidade de peças.'
   document.getElementById('p-orc-val').textContent = 'Validade: ' + o.validade
   document.getElementById('p-orc-gen').textContent = 'Gerado em: ' + fmtD()
   document.getElementById('povOrc').classList.add('open')
@@ -8284,7 +8415,7 @@ function printOS(id) {
   document.getElementById('p-os-km').textContent = (o.km || 0).toLocaleString('pt-BR') + ' km'
   document.getElementById('p-os-mec').textContent = o.mec
   document.getElementById('p-os-srv').textContent = o.srv
-  document.getElementById('p-os-check').textContent = o.check || 'Nenhuma observação registrada na entrada.'
+  document.getElementById('p-os-check').textContent = o.obsCheck || 'Nenhuma observação registrada na entrada.'
   document.getElementById('p-os-vsrv').textContent = fmt(o.vsrv)
   document.getElementById('p-os-vpec').textContent = fmt(o.vpec)
   document.getElementById('p-os-tot').textContent = fmt(o.total)
@@ -8491,34 +8622,51 @@ function renderResumoImport() {
   document.getElementById('import-btn-confirm').style.opacity = validos === 0 ? '.5' : '1'
 }
 
-function confirmarImport() {
+async function confirmarImport() {
   if (importMap.nome == null || importMap.nome < 0 || importMap.tel == null || importMap.tel < 0) {
     toast('Mapeie pelo menos Nome e Telefone antes de importar.', 4500); return
   }
-  let importados = 0, duplicados = 0, ignorados = 0
-  importData.dados.forEach(row => {
+  let importados = 0, duplicados = 0, ignorados = 0, erros = 0
+  const btn = document.querySelector('#mImportCli button[onclick*="confirmarImport"]')
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Importando...' }
+
+  /* Coleta novos clientes do CSV */
+  const novos = []
+  for (const row of importData.dados) {
     const nome = String(row[importMap.nome] || '').trim()
     const tel = String(row[importMap.tel] || '').trim()
-    if (!nome || !tel) { ignorados++; return }
+    if (!nome || !tel) { ignorados++; continue }
     const cpf = importMap.cpf >= 0 ? String(row[importMap.cpf] || '').trim() : ''
     const cpfNorm = cpf.replace(/\D/g, '')
-    if (cpfNorm && cliData.some(c => c.cpf && c.cpf.replace(/\D/g, '') === cpfNorm)) { duplicados++; return }
-    cliData.push({
-      id: cliCounter++,
-      nome,
-      cpf,
-      tel,
+    if (cpfNorm && cliData.some(c => c.cpf && c.cpf.replace(/\D/g, '') === cpfNorm)) { duplicados++; continue }
+    novos.push({
+      nome, cpf, tel,
       email: importMap.email >= 0 ? String(row[importMap.email] || '').trim() : '',
       end: importMap.end >= 0 ? String(row[importMap.end] || '').trim() : '',
-      cid: (importMap.cid >= 0 ? String(row[importMap.cid] || '').trim() : '') || 'Rondonópolis',
-      veiculos: []  /* clientes importados começam sem veículos */
+      cid: (importMap.cid >= 0 ? String(row[importMap.cid] || '').trim() : '') || 'Rondonópolis'
     })
-    importados++
-  })
-  fecharModal('mImportCli')
-  resetImport()
-  toast(`${importados} cliente(s) importado(s)${duplicados ? `, ${duplicados} duplicado(s) ignorado(s)` : ''}${ignorados ? `, ${ignorados} sem dados obrigatórios` : ''}.`, 5500)
-  renderClientes(); updateBadge(); saveState()
+  }
+
+  /* Salva todos no Supabase em paralelo (limita 10 por vez pra não estourar) */
+  const BATCH = 10
+  for (let i = 0; i < novos.length; i += BATCH) {
+    const lote = novos.slice(i, i + BATCH)
+    const results = await Promise.all(lote.map(d => db.clientes.create(lojaAtual.id, d).catch(e => { console.warn(e); return null })))
+    results.forEach(r => {
+      if (r) { cliData.push(r); importados++ }
+      else erros++
+    })
+    if (btn) btn.innerHTML = `<i class="ti ti-loader"></i> Importando ${importados}/${novos.length}...`
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Confirmar importação' }
+  fecharModal('mImportCli'); resetImport()
+  let msg = `${importados} cliente(s) importado(s)`
+  if (duplicados) msg += `, ${duplicados} duplicado(s)`
+  if (ignorados) msg += `, ${ignorados} sem dados`
+  if (erros) msg += `, ${erros} com erro`
+  toast(msg + '.', 5500)
+  renderClientes(); updateBadge()
 }
 
 /* ── CONCILIAÇÃO BANCÁRIA ──────────────────────────
@@ -8549,25 +8697,65 @@ function conciliarManual(recId) {
   renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash(); saveState()
 }
 
-function desconciliarRec(recId) {
+async function desconciliarRec(recId) {
   const r = recData.find(x => x.id == recId); if (!r) return
   r.reconciliada = false
-  /* Se estava casada com uma transação bancária, libera a transação também */
-  const b = bancData.find(x => x.conciliadaCom === recId)
+  const b = bancData.find(x => x.conciliadaCom == recId)
   if (b) { b.conciliada = false; b.conciliadaCom = null }
+  try {
+    await db.entradas.update(r.id, { reconciliada: false })
+    if (b) await db.banco.update(b.id, { conciliada: false, conciliadaCom: null })
+  } catch (e) { console.warn(e) }
   toast('Conciliação desfeita')
   renderReceitas(); renderFinMetrics(); renderResumoConciliacao()
 }
 
-function desconciliarBanc(bancId) {
+async function desconciliarBanc(bancId) {
   const b = bancData.find(x => x.id == bancId); if (!b) return
+  let r = null
   if (b.conciliadaCom) {
-    const r = recData.find(x => x.id == b.conciliadaCom)
+    r = recData.find(x => x.id == b.conciliadaCom)
     if (r) r.reconciliada = false
   }
   b.conciliada = false; b.conciliadaCom = null
+  try {
+    await db.banco.update(b.id, { conciliada: false, conciliadaCom: null })
+    if (r) await db.entradas.update(r.id, { reconciliada: false })
+  } catch (e) { console.warn(e) }
   toast('Conciliação desfeita')
   renderConcLists(); renderConcMetrics(); renderReceitas(); renderResumoConciliacao()
+}
+
+async function casarTransacao(bancId, recId) {
+  const b = bancData.find(x => x.id == bancId)
+  const r = recData.find(x => x.id == recId)
+  if (!b || !r) return
+  b.conciliada = true; b.conciliadaCom = recId
+  r.reconciliada = true; r.ofxDesc = b.desc
+  if (r.status === 'A receber') r.status = 'Recebido'
+  try {
+    await db.banco.update(b.id, { conciliada: true, conciliadaCom: recId })
+    await db.entradas.update(r.id, { reconciliada: true, ofxDesc: b.desc, status: r.status })
+  } catch (e) { console.warn(e) }
+  toast('Receita conciliada com a transação bancária.')
+  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash()
+}
+
+async function criarRecAvulsa(bancId) {
+  const b = bancData.find(x => x.id == bancId); if (!b) return
+  try {
+    const novo = await db.entradas.create(lojaAtual.id, {
+      data: b.data, osId: null, cliNome: b.desc + ' [OFX]',
+      vsrv: b.valor, vpec: 0, total: b.valor,
+      forma: 'Transferência', status: 'Recebido',
+      reconciliada: true, ofxDesc: b.desc, tipo: 'avulsa'
+    })
+    recData.unshift(novo)
+    b.conciliada = true; b.conciliadaCom = novo.id
+    await db.banco.update(b.id, { conciliada: true, conciliadaCom: novo.id })
+    toast('Receita avulsa criada e conciliada')
+    renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash()
+  } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
 /* Sugere matches para uma transação bancária (dialog simples) */
@@ -8616,41 +8804,22 @@ function sugerirMatch(bancId) {
   }
 }
 
-function casarTransacao(bancId, recId) {
-  const b = bancData.find(x => x.id == bancId)
-  const r = recData.find(x => x.id == recId)
-  if (!b || !r) return
-  b.conciliada = true; b.conciliadaCom = recId
-  r.reconciliada = true
-  r.ofxDesc = b.desc
-  if (r.status === 'A receber') r.status = 'Recebido'
-  toast('Receita conciliada com a transação bancária.')
-  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash(); saveState()
-}
-
-function criarRecAvulsa(bancId) {
-  const b = bancData.find(x => x.id == bancId); if (!b) return
-  const id = recCounter++
-  recData.unshift({ id, data: b.data, osId: null, cliNome: b.desc + ' [OFX]', vsrv: b.valor, vpec: 0, total: b.valor, forma: 'Transferência', status: 'Recebido', reconciliada: true, ofxDesc: b.desc })
-  b.conciliada = true; b.conciliadaCom = id
-  toast('Receita avulsa criada e conciliada')
-  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash(); saveState()
-}
+function casarTransacaoLegacy_REMOVIDO() {}
+function criarRecAvulsaLegacy_REMOVIDO() {}
 
 /* Auto-conciliação: para cada transação OFX não conciliada, busca receita pendente com valor próximo + data próxima */
-function autoConciliar() {
+async function autoConciliar() {
   if (!bancData.filter(b => b.tipo === 'credito' && !b.conciliada).length) {
     toast('Nenhuma transação bancária pendente. Importe um arquivo OFX primeiro.', 4000)
     return
   }
   let casados = 0
-  bancData.filter(b => b.tipo === 'credito' && !b.conciliada).forEach(b => {
-    /* Procura match com tolerância de R$ 0,01 e ±5 dias */
+  for (const b of bancData.filter(b => b.tipo === 'credito' && !b.conciliada)) {
     const candidatos = recData
       .filter(r => !r.reconciliada && Math.abs(r.total - b.valor) < 0.01)
       .map(r => {
-        const db = parseDate(b.data), dr = parseDate(r.data)
-        const dias = db && dr ? Math.abs((db - dr) / (1000 * 60 * 60 * 24)) : 999
+        const db2 = parseDate(b.data), dr = parseDate(r.data)
+        const dias = db2 && dr ? Math.abs((db2 - dr) / (1000 * 60 * 60 * 24)) : 999
         return { r, dias }
       })
       .filter(x => x.dias <= 10)
@@ -8660,18 +8829,26 @@ function autoConciliar() {
       b.conciliada = true; b.conciliadaCom = r.id
       r.reconciliada = true; r.ofxDesc = b.desc
       if (r.status === 'A receber') r.status = 'Recebido'
+      try {
+        await db.banco.update(b.id, { conciliada: true, conciliadaCom: r.id })
+        await db.entradas.update(r.id, { reconciliada: true, ofxDesc: b.desc, status: r.status })
+      } catch (e) { console.warn(e) }
       casados++
     }
-  })
+  }
   toast(`Auto-conciliação: ${casados} casamento(s) realizados.`, 4000)
-  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash(); saveState()
+  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash()
 }
 
-function marcarTodasConciliadas() {
+async function marcarTodasConciliadas() {
   if (!confirm('Marcar TODAS as receitas como conciliadas? (Use se você já verificou tudo manualmente)')) return
-  recData.forEach(r => { r.reconciliada = true; if (r.status === 'A receber') r.status = 'Recebido' })
+  for (const r of recData) {
+    r.reconciliada = true
+    if (r.status === 'A receber') r.status = 'Recebido'
+    try { await db.entradas.update(r.id, { reconciliada: true, status: r.status }) } catch (e) { console.warn(e) }
+  }
   toast('Todas as receitas marcadas como conciliadas.', 4000)
-  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash(); saveState()
+  renderConcLists(); renderConcMetrics(); renderReceitas(); renderFinMetrics(); renderResumoConciliacao(); renderDash()
 }
 
 /* ── IMPORTAÇÃO OFX (extrato bancário) ───────────── */
