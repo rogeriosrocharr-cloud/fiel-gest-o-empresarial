@@ -2253,14 +2253,18 @@ const db = {
       if (d.tSrv !== undefined) o.v_srv = Number(d.tSrv) || 0
       if (d.tPec !== undefined) o.v_pec = Number(d.tPec) || 0
       if (d.total !== undefined) o.total = Number(d.total) || 0
-      /* Embute mec, validade, mostrarDesc, osId como metadata no obs */
-      const obsText = d.obs || ''
-      const meta = {}
-      if (d.mec !== undefined) meta.mec = d.mec
-      if (d.validade !== undefined) meta.validade = d.validade
-      if (d.mostrarDesc !== undefined) meta.mostrarDesc = d.mostrarDesc
-      if (d.osId !== undefined) meta.osId = d.osId
-      o.obs = Object.keys(meta).length ? obsText + '\n###META###\n' + JSON.stringify(meta) : obsText || null
+      /* Só toca no obs se algum campo correlato foi fornecido (texto ou meta).
+         Caso contrário, NÃO inclui obs no payload — preserva o que está no DB. */
+      const tocaObs = d.obs !== undefined || d.mec !== undefined || d.validade !== undefined || d.mostrarDesc !== undefined || d.osId !== undefined
+      if (tocaObs) {
+        const obsText = d.obs || ''
+        const meta = {}
+        if (d.mec !== undefined) meta.mec = d.mec
+        if (d.validade !== undefined) meta.validade = d.validade
+        if (d.mostrarDesc !== undefined) meta.mostrarDesc = d.mostrarDesc
+        if (d.osId !== undefined) meta.osId = d.osId
+        o.obs = Object.keys(meta).length ? obsText + '\n###META###\n' + JSON.stringify(meta) : obsText || null
+      }
       return o
     },
     async list(lojaId) {
