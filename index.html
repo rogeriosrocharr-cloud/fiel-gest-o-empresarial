@@ -2281,7 +2281,33 @@ const db = {
     },
     async update(id, dados) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data, error } = await sbClient.from('orcamentos').update(this._mapToDB(dados)).eq('id', id).select().single()
+      /* Se algum campo embutido no META do obs está sendo atualizado parcialmente
+         (mec, validade, mostrarDesc, osId, obs), precisamos primeiro buscar o registro atual
+         e mesclar — caso contrário o _mapToDB reescreve o obs do zero e apaga campos. */
+      const camposMeta = ['mec', 'validade', 'mostrarDesc', 'osId']
+      const tocaMeta = camposMeta.some(k => dados[k] !== undefined) || dados.obs !== undefined
+      const tocaTodosOsMeta = camposMeta.every(k => dados[k] !== undefined) && dados.obs !== undefined
+      let dadosFinais = dados
+      if (tocaMeta && !tocaTodosOsMeta) {
+        const { data: atual, error: errGet } = await sbClient.from('orcamentos').select('obs').eq('id', id).single()
+        if (errGet) throw errGet
+        let obsAtual = atual?.obs || ''
+        let metaAtual = {}
+        const idx = obsAtual.indexOf('\n###META###\n')
+        if (idx >= 0) {
+          try { metaAtual = JSON.parse(obsAtual.substring(idx + 13)) } catch (_) {}
+          obsAtual = obsAtual.substring(0, idx)
+        }
+        dadosFinais = {
+          ...dados,
+          obs: dados.obs !== undefined ? dados.obs : obsAtual,
+          mec: dados.mec !== undefined ? dados.mec : (metaAtual.mec || ''),
+          validade: dados.validade !== undefined ? dados.validade : (metaAtual.validade || '—'),
+          mostrarDesc: dados.mostrarDesc !== undefined ? dados.mostrarDesc : (metaAtual.mostrarDesc !== false),
+          osId: dados.osId !== undefined ? dados.osId : (metaAtual.osId || null)
+        }
+      }
+      const { data, error } = await sbClient.from('orcamentos').update(this._mapToDB(dadosFinais)).eq('id', id).select().single()
       if (error) throw error
       return this._mapFromDB(data)
     },
