@@ -1382,20 +1382,13 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div id="rec-modo-os">
     <div class="fr g2"><div class="fg"><label>OS de referência *</label><select id="rec_os" onchange="preencherRecOS()"><option value="">Selecionar OS concluída...</option></select></div><div class="fg"><label>Data *</label><input id="rec_data" type="date"></div></div>
     <div class="slabel" style="margin-top:6px;margin-bottom:8px">Serviços (mão de obra)</div>
-    <div class="fr" style="grid-template-columns:1fr 90px 1fr;margin-bottom:6px"><div class="fg"><label>Valor bruto (R$)</label><input id="rec_vsrv" type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Desc. (%)</label><input id="rec_dsrv" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Subtotal</label><input id="rec_subSrv" type="text" readonly style="background:var(--s3);color:var(--grt);font-weight:600"></div></div>
+    <div class="fr" style="grid-template-columns:1fr 110px 1fr;margin-bottom:6px"><div class="fg"><label>Valor bruto (R$)</label><input id="rec_vsrv" type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Desc. (R$)</label><input id="rec_dsrv" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Subtotal</label><input id="rec_subSrv" type="text" readonly style="background:var(--s3);color:var(--grt);font-weight:600"></div></div>
     <div class="slabel" style="margin-top:14px;margin-bottom:8px">Peças / Materiais</div>
-    <div class="fr" style="grid-template-columns:1fr 90px 1fr;margin-bottom:6px"><div class="fg"><label>Valor bruto (R$)</label><input id="rec_vpec" type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Desc. (%)</label><input id="rec_dpec" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Subtotal</label><input id="rec_subPec" type="text" readonly style="background:var(--s3);color:var(--blt);font-weight:600"></div></div>
+    <div class="fr" style="grid-template-columns:1fr 110px 1fr;margin-bottom:6px"><div class="fg"><label>Valor bruto (R$)</label><input id="rec_vpec" type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Desc. (R$)</label><input id="rec_dpec" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Subtotal</label><input id="rec_subPec" type="text" readonly style="background:var(--s3);color:var(--blt);font-weight:600"></div></div>
     <div style="background:var(--s2);border-radius:var(--r);padding:12px;border:1px solid var(--bd);margin-top:10px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--t3)">Valor bruto (serviços + peças):</span><span id="rec-bruto" style="color:var(--t2)">R$ 0,00</span></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--t3)">Total descontos:</span><span id="rec-totDesc" style="color:var(--ret)">− R$ 0,00</span></div>
       <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)"><span>Preço final de fechamento:</span><span id="rec-tot" style="color:var(--pul)">R$ 0,00</span></div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)">
-        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
-          <label style="color:var(--t2);flex:1;font-weight:600"><i class="ti ti-cash" style="color:var(--grt)"></i> Valor efetivamente recebido (R$)</label>
-          <input id="rec_vrec" type="number" placeholder="0,00" step="0.01" min="0" style="max-width:140px;text-align:right" oninput="aplicarValorRecebido()">
-        </div>
-        <div style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.4"><i class="ti ti-info-circle"></i> Se preencher um valor <b>menor</b> que o bruto, o desconto será calculado automaticamente. Se for igual ou maior ao bruto, o desconto fica zerado.</div>
-      </div>
     </div>
   </div>
 
@@ -5892,46 +5885,22 @@ function vincularBancoManual(banId) {
 
 function atualizarTotRec() {
   const vs = parseFloat(document.getElementById('rec_vsrv').value) || 0
-  const ds = parseFloat(document.getElementById('rec_dsrv').value) || 0
+  const ds = parseFloat(document.getElementById('rec_dsrv').value) || 0  /* desconto em R$ */
   const vp = parseFloat(document.getElementById('rec_vpec').value) || 0
-  const dp = parseFloat(document.getElementById('rec_dpec').value) || 0
-  const subS = vs * (1 - ds / 100)
-  const subP = vp * (1 - dp / 100)
+  const dp = parseFloat(document.getElementById('rec_dpec').value) || 0  /* desconto em R$ */
+  /* Garante que o desconto não passe do valor bruto da seção */
+  const dsCap = Math.min(ds, vs)
+  const dpCap = Math.min(dp, vp)
+  const subS = vs - dsCap
+  const subP = vp - dpCap
   const total = subS + subP
   const bruto = vs + vp
-  const totDesc = bruto - total
+  const totDesc = dsCap + dpCap
   const elSubS = document.getElementById('rec_subSrv'); if (elSubS) elSubS.value = fmt(subS)
   const elSubP = document.getElementById('rec_subPec'); if (elSubP) elSubP.value = fmt(subP)
   const elBruto = document.getElementById('rec-bruto'); if (elBruto) elBruto.textContent = fmt(bruto)
   const elTotDesc = document.getElementById('rec-totDesc'); if (elTotDesc) elTotDesc.textContent = '− ' + fmt(totDesc)
   const elTot = document.getElementById('rec-tot'); if (elTot) elTot.textContent = fmt(total)
-  /* Sincroniza o campo "Valor efetivamente recebido" sem disparar o listener */
-  const elVrec = document.getElementById('rec_vrec')
-  if (elVrec && document.activeElement !== elVrec) elVrec.value = total.toFixed(2)
-}
-
-/* Calcula descontos a partir do "Valor efetivamente recebido" */
-function aplicarValorRecebido() {
-  const vs = parseFloat(document.getElementById('rec_vsrv').value) || 0
-  const vp = parseFloat(document.getElementById('rec_vpec').value) || 0
-  const bruto = vs + vp
-  const vrec = parseFloat(document.getElementById('rec_vrec').value)
-  if (isNaN(vrec)) return
-  if (bruto <= 0) return
-  if (vrec >= bruto) {
-    /* Maior ou igual ao bruto → desconto zera */
-    document.getElementById('rec_dsrv').value = 0
-    document.getElementById('rec_dpec').value = 0
-  } else {
-    /* Menor que o bruto → calcula desconto proporcional entre serviços e peças */
-    const descTotal = bruto - vrec
-    const pctDesc = descTotal / bruto * 100
-    /* Aplica o mesmo % para serviços e peças (distribui igualmente) */
-    document.getElementById('rec_dsrv').value = vs > 0 ? pctDesc.toFixed(2) : 0
-    document.getElementById('rec_dpec').value = vp > 0 ? pctDesc.toFixed(2) : 0
-  }
-  /* Recalcula totais (mas sem reescrever o vrec, pois o foco está nele) */
-  atualizarTotRec()
 }
 ;['rec_vsrv', 'rec_vpec', 'rec_dsrv', 'rec_dpec'].forEach(id => document.getElementById(id)?.addEventListener('input', atualizarTotRec))
 
@@ -5941,16 +5910,16 @@ function preencherRecOS() {
   if (!o) return
   document.getElementById('rec_vsrv').value = o.vsrv
   document.getElementById('rec_vpec').value = o.vpec
-  /* Busca descontos do orçamento original (se houver) */
-  let dS = 0, dP = 0
-  if (o.descSrv != null) dS = o.descSrv
-  if (o.descPec != null) dP = o.descPec
-  if (o.orcId && (dS === 0 && dP === 0)) {
+  /* Busca descontos do orçamento original (se houver). O orçamento armazena em % — converte para R$. */
+  let dSpct = 0, dPpct = 0
+  if (o.descSrv != null) dSpct = o.descSrv
+  if (o.descPec != null) dPpct = o.descPec
+  if (o.orcId && (dSpct === 0 && dPpct === 0)) {
     const orc = orcData.find(x => x.id == o.orcId)
-    if (orc) { dS = orc.descSrv || 0; dP = orc.descPec || 0 }
+    if (orc) { dSpct = orc.descSrv || 0; dPpct = orc.descPec || 0 }
   }
-  document.getElementById('rec_dsrv').value = dS
-  document.getElementById('rec_dpec').value = dP
+  document.getElementById('rec_dsrv').value = (o.vsrv * dSpct / 100).toFixed(2)
+  document.getElementById('rec_dpec').value = (o.vpec * dPpct / 100).toFixed(2)
   atualizarTotRec()
 }
 
@@ -6075,7 +6044,7 @@ function resetModalRec() {
   recEditId = null
   _recTipoModo = 'os'
   alternarTipoRec('os')
-  ;['rec_vsrv','rec_vpec','rec_dsrv','rec_dpec','rec_subSrv','rec_subPec','rec_av_desc','rec_av_valor','rec_av_cli','rec_venc','rec_vrec'].forEach(id => { const e = document.getElementById(id); if (e) e.value = e.id.includes('_d') ? '0' : '' })
+  ;['rec_vsrv','rec_vpec','rec_dsrv','rec_dpec','rec_subSrv','rec_subPec','rec_av_desc','rec_av_valor','rec_av_cli','rec_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = e.id.includes('_d') ? '0' : '' })
   document.getElementById('rec_os').value = ''
   document.getElementById('rec_data').value = hoje
   document.getElementById('rec_av_data').value = hoje
@@ -6126,12 +6095,14 @@ async function salvarReceita() {
     if (_recTipoModo === 'os') {
       const vsrv = parseFloat(document.getElementById('rec_vsrv').value) || 0
       const vpec = parseFloat(document.getElementById('rec_vpec').value) || 0
-      const dsrv = parseFloat(document.getElementById('rec_dsrv').value) || 0
-      const dpec = parseFloat(document.getElementById('rec_dpec').value) || 0
+      const dsrv = parseFloat(document.getElementById('rec_dsrv').value) || 0  /* R$ */
+      const dpec = parseFloat(document.getElementById('rec_dpec').value) || 0  /* R$ */
       const data = document.getElementById('rec_data').value
       if (!data || (vsrv + vpec) === 0) { toast('Preencha data e valores', 4000); return }
-      const subSrv = vsrv * (1 - dsrv / 100)
-      const subPec = vpec * (1 - dpec / 100)
+      const dsrvCap = Math.min(dsrv, vsrv)
+      const dpecCap = Math.min(dpec, vpec)
+      const subSrv = vsrv - dsrvCap
+      const subPec = vpec - dpecCap
       const total = subSrv + subPec
       const osId = document.getElementById('rec_os').value
       const os = osData.find(o => o.id == osId)
@@ -8554,21 +8525,32 @@ function telWhats(tel) {
 async function gerarPDFDoPrint(printElId, nomeArq) {
   const el = document.getElementById(printElId)
   if (!el) throw new Error('Elemento de impressão não encontrado.')
-  /* Tira a barra de botões do conteúdo do PDF (botões "Fechar / WhatsApp / Imprimir") */
-  const clone = el.cloneNode(true)
-  const closeBar = clone.querySelector('.pclose')
-  if (closeBar) closeBar.remove()
+  /* Garante que o modal de print está aberto/visível antes de capturar */
+  const estavaAberto = el.classList.contains('open')
+  if (!estavaAberto) el.classList.add('open')
+  /* Esconde temporariamente a barra de botões (Fechar/WhatsApp/Imprimir) */
+  const closeBar = el.querySelector('.pclose')
+  const prevDisplay = closeBar ? closeBar.style.display : null
+  if (closeBar) closeBar.style.display = 'none'
+  /* Pega o conteúdo do documento (página A4 real do print) */
+  const alvo = el.querySelector('.pdoc') || el.firstElementChild || el
   const opt = {
-    margin: [10, 10, 10, 10],
+    margin: [8, 8, 8, 8],
     filename: nomeArq,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }
-  return await html2pdf().set(opt).from(clone).outputPdf('blob')
+  try {
+    const blob = await html2pdf().set(opt).from(alvo).outputPdf('blob')
+    return blob
+  } finally {
+    if (closeBar) closeBar.style.display = prevDisplay || ''
+    if (!estavaAberto) el.classList.remove('open')
+  }
 }
 
-/* Tenta enviar via Web Share API (mobile); fallback: baixa o PDF e abre WhatsApp com texto */
+/* Tenta enviar via Web Share API (mobile); fallback: baixa o PDF e abre WhatsApp Web no contato */
 async function compartilharPDFWhats(tipo, o, cli) {
   const nomeArq = (tipo === 'orc' ? 'Orcamento' : 'OS') + '_' + o.id + '.pdf'
   const printId = tipo === 'orc' ? 'povOrc' : 'povOS'
@@ -8580,9 +8562,8 @@ async function compartilharPDFWhats(tipo, o, cli) {
     pdfBlob = await gerarPDFDoPrint(printId, nomeArq)
   } catch (e) {
     console.error('Erro PDF:', e)
-    toast('⚠️ Erro ao gerar PDF. Enviando só a mensagem.', 4000)
-    /* Fallback total: só mensagem */
-    if (tel) window.open(`https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`, '_blank')
+    toast('⚠️ Erro ao gerar PDF. Abrindo WhatsApp só com a mensagem.', 4000)
+    if (tel) window.open(buildWhatsURL(tel, mensagem), '_blank')
     return
   }
   const pdfFile = new File([pdfBlob], nomeArq, { type: 'application/pdf' })
@@ -8590,12 +8571,8 @@ async function compartilharPDFWhats(tipo, o, cli) {
   /* Caminho ideal: Web Share API com arquivo (funciona em Android Chrome / iOS Safari recente) */
   if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
     try {
-      await navigator.share({
-        files: [pdfFile],
-        title: nomeArq,
-        text: mensagem
-      })
-      toast('PDF compartilhado com sucesso.', 3000)
+      await navigator.share({ files: [pdfFile], title: nomeArq, text: mensagem })
+      toast('PDF compartilhado.', 3000)
       return
     } catch (err) {
       if (err.name === 'AbortError') return  /* usuário cancelou */
@@ -8603,21 +8580,26 @@ async function compartilharPDFWhats(tipo, o, cli) {
     }
   }
 
-  /* Fallback (desktop): baixa o PDF + abre WhatsApp com mensagem orientando anexar */
+  /* Fallback (desktop): baixa o PDF + abre WhatsApp Web direto no contato com mensagem curta */
   const url = URL.createObjectURL(pdfBlob)
   const a = document.createElement('a')
   a.href = url; a.download = nomeArq
   document.body.appendChild(a); a.click(); document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 
-  const msgComAnexo = mensagem + '\n\n📎 *PDF anexo nesta conversa* (foi baixado no seu dispositivo).'
   if (tel) {
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msgComAnexo)}`, '_blank')
-    toast('PDF baixado. Anexe no WhatsApp e envie. 📎', 6000)
+    window.open(buildWhatsURL(tel, mensagem), '_blank')
+    toast('PDF baixado. Cole no chat aberto e envie. 📎', 6000)
   } else {
-    /* Sem telefone */
-    navigator.clipboard?.writeText(msgComAnexo).then(() => toast('PDF baixado e mensagem copiada. Cole no WhatsApp e anexe o PDF.', 6000))
+    navigator.clipboard?.writeText(mensagem).then(() => toast('PDF baixado. Cliente sem telefone — anexe manualmente no WhatsApp.', 6000))
   }
+}
+
+/* Monta URL do WhatsApp Web no contato — abre o chat direto */
+function buildWhatsURL(tel, msg) {
+  const t = encodeURIComponent(msg || '')
+  /* web.whatsapp.com/send abre direto no chat (desktop ou mobile) */
+  return `https://web.whatsapp.com/send?phone=${tel}&text=${t}`
 }
 
 function enviarWhatsAppOrc() {
@@ -8635,40 +8617,13 @@ function enviarWhatsAppOS() {
 }
 
 function montarMsgOrcamento(o, cli) {
-  const loja = lojaAtual?.nome || 'Nossa oficina'
-  const nome = (cli?.nome || '').split(' ')[0] || 'cliente'
-  const itens = (o.srvs || []).map(s => `• ${s.nome || s.desc || 'Serviço'} — ${fmt(s.valor || s.preco || 0)}`).join('\n')
-  return `Olá, ${nome}! Tudo bem?
-
-Segue o orçamento *${o.id}* da *${loja}* para o veículo ${o.vei || ''} (${o.pla || ''}):
-
-${itens || '(detalhes no orçamento)'}
-
-*Total: ${fmt(o.total || 0)}*
-
-Qualquer dúvida, estou à disposição. Aguardamos sua aprovação para iniciarmos o serviço! 🔧`
+  const nome = (cli?.nome || '').split(' ')[0] || ''
+  return nome ? `Olá, ${nome}! Segue o orçamento.` : `Segue o orçamento.`
 }
 
 function montarMsgOS(o, cli) {
-  const loja = lojaAtual?.nome || 'Nossa oficina'
-  const nome = (cli?.nome || '').split(' ')[0] || 'cliente'
-  let txtStatus = ''
-  if (o.status === 'Concluída') txtStatus = `*Boas notícias!* Seu veículo está pronto para retirada. ✅`
-  else if (o.status === 'Aguardando peça') txtStatus = `Estamos aguardando a chegada de uma peça para concluir o serviço.`
-  else if (o.status === 'Em execução') txtStatus = `Seu serviço está em andamento.`
-  else txtStatus = `Sua OS foi registrada.`
-
-  return `Olá, ${nome}!
-
-${txtStatus}
-
-📋 *OS ${o.id}* — ${loja}
-🚗 Veículo: ${o.vei || ''} (${o.pla || ''})
-🔧 Serviço: ${o.srv || '(detalhes na OS)'}
-👨‍🔧 Mecânico: ${o.mec || '—'}
-💰 Total: ${fmt(o.total || 0)}
-
-Qualquer dúvida, conte conosco!`
+  const nome = (cli?.nome || '').split(' ')[0] || ''
+  return nome ? `Olá, ${nome}! Segue a OS.` : `Segue a OS.`
 }
 
 function printOrc(id) {
