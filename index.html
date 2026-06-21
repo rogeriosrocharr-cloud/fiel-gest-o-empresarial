@@ -7599,7 +7599,7 @@ function relMec(periodo, ini, fim) {
   const fat = ossConcl.reduce((a, b) => a + (b.total || 0), 0)
   const fatSrv = ossConcl.reduce((a, b) => a + (b.vsrv || 0), 0)
   const fatPec = ossConcl.reduce((a, b) => a + (b.vpec || 0), 0)
-  const comissao = fat * (m.com || 0) / 100
+  const comissao = fatSrv * (m.com || 0) / 100
   const tempos = ossConcl.filter(o => o.dataConclusao && o.data).map(o => diasEntre(o.data, o.dataConclusao)).filter(d => d != null && d >= 0)
   const tMed = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : null
 
@@ -7630,7 +7630,7 @@ function relMec(periodo, ini, fim) {
       <div class="metric" style="padding:8px;border-left:2px solid var(--am)"><div class="ml" style="font-size:9px">Comissão</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
       <div class="metric" style="padding:8px;border-left:2px solid var(--pu)"><div class="ml" style="font-size:9px">Líquido</div><div class="mv" style="font-size:13px;font-weight:700">${fmt(fat-comissao)}</div></div>
     </div>
-    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado = Serv ${fmt(fatSrv)} + Peças ${fmt(fatPec)} (apenas OSs concluídas dentro do filtro)</div>
+    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado = Serv ${fmt(fatSrv)} + Peças ${fmt(fatPec)} · Comissão incide apenas sobre Serviços (apenas OSs concluídas dentro do filtro)</div>
 
     <!-- Tabela detalhada de todas as OSs filtradas -->
     <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-list-details"></i> OSs no filtro (${oss.length})</div>
