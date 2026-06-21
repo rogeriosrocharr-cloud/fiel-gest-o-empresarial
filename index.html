@@ -7481,7 +7481,7 @@ function relOS() {
 /* ── Faturamento por Mecânico ─────────────────────────
    Aceita período: 'tudo' | 'dia' | 'semana' | 'mes' | 'ano' | 'custom'
    Em 'custom', precisa de dataIni/dataFim (formato YYYY-MM-DD). */
-let _relMecState = { periodo: 'mes', ini: null, fim: null, expandidos: {} }
+let _relMecState = { periodo: 'mes', ini: null, fim: null, mecId: null }
 
 function relMec(periodo, ini, fim) {
   if (periodo) _relMecState.periodo = periodo
@@ -7495,20 +7495,20 @@ function relMec(periodo, ini, fim) {
     dIni = hoje.getTime(); dFim = hoje.getTime() + 86400000 - 1
     labelPeriodo = `Hoje (${hoje.toLocaleDateString('pt-BR')})`
   } else if (_relMecState.periodo === 'semana') {
-    const dw = hoje.getDay() /* 0=dom */
-    const ini = new Date(hoje); ini.setDate(hoje.getDate() - dw)
-    const fim = new Date(ini); fim.setDate(ini.getDate() + 6); fim.setHours(23,59,59)
-    dIni = ini.getTime(); dFim = fim.getTime()
-    labelPeriodo = `Semana atual (${ini.toLocaleDateString('pt-BR')} a ${fim.toLocaleDateString('pt-BR')})`
+    const dw = hoje.getDay()
+    const sIni = new Date(hoje); sIni.setDate(hoje.getDate() - dw)
+    const sFim = new Date(sIni); sFim.setDate(sIni.getDate() + 6); sFim.setHours(23,59,59)
+    dIni = sIni.getTime(); dFim = sFim.getTime()
+    labelPeriodo = `Semana atual (${sIni.toLocaleDateString('pt-BR')} a ${sFim.toLocaleDateString('pt-BR')})`
   } else if (_relMecState.periodo === 'mes') {
-    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-    const fim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59)
-    dIni = ini.getTime(); dFim = fim.getTime()
-    labelPeriodo = `Mês atual (${ini.toLocaleDateString('pt-BR', {month:'long', year:'numeric'})})`
+    const mIni = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+    const mFim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59)
+    dIni = mIni.getTime(); dFim = mFim.getTime()
+    labelPeriodo = `Mês atual (${mIni.toLocaleDateString('pt-BR', {month:'long', year:'numeric'})})`
   } else if (_relMecState.periodo === 'ano') {
-    const ini = new Date(hoje.getFullYear(), 0, 1)
-    const fim = new Date(hoje.getFullYear(), 11, 31, 23, 59, 59)
-    dIni = ini.getTime(); dFim = fim.getTime()
+    const aIni = new Date(hoje.getFullYear(), 0, 1)
+    const aFim = new Date(hoje.getFullYear(), 11, 31, 23, 59, 59)
+    dIni = aIni.getTime(); dFim = aFim.getTime()
     labelPeriodo = `Ano ${hoje.getFullYear()}`
   } else if (_relMecState.periodo === 'custom' && _relMecState.ini && _relMecState.fim) {
     const a = new Date(_relMecState.ini + 'T00:00')
@@ -7517,30 +7517,13 @@ function relMec(periodo, ini, fim) {
     labelPeriodo = `Personalizado: ${a.toLocaleDateString('pt-BR')} a ${b.toLocaleDateString('pt-BR')}`
   }
 
-  /* Filtra OSs concluídas pelo período (usa dataConclusao ou data) */
   function dentro(o) {
     if (dIni === null || dFim === null) return true
-    const ref = o.dataConclusao || o.data
-    if (!ref) return false
+    const ref = o.dataConclusao || o.data; if (!ref) return false
     const [d,m,a] = ref.split('/'); if (!d) return false
     const t = new Date(+a, +m-1, +d).getTime()
     return t >= dIni && t <= dFim
   }
-
-  const dados = mecData.map(m => {
-    const oss = osData.filter(o => o.mec === m.nome && dentro(o))
-    const ossConcl = oss.filter(o => o.status === 'Concluída')
-    const fat = ossConcl.reduce((a, b) => a + (b.total || 0), 0)
-    const tempos = ossConcl.filter(o => o.dataConclusao && o.data).map(o => diasEntre(o.data, o.dataConclusao)).filter(d => d != null && d >= 0)
-    const tMed = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : null
-    return {
-      m, total: oss.length, concl: ossConcl.length, fat,
-      com: (fat * (m.com || 0) / 100), tMed, ossConcl
-    }
-  }).sort((a, b) => b.fat - a.fat)
-
-  const totFat = dados.reduce((a, b) => a + b.fat, 0)
-  const totCom = dados.reduce((a, b) => a + b.com, 0)
 
   /* Botões de filtro de período */
   const btn = (pid, label) => {
@@ -7548,9 +7531,9 @@ function relMec(periodo, ini, fim) {
     return `<button class="btn btn-sm" style="${ativo ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="relMec('${pid}')">${label}</button>`
   }
   const isCustom = _relMecState.periodo === 'custom'
-  const filtros = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+  const filtros = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
     ${btn('dia','Hoje')}${btn('semana','Semana')}${btn('mes','Mês')}${btn('ano','Ano')}${btn('tudo','Tudo')}
-    <button class="btn btn-sm" style="${isCustom ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="document.getElementById('relMecCustom').style.display = document.getElementById('relMecCustom').style.display === 'none' ? 'flex' : 'none'">Período personalizado…</button>
+    <button class="btn btn-sm" style="${isCustom ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="document.getElementById('relMecCustom').style.display = document.getElementById('relMecCustom').style.display === 'none' ? 'flex' : 'none'">Personalizado…</button>
     <div id="relMecCustom" style="display:${isCustom ? 'flex' : 'none'};gap:6px;align-items:center;margin-left:6px">
       <input type="date" id="relMec_ini" value="${_relMecState.ini || ''}" style="padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
       <span style="color:var(--t3);font-size:11px">até</span>
@@ -7560,67 +7543,135 @@ function relMec(periodo, ini, fim) {
   </div>
   <div style="font-size:11px;color:var(--t3);margin-bottom:14px"><i class="ti ti-calendar-event"></i> ${labelPeriodo}</div>`
 
-  /* Linha expandida (detalhes de veículos/clientes/valores) por mecânico */
-  function linhaDetalhe(d) {
-    if (!_relMecState.expandidos[d.m.id]) return ''
-    if (!d.ossConcl.length) return `<tr><td colspan="8" style="background:var(--s2);padding:14px"><div class="empty">Nenhuma OS concluída neste período.</div></td></tr>`
-    return `<tr><td colspan="8" style="background:var(--s2);padding:0">
-      <div style="padding:8px 14px 14px">
-        <div style="font-size:11px;color:var(--t3);margin:6px 0 8px;text-transform:uppercase;letter-spacing:.05em"><i class="ti ti-list-details"></i> OSs concluídas por ${d.m.nome}</div>
-        <table style="margin:0">
-          <thead><tr><th style="background:var(--s3)">OS</th><th style="background:var(--s3)">Data</th><th style="background:var(--s3)">Cliente</th><th style="background:var(--s3)">Veículo</th><th style="background:var(--s3)">Placa</th><th style="background:var(--s3)">Serviço</th><th style="background:var(--s3);text-align:right">Valor</th></tr></thead>
-          <tbody>
-            ${d.ossConcl.map(o => `<tr>
-              <td><b style="color:var(--pul)">${o.numero || o.id}</b></td>
-              <td style="color:var(--t2);font-size:12px">${o.dataConclusao || o.data}</td>
-              <td>${o.cliNome || '—'}</td>
-              <td>${o.vei || '—'}</td>
-              <td style="font-family:monospace;color:var(--pul);font-size:12px">${o.pla || '—'}</td>
-              <td style="color:var(--t2);font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.srv || '').replace(/"/g,'')}">${o.srv || '—'}</td>
-              <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </td></tr>`
+  /* Seletor de mecânico */
+  const selMec = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;padding:12px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
+    <label style="font-weight:600;font-size:13px;white-space:nowrap"><i class="ti ti-user-check" style="color:var(--pul)"></i> Mecânico:</label>
+    <select id="relMec_sel" style="flex:1;padding:8px 10px;font-size:13px;border:1px solid var(--bd2);border-radius:8px;background:var(--s1);color:var(--t1);cursor:pointer" onchange="relMecSelecionou(this.value)">
+      <option value="">— Selecione o mecânico —</option>
+      ${mecData.map(m => `<option value="${m.id}" ${_relMecState.mecId == m.id ? 'selected' : ''}>${m.nome} — ${m.esp || ''}</option>`).join('')}
+    </select>
+  </div>`
+
+  /* Se nenhum mecânico selecionado, mostra apenas o seletor */
+  if (!_relMecState.mecId) {
+    document.getElementById('rel-output').innerHTML = `<div class="card">
+      <div class="ct"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
+      ${filtros}
+      ${selMec}
+      <div class="empty" style="margin-top:10px"><i class="ti ti-arrow-up" style="font-size:20px;color:var(--t3)"></i><br>Selecione um mecânico acima para ver o relatório completo.</div>
+    </div>`
+    return
   }
+
+  /* Mecânico selecionado — monta relatório individual */
+  const m = mecData.find(x => x.id == _relMecState.mecId)
+  if (!m) { _relMecState.mecId = null; relMec(); return }
+
+  const oss = osData.filter(o => o.mec === m.nome && dentro(o))
+  const ossConcl = oss.filter(o => o.status === 'Concluída')
+  const ossAbertas = oss.filter(o => o.status !== 'Concluída' && o.status !== 'Cancelada')
+  const fat = ossConcl.reduce((a, b) => a + (b.total || 0), 0)
+  const fatSrv = ossConcl.reduce((a, b) => a + (b.vsrv || 0), 0)
+  const fatPec = ossConcl.reduce((a, b) => a + (b.vpec || 0), 0)
+  const comissao = fat * (m.com || 0) / 100
+  const tempos = ossConcl.filter(o => o.dataConclusao && o.data).map(o => diasEntre(o.data, o.dataConclusao)).filter(d => d != null && d >= 0)
+  const tMed = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : null
+
+  /* Agrupa OSs concluídas por cliente para resumo */
+  const porCliente = {}
+  ossConcl.forEach(o => {
+    const k = o.cliNome || '(sem nome)'
+    if (!porCliente[k]) porCliente[k] = { cli: k, oss: [], total: 0 }
+    porCliente[k].oss.push(o)
+    porCliente[k].total += (o.total || 0)
+  })
+  const listaClientes = Object.values(porCliente).sort((a, b) => b.total - a.total)
+
+  /* Sigla / avatar */
+  const sigla = m.sigla || m.nome.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
 
   document.getElementById('rel-output').innerHTML = `<div class="card">
     <div class="ct"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
     ${filtros}
-    <div class="grid g3" style="margin-bottom:16px">
-      <div class="metric"><div class="mb pu"></div><div class="ml">Total faturado</div><div class="mv" style="font-size:15px;color:var(--grt)">${fmt(totFat)}</div></div>
-      <div class="metric"><div class="mb am"></div><div class="ml">Comissões</div><div class="mv" style="font-size:15px;color:var(--amt)">${fmt(totCom)}</div></div>
-      <div class="metric"><div class="mb gr"></div><div class="ml">Líquido</div><div class="mv" style="font-size:15px">${fmt(totFat - totCom)}</div></div>
+    ${selMec}
+
+    <!-- Cabeçalho do mecânico -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:16px;background:linear-gradient(135deg,var(--s2),var(--s1));border:1px solid var(--bd);border-radius:var(--r);border-left:4px solid var(--pu)">
+      <div class="av" style="width:52px;height:52px;font-size:18px;background:var(--pub);color:var(--pul)">${sigla}</div>
+      <div style="flex:1">
+        <div style="font-size:18px;font-weight:700;color:var(--t1)">${m.nome}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">${m.esp || ''} · Tel: ${m.tel || '—'} · Comissão: ${m.com || 0}%</div>
+      </div>
     </div>
-    <table>
-      <thead><tr><th style="width:32px"></th><th>Mecânico</th><th>Especialidade</th><th>OSs</th><th>Concluídas</th><th>Tempo médio</th><th style="text-align:right">Faturado</th><th style="text-align:right">Comissão</th></tr></thead>
+
+    <!-- Métricas -->
+    <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+      <div class="metric"><div class="ml">OSs no período</div><div class="mv" style="font-size:18px;font-weight:700">${oss.length}</div></div>
+      <div class="metric"><div class="ml">Concluídas</div><div class="mv" style="font-size:18px;font-weight:700;color:var(--grt)">${ossConcl.length}</div></div>
+      <div class="metric"><div class="ml">Em aberto</div><div class="mv" style="font-size:18px;font-weight:700;color:var(--amt)">${ossAbertas.length}</div></div>
+      <div class="metric"><div class="ml">Tempo médio</div><div class="mv" style="font-size:18px;font-weight:700">${tMed != null ? tMed.toFixed(1) + ' dias' : '—'}</div></div>
+    </div>
+    <div class="grid g3" style="margin-bottom:18px">
+      <div class="metric" style="border-left:3px solid var(--gr)"><div class="ml">Faturado (total)</div><div class="mv" style="font-size:17px;font-weight:700;color:var(--grt)">${fmt(fat)}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:4px">Serv: ${fmt(fatSrv)} · Peças: ${fmt(fatPec)}</div>
+      </div>
+      <div class="metric" style="border-left:3px solid var(--am)"><div class="ml">Comissão (${m.com || 0}%)</div><div class="mv" style="font-size:17px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
+      <div class="metric" style="border-left:3px solid var(--pu)"><div class="ml">Líquido oficina</div><div class="mv" style="font-size:17px;font-weight:700">${fmt(fat - comissao)}</div></div>
+    </div>
+
+    <!-- Resumo por cliente -->
+    ${listaClientes.length ? `<div style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"><i class="ti ti-users"></i> Resumo por cliente</div>
+      <table>
+        <thead><tr><th>Cliente</th><th>Qtd. OSs</th><th style="text-align:right">Total faturado</th><th style="text-align:right">% do faturamento</th></tr></thead>
+        <tbody>
+          ${listaClientes.map(c => `<tr>
+            <td><b>${c.cli}</b></td>
+            <td>${c.oss.length}</td>
+            <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(c.total)}</td>
+            <td style="text-align:right;color:var(--t2)">${fat > 0 ? (c.total / fat * 100).toFixed(1) : 0}%</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
+
+    <!-- Tabela detalhada de todas as OSs -->
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"><i class="ti ti-list-details"></i> Todas as OSs no período (${oss.length})</div>
+    ${oss.length ? `<table>
+      <thead><tr><th>OS</th><th>Data</th><th>Status</th><th>Cliente</th><th>Veículo</th><th>Placa</th><th>Serviço</th><th style="text-align:right">Serv. (R$)</th><th style="text-align:right">Peças (R$)</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>
-        ${dados.map(d => {
-          const aberto = !!_relMecState.expandidos[d.m.id]
+        ${oss.map(o => {
+          const st = o.status
+          const cor = st === 'Concluída' ? 'var(--grt)' : st === 'Cancelada' ? 'var(--ret)' : 'var(--amt)'
           return `<tr>
-            <td><button class="btn btn-xs" onclick="relMecToggle(${d.m.id})" title="${aberto ? 'Recolher' : 'Expandir'}"><i class="ti ti-chevron-${aberto ? 'down' : 'right'}"></i></button></td>
-            <td><b>${d.m.nome}</b></td>
-            <td style="color:var(--t2);font-size:12px">${d.m.esp || '—'}</td>
-            <td>${d.total}</td>
-            <td style="color:var(--grt)">${d.concl}</td>
-            <td style="color:var(--t2)">${d.tMed != null ? d.tMed.toFixed(1) + ' dias' : '—'}</td>
-            <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(d.fat)}</td>
-            <td style="text-align:right;font-weight:600;color:var(--amt)">${fmt(d.com)} <span style="color:var(--t3);font-size:10px">(${d.m.com || 0}%)</span></td>
-          </tr>
-          ${linhaDetalhe(d)}`
+            <td><b style="color:var(--pul)">${o.numero || o.id}</b></td>
+            <td style="font-size:12px;color:var(--t2)">${o.dataConclusao || o.data}</td>
+            <td><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;color:${cor};background:${cor}18">${st}</span></td>
+            <td>${o.cliNome || '—'}</td>
+            <td>${o.vei || '—'}</td>
+            <td style="font-family:monospace;color:var(--pul);font-size:12px">${o.pla || '—'}</td>
+            <td style="font-size:11px;color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.srv || '').replace(/"/g, '')}">${o.srv || '—'}</td>
+            <td style="text-align:right;font-size:12px">${fmt(o.vsrv || 0)}</td>
+            <td style="text-align:right;font-size:12px">${fmt(o.vpec || 0)}</td>
+            <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
+          </tr>`
         }).join('')}
+        <tr style="border-top:2px solid var(--bd)">
+          <td colspan="7" style="text-align:right;font-weight:700">TOTAIS</td>
+          <td style="text-align:right;font-weight:700">${fmt(oss.reduce((a,o) => a + (o.vsrv||0), 0))}</td>
+          <td style="text-align:right;font-weight:700">${fmt(oss.reduce((a,o) => a + (o.vpec||0), 0))}</td>
+          <td style="text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.total||0), 0))}</td>
+        </tr>
       </tbody>
-    </table>
-    <div style="margin-top:12px;font-size:11px;color:var(--t3)"><i class="ti ti-info-circle"></i> Clique na seta para ver todas as OSs (clientes, veículos e valores) atendidas pelo mecânico no período.</div>
+    </table>` : `<div class="empty">Nenhuma OS encontrada neste período.</div>`}
   </div>`
 }
 
-/* Toggle de expansão por mecânico */
-function relMecToggle(mecId) {
-  _relMecState.expandidos[mecId] = !_relMecState.expandidos[mecId]
+function relMecSelecionou(val) {
+  _relMecState.mecId = val ? parseInt(val) || val : null
   relMec()
 }
+
 
 function relClientes() {
   /* Mantido como atalho para Curva ABC de Clientes */
@@ -8373,7 +8424,7 @@ function relVoltar() {
   if (head) head.remove()
   if (out) out.innerHTML = ''
   /* Reseta estado dos relatórios que mantêm estado */
-  if (typeof _relMecState !== 'undefined') _relMecState.expandidos = {}
+  if (typeof _relMecState !== 'undefined') { _relMecState.mecId = null }
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
