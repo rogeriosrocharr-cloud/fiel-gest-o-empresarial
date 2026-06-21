@@ -8494,7 +8494,10 @@ function relGerarPDF() {
       .ik{color:var(--t3)}
       .prog{height:8px;background:var(--s3);border-radius:4px;overflow:hidden;border:1px solid var(--bd)}
       .prog-f{height:100%;background:linear-gradient(90deg,var(--pul),var(--pu));border-radius:4px}
-      .metric{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:8px}
+      .metric{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;margin-bottom:0}
+      .grid{display:grid;gap:6px}
+      .ml{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+      .mv{font-size:13px;font-weight:700;color:var(--t1);line-height:1.2}
 
       .actions{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:1000}
       .actions button{background:var(--pu);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 10px rgba(92,20,220,.3);display:flex;align-items:center;gap:6px}
@@ -8511,6 +8514,9 @@ function relGerarPDF() {
         tr:hover td{background:var(--s2)}
         tr:nth-child(even) td{background:var(--s2) !important;-webkit-print-color-adjust:exact}
         th{background:var(--pub) !important;color:var(--pu) !important;-webkit-print-color-adjust:exact}
+        .metric{padding:6px 8px}
+        .ml{font-size:8px}
+        .mv{font-size:12px}
       }
     </style></head><body>
     <div class="actions">
