@@ -1110,11 +1110,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div style="font-weight:600;margin-bottom:3px">OSs em Garantia Ativa</div>
       <div style="font-size:12px;color:var(--t3)">Serviços com garantia ainda válida</div>
     </div>
-    <div class="card" style="cursor:pointer;transition:border .2s" onmouseenter="this.style.borderColor='var(--pu2)'" onmouseleave="this.style.borderColor='var(--bd)'" onclick="relFechamentoComissao()">
-      <div style="width:38px;height:38px;border-radius:10px;background:var(--amb);display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--amt);margin-bottom:10px"><i class="ti ti-coin"></i></div>
-      <div style="font-weight:600;margin-bottom:3px">Fechamento de Comissões</div>
-      <div style="font-size:12px;color:var(--t3)">Por mecânico, por mês</div>
-    </div>
   </div>
 
   <div class="slabel" style="margin-bottom:8px">🔔 Reativação de clientes</div>
@@ -7483,54 +7478,148 @@ function relOS() {
   </div>`
 }
 
-function relMec() {
-  /* Faturamento + horas + comissão calculada por mecânico */
+/* ── Faturamento por Mecânico ─────────────────────────
+   Aceita período: 'tudo' | 'dia' | 'semana' | 'mes' | 'ano' | 'custom'
+   Em 'custom', precisa de dataIni/dataFim (formato YYYY-MM-DD). */
+let _relMecState = { periodo: 'mes', ini: null, fim: null, expandidos: {} }
+
+function relMec(periodo, ini, fim) {
+  if (periodo) _relMecState.periodo = periodo
+  if (ini !== undefined) _relMecState.ini = ini
+  if (fim !== undefined) _relMecState.fim = fim
+
+  /* Define janela de datas (em ms) */
+  const hoje = new Date(); hoje.setHours(0,0,0,0)
+  let dIni = null, dFim = null, labelPeriodo = 'Período: tudo'
+  if (_relMecState.periodo === 'dia') {
+    dIni = hoje.getTime(); dFim = hoje.getTime() + 86400000 - 1
+    labelPeriodo = `Hoje (${hoje.toLocaleDateString('pt-BR')})`
+  } else if (_relMecState.periodo === 'semana') {
+    const dw = hoje.getDay() /* 0=dom */
+    const ini = new Date(hoje); ini.setDate(hoje.getDate() - dw)
+    const fim = new Date(ini); fim.setDate(ini.getDate() + 6); fim.setHours(23,59,59)
+    dIni = ini.getTime(); dFim = fim.getTime()
+    labelPeriodo = `Semana atual (${ini.toLocaleDateString('pt-BR')} a ${fim.toLocaleDateString('pt-BR')})`
+  } else if (_relMecState.periodo === 'mes') {
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59)
+    dIni = ini.getTime(); dFim = fim.getTime()
+    labelPeriodo = `Mês atual (${ini.toLocaleDateString('pt-BR', {month:'long', year:'numeric'})})`
+  } else if (_relMecState.periodo === 'ano') {
+    const ini = new Date(hoje.getFullYear(), 0, 1)
+    const fim = new Date(hoje.getFullYear(), 11, 31, 23, 59, 59)
+    dIni = ini.getTime(); dFim = fim.getTime()
+    labelPeriodo = `Ano ${hoje.getFullYear()}`
+  } else if (_relMecState.periodo === 'custom' && _relMecState.ini && _relMecState.fim) {
+    const a = new Date(_relMecState.ini + 'T00:00')
+    const b = new Date(_relMecState.fim + 'T23:59:59')
+    dIni = a.getTime(); dFim = b.getTime()
+    labelPeriodo = `Personalizado: ${a.toLocaleDateString('pt-BR')} a ${b.toLocaleDateString('pt-BR')}`
+  }
+
+  /* Filtra OSs concluídas pelo período (usa dataConclusao ou data) */
+  function dentro(o) {
+    if (dIni === null || dFim === null) return true
+    const ref = o.dataConclusao || o.data
+    if (!ref) return false
+    const [d,m,a] = ref.split('/'); if (!d) return false
+    const t = new Date(+a, +m-1, +d).getTime()
+    return t >= dIni && t <= dFim
+  }
+
   const dados = mecData.map(m => {
-    const oss = osData.filter(o => o.mec === m.nome)
+    const oss = osData.filter(o => o.mec === m.nome && dentro(o))
     const ossConcl = oss.filter(o => o.status === 'Concluída')
     const fat = ossConcl.reduce((a, b) => a + (b.total || 0), 0)
-    const horasEst = ossConcl.reduce((a, o) => {
-      /* Soma horas: se há campo h na OS, usa; senão estima por dia */
-      return a + (o.horas || 0)
-    }, 0)
     const tempos = ossConcl.filter(o => o.dataConclusao && o.data).map(o => diasEntre(o.data, o.dataConclusao)).filter(d => d != null && d >= 0)
     const tMed = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : null
     return {
       m, total: oss.length, concl: ossConcl.length, fat,
-      horas: horasEst, com: (fat * (m.com || 0) / 100), tMed
+      com: (fat * (m.com || 0) / 100), tMed, ossConcl
     }
   }).sort((a, b) => b.fat - a.fat)
 
   const totFat = dados.reduce((a, b) => a + b.fat, 0)
   const totCom = dados.reduce((a, b) => a + b.com, 0)
 
+  /* Botões de filtro de período */
+  const btn = (pid, label) => {
+    const ativo = _relMecState.periodo === pid
+    return `<button class="btn btn-sm" style="${ativo ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="relMec('${pid}')">${label}</button>`
+  }
+  const isCustom = _relMecState.periodo === 'custom'
+  const filtros = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+    ${btn('dia','Hoje')}${btn('semana','Semana')}${btn('mes','Mês')}${btn('ano','Ano')}${btn('tudo','Tudo')}
+    <button class="btn btn-sm" style="${isCustom ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="document.getElementById('relMecCustom').style.display = document.getElementById('relMecCustom').style.display === 'none' ? 'flex' : 'none'">Período personalizado…</button>
+    <div id="relMecCustom" style="display:${isCustom ? 'flex' : 'none'};gap:6px;align-items:center;margin-left:6px">
+      <input type="date" id="relMec_ini" value="${_relMecState.ini || ''}" style="padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
+      <span style="color:var(--t3);font-size:11px">até</span>
+      <input type="date" id="relMec_fim" value="${_relMecState.fim || ''}" style="padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
+      <button class="btn btn-sm btn-pu" onclick="relMec('custom', document.getElementById('relMec_ini').value, document.getElementById('relMec_fim').value)"><i class="ti ti-check"></i> Aplicar</button>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--t3);margin-bottom:14px"><i class="ti ti-calendar-event"></i> ${labelPeriodo}</div>`
+
+  /* Linha expandida (detalhes de veículos/clientes/valores) por mecânico */
+  function linhaDetalhe(d) {
+    if (!_relMecState.expandidos[d.m.id]) return ''
+    if (!d.ossConcl.length) return `<tr><td colspan="8" style="background:var(--s2);padding:14px"><div class="empty">Nenhuma OS concluída neste período.</div></td></tr>`
+    return `<tr><td colspan="8" style="background:var(--s2);padding:0">
+      <div style="padding:8px 14px 14px">
+        <div style="font-size:11px;color:var(--t3);margin:6px 0 8px;text-transform:uppercase;letter-spacing:.05em"><i class="ti ti-list-details"></i> OSs concluídas por ${d.m.nome}</div>
+        <table style="margin:0">
+          <thead><tr><th style="background:var(--s3)">OS</th><th style="background:var(--s3)">Data</th><th style="background:var(--s3)">Cliente</th><th style="background:var(--s3)">Veículo</th><th style="background:var(--s3)">Placa</th><th style="background:var(--s3)">Serviço</th><th style="background:var(--s3);text-align:right">Valor</th></tr></thead>
+          <tbody>
+            ${d.ossConcl.map(o => `<tr>
+              <td><b style="color:var(--pul)">${o.numero || o.id}</b></td>
+              <td style="color:var(--t2);font-size:12px">${o.dataConclusao || o.data}</td>
+              <td>${o.cliNome || '—'}</td>
+              <td>${o.vei || '—'}</td>
+              <td style="font-family:monospace;color:var(--pul);font-size:12px">${o.pla || '—'}</td>
+              <td style="color:var(--t2);font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.srv || '').replace(/"/g,'')}">${o.srv || '—'}</td>
+              <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </td></tr>`
+  }
+
   document.getElementById('rel-output').innerHTML = `<div class="card">
     <div class="ct"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
+    ${filtros}
     <div class="grid g3" style="margin-bottom:16px">
-      <div class="metric"><div class="mb pu"></div><div class="ml">Total faturado pela equipe</div><div class="mv" style="font-size:15px;color:var(--grt)">${fmt(totFat)}</div></div>
-      <div class="metric"><div class="mb am"></div><div class="ml">Comissões a pagar</div><div class="mv" style="font-size:15px;color:var(--amt)">${fmt(totCom)}</div></div>
-      <div class="metric"><div class="mb gr"></div><div class="ml">Líquido após comissão</div><div class="mv" style="font-size:15px">${fmt(totFat - totCom)}</div></div>
+      <div class="metric"><div class="mb pu"></div><div class="ml">Total faturado</div><div class="mv" style="font-size:15px;color:var(--grt)">${fmt(totFat)}</div></div>
+      <div class="metric"><div class="mb am"></div><div class="ml">Comissões</div><div class="mv" style="font-size:15px;color:var(--amt)">${fmt(totCom)}</div></div>
+      <div class="metric"><div class="mb gr"></div><div class="ml">Líquido</div><div class="mv" style="font-size:15px">${fmt(totFat - totCom)}</div></div>
     </div>
     <table>
-      <thead><tr><th>Mecânico</th><th>Especialidade</th><th>OSs</th><th>Concluídas</th><th>Tempo médio</th><th style="text-align:right">Faturado</th><th style="text-align:right">% do total</th><th style="text-align:right">Comissão (${'%'} cfg)</th></tr></thead>
+      <thead><tr><th style="width:32px"></th><th>Mecânico</th><th>Especialidade</th><th>OSs</th><th>Concluídas</th><th>Tempo médio</th><th style="text-align:right">Faturado</th><th style="text-align:right">Comissão</th></tr></thead>
       <tbody>
         ${dados.map(d => {
-          const pctFat = totFat > 0 ? d.fat / totFat * 100 : 0
+          const aberto = !!_relMecState.expandidos[d.m.id]
           return `<tr>
+            <td><button class="btn btn-xs" onclick="relMecToggle(${d.m.id})" title="${aberto ? 'Recolher' : 'Expandir'}"><i class="ti ti-chevron-${aberto ? 'down' : 'right'}"></i></button></td>
             <td><b>${d.m.nome}</b></td>
             <td style="color:var(--t2);font-size:12px">${d.m.esp || '—'}</td>
             <td>${d.total}</td>
             <td style="color:var(--grt)">${d.concl}</td>
             <td style="color:var(--t2)">${d.tMed != null ? d.tMed.toFixed(1) + ' dias' : '—'}</td>
             <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(d.fat)}</td>
-            <td style="text-align:right;color:var(--t2)">${pctFat.toFixed(1)}%</td>
             <td style="text-align:right;font-weight:600;color:var(--amt)">${fmt(d.com)} <span style="color:var(--t3);font-size:10px">(${d.m.com || 0}%)</span></td>
-          </tr>`
+          </tr>
+          ${linhaDetalhe(d)}`
         }).join('')}
       </tbody>
     </table>
-    <div style="margin-top:12px;font-size:11px;color:var(--t3)"><i class="ti ti-info-circle"></i> A comissão é calculada sobre o faturamento das OSs concluídas, usando o % configurado no cadastro do mecânico.</div>
+    <div style="margin-top:12px;font-size:11px;color:var(--t3)"><i class="ti ti-info-circle"></i> Clique na seta para ver todas as OSs (clientes, veículos e valores) atendidas pelo mecânico no período.</div>
   </div>`
+}
+
+/* Toggle de expansão por mecânico */
+function relMecToggle(mecId) {
+  _relMecState.expandidos[mecId] = !_relMecState.expandidos[mecId]
+  relMec()
 }
 
 function relClientes() {
@@ -8245,87 +8334,6 @@ function relGarantias() {
   </div>`
 }
 
-function relFechamentoComissao() {
-  /* Agrupa OSs concluídas por mecânico × mês */
-  const map = {}  /* key: "mec|YYYY-MM" → { mec, mes, oss: [], total, comm } */
-  osData.filter(o => o.status === 'Concluída' && o.mec).forEach(o => {
-    const m = mecData.find(x => x.nome === o.mec)
-    const com = m ? (m.com || 0) : 0
-    const i = dataIso(o.dataConclusao || o.data); if (!i) return
-    const mes = i.substring(0, 7)
-    const key = `${o.mec}|${mes}`
-    if (!map[key]) map[key] = { mec: o.mec, mes, com, oss: [], totalFat: 0, comm: 0 }
-    /* Comissão calcula só sobre o valor de serviços (vsrv), não sobre peças */
-    const valFat = (o.vsrv || 0) + (o.vpec || 0)
-    const valCom = (o.vsrv || 0) * com / 100
-    map[key].oss.push({ os: o, com: valCom })
-    map[key].totalFat += valFat
-    map[key].comm += valCom
-  })
-
-  const fechamentos = Object.values(map).sort((a, b) => {
-    if (b.mes !== a.mes) return b.mes.localeCompare(a.mes)
-    return b.comm - a.comm
-  })
-
-  const fmtMes = k => {
-    const [a, m] = k.split('-')
-    return `${['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(m)]}/${a}`
-  }
-
-  document.getElementById('rel-output').innerHTML = `<div class="card">
-    <div class="ct"><i class="ti ti-coin" style="color:var(--amt)"></i>Fechamento de Comissões</div>
-    <div style="font-size:11px;color:var(--t3);margin:-8px 0 14px 0">Comissão calculada apenas sobre <b>valor de mão de obra (serviços)</b> — não inclui peças. O % é o configurado no cadastro de cada mecânico.</div>
-
-    ${fechamentos.length ? `
-    <table>
-      <thead><tr><th>Mecânico</th><th>Mês</th><th>OSs concluídas</th><th style="text-align:right">Faturado total</th><th style="text-align:right">Valor serviços</th><th>% Comissão</th><th style="text-align:right">A pagar</th><th>Detalhe</th></tr></thead>
-      <tbody>
-        ${fechamentos.map((f, i) => {
-          const valSrv = f.oss.reduce((a, b) => a + (b.os.vsrv || 0), 0)
-          const dropId = `comm-dd-${i}`
-          return `<tr>
-            <td><b>${f.mec}</b></td>
-            <td><span class="pill p-pu" style="font-size:10px">${fmtMes(f.mes)}</span></td>
-            <td>${f.oss.length}</td>
-            <td style="text-align:right">${fmt(f.totalFat)}</td>
-            <td style="text-align:right;color:var(--grt)">${fmt(valSrv)}</td>
-            <td>${f.com}%</td>
-            <td style="text-align:right;font-weight:700;color:var(--amt)">${fmt(f.comm)}</td>
-            <td><button class="btn btn-xs" onclick="toggleCommDD('${dropId}')"><i class="ti ti-chevron-down"></i></button></td>
-          </tr>
-          <tr id="${dropId}" style="display:none">
-            <td colspan="8" style="padding:0;background:var(--s2)">
-              <table style="width:100%;font-size:11px;margin:0">
-                <thead><tr style="color:var(--t3);font-size:9px;text-transform:uppercase">
-                  <th style="padding:6px 10px">OS</th><th style="padding:6px 10px">Cliente</th><th style="padding:6px 10px">Concluída</th><th style="text-align:right;padding:6px 10px">Mão de obra</th><th style="text-align:right;padding:6px 10px">Comissão</th>
-                </tr></thead>
-                <tbody>
-                  ${f.oss.map(x => `<tr style="border-top:1px solid var(--bd)">
-                    <td style="padding:5px 10px"><b style="color:var(--pul)">${x.os.id}</b></td>
-                    <td style="padding:5px 10px">${x.os.cliNome}</td>
-                    <td style="padding:5px 10px;color:var(--t2)">${x.os.dataConclusao || x.os.data}</td>
-                    <td style="text-align:right;padding:5px 10px;color:var(--grt)">${fmt(x.os.vsrv || 0)}</td>
-                    <td style="text-align:right;padding:5px 10px;font-weight:600;color:var(--amt)">${fmt(x.com)}</td>
-                  </tr>`).join('')}
-                </tbody>
-              </table>
-            </td>
-          </tr>`
-        }).join('')}
-      </tbody>
-    </table>
-    <div style="margin-top:14px;padding:12px 14px;background:var(--amb);border:1px solid rgba(212,138,12,.3);border-radius:var(--r);font-size:11px;color:var(--amt)">
-      <i class="ti ti-info-circle"></i> <b>Total a pagar (todas as comissões pendentes):</b> ${fmt(fechamentos.reduce((a, b) => a + b.comm, 0))}. Para registrar o pagamento, lance uma despesa na categoria "Salários e encargos" com o nome do mecânico.
-    </div>
-    ` : `<div class="empty" style="padding:30px"><i class="ti ti-coin-off"></i>Nenhuma OS concluída ainda para calcular comissões.</div>`}
-  </div>`
-}
-
-function toggleCommDD(id) {
-  const r = document.getElementById(id)
-  if (r) r.style.display = r.style.display === 'none' ? '' : 'none'
-}
 
 function relEstoque() {
   const crit = estData.filter(e => e.qtd <= e.min)
@@ -8364,6 +8372,8 @@ function relVoltar() {
   if (wrap) wrap.style.display = ''
   if (head) head.remove()
   if (out) out.innerHTML = ''
+  /* Reseta estado dos relatórios que mantêm estado */
+  if (typeof _relMecState !== 'undefined') _relMecState.expandidos = {}
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -8483,9 +8493,9 @@ function relGerarPDF() {
     const obs = new MutationObserver(() => {
       const temConteudo = out.innerHTML && out.innerHTML.trim().length > 0
       if (!temConteudo) return
-      /* Esconde a grade de cartões e adiciona barra de ações se ainda não existir */
+      const jaExiste = !!document.getElementById('rel-output-head')
       if (wrap) wrap.style.display = 'none'
-      if (!document.getElementById('rel-output-head')) {
+      if (!jaExiste) {
         const head = document.createElement('div')
         head.id = 'rel-output-head'
         head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);flex-wrap:wrap'
@@ -8494,12 +8504,9 @@ function relGerarPDF() {
           <button class="btn btn-sm btn-pu" onclick="relGerarPDF()"><i class="ti ti-file-type-pdf"></i> Gerar PDF</button>
         `
         out.parentNode.insertBefore(head, out)
+        /* Scroll só na primeira abertura do relatório, não em re-renderizações */
+        setTimeout(() => head.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
       }
-      /* Scroll suave para o topo do conteúdo */
-      setTimeout(() => {
-        const head = document.getElementById('rel-output-head') || out
-        head.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 50)
     })
     obs.observe(out, { childList: true, subtree: true, characterData: true })
   })
