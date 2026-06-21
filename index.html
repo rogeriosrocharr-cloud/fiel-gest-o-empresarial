@@ -4624,14 +4624,14 @@ function renderTimeline() {
     const acoes = []
     /* Botões contextuais para avançar ao próximo passo */
     if (at.orc && at.orc.status === 'Aguardando aprovação') {
-      acoes.push(`<button class="btn btn-xs btn-gr" onclick="aprovarOrc('${at.orc.id}');renderTimeline();renderKanban()"><i class="ti ti-check"></i></button>`)
-      acoes.push(`<button class="btn btn-xs btn-re" onclick="recusarOrc('${at.orc.id}');renderTimeline();renderKanban()"><i class="ti ti-x"></i></button>`)
+      acoes.push(`<button class="btn btn-xs btn-gr" onclick="aprovarOrc('${at.orc.id}')"><i class="ti ti-check"></i></button>`)
+      acoes.push(`<button class="btn btn-xs btn-re" onclick="recusarOrc('${at.orc.id}')"><i class="ti ti-x"></i></button>`)
     }
     if (at.orc && at.orc.status === 'Aprovado' && !at.os) {
       acoes.push(`<button class="btn btn-xs btn-pu" onclick="gerarOS('${at.orc.id}')"><i class="ti ti-clipboard-list"></i> Gerar OS</button>`)
     }
     if (at.os && ['Aberta', 'Em execução', 'Aguardando peça'].includes(at.os.status)) {
-      acoes.push(`<button class="btn btn-xs btn-gr" onclick="changeOSStatus('${at.os.id}','Concluída');renderTimeline();renderKanban()"><i class="ti ti-check"></i> Concluir</button>`)
+      acoes.push(`<button class="btn btn-xs btn-gr" onclick="changeOSStatus('${at.os.id}','Concluída')"><i class="ti ti-check"></i> Concluir</button>`)
     }
     if (at.os && at.os.status === 'Concluída' && !at.rec) {
       acoes.push(`<button class="btn btn-xs btn-gr" onclick="lancarFinanceiro('${at.os.id}')"><i class="ti ti-cash"></i> Lançar receita</button>`)
@@ -4691,15 +4691,15 @@ function kCard(item, tipo) {
     <div style="font-size:11px;color:var(--t2);margin-top:4px">Serv: ${fmt(item.tSrv)} | Peças: ${fmt(item.tPec)}</div>
     <div class="kval">${fmt(item.total)}</div>
     <div class="kac">
-      <button class="btn btn-xs btn-gr" onclick="aprovarOrc('${item.id}');renderKanban();renderTimeline()"><i class="ti ti-check"></i> Aprovar</button>
-      <button class="btn btn-xs btn-re" onclick="recusarOrc('${item.id}');renderKanban();renderTimeline()">Recusar</button>
+      <button class="btn btn-xs btn-gr" onclick="aprovarOrc('${item.id}')"><i class="ti ti-check"></i> Aprovar</button>
+      <button class="btn btn-xs btn-re" onclick="recusarOrc('${item.id}')">Recusar</button>
     </div></div>`
   if (tipo === 'os_ab') return `<div class="kcard">
     <div class="knum">${item.id}${item.orcId ? ' ← ' + item.orcId : ''}</div>
     <div class="kcli">${item.cliNome}</div><div class="kvei">${item.vei}</div>
     <div class="ksrv">${item.srv}</div>
     <div class="kval">${fmt(item.total)}</div>
-    <div class="kac"><button class="btn btn-xs btn-gr" onclick="changeOSStatus('${item.id}','Concluída');renderKanban();renderTimeline()" style="font-size:10px"><i class="ti ti-check"></i> Concluir</button></div>
+    <div class="kac"><button class="btn btn-xs btn-gr" onclick="changeOSStatus('${item.id}','Concluída')" style="font-size:10px"><i class="ti ti-check"></i> Concluir</button></div>
   </div>`
   if (tipo === 'os_co') return `<div class="kcard">
     <div class="knum">${item.id}</div><div class="kcli">${item.cliNome}</div>
@@ -5236,7 +5236,7 @@ async function salvarOrc() {
         orcTempSrvs = []; orcTempPecs = []
         fecharModal('mOrcAdd')
         toast('Orçamento atualizado.')
-        renderOrc(); renderTimeline(); updateBadge()
+        renderOrc(); renderTimeline(); renderKanban(); updateBadge()
         return
       }
     }
@@ -5249,7 +5249,7 @@ async function salvarOrc() {
     atualizarTotalOrc()
     fecharModal('mOrcAdd')
     toast('Orçamento criado. Aguardando aprovação do cliente.', 4000)
-    renderOrc(); renderTimeline(); updateBadge()
+    renderOrc(); renderTimeline(); renderKanban(); updateBadge()
   } catch (e) {
     console.error('Erro salvarOrc:', e)
     toast('Erro ao salvar orçamento: ' + (e.message || ''), 5000)
@@ -5311,7 +5311,7 @@ async function reabrirOrc(id) {
   o.status = 'Aguardando aprovação'
   try { await db.orcamentos.update(o.id, { status: 'Aguardando aprovação', osId: null }) } catch (_) {}
   toast('Orçamento reaberto para edição.', 3500)
-  renderOrc(); renderTimeline(); updateBadge(); saveState()
+  renderOrc(); renderOS(); renderTimeline(); renderKanban(); updateBadge(); saveState()
 }
 
 /* ── EDIÇÃO DE OS ────────────────────────────────── */
@@ -5335,12 +5335,13 @@ function editarOS(id) {
   abrirModal('mOsAdd')
 }
 
-function reabrirOS(id) {
+async function reabrirOS(id) {
   const o = osData.find(x => x.id == id); if (!o) return
   if (o.finId) { toast('⚠️ OS já tem receita lançada. Cancele a receita primeiro.', 4000); return }
   o.status = 'Em execução'
+  try { await db.os.update(o.id, { status: 'Em execução' }) } catch (e) { toast('Erro ao salvar: ' + (e.message || ''), 5000); return }
   toast(o.id + ' reaberta para edição.', 3500)
-  renderOS(); renderTimeline(); updateBadge(); saveState()
+  renderOS(); renderTimeline(); renderKanban(); updateBadge(); saveState()
 }
 
 /* Cancelar receita lançada (libera a OS para edição) */
@@ -5356,7 +5357,7 @@ async function cancelarReceita(id) {
     }
     recData = recData.filter(x => x.id != id)
     toast('Entrada cancelada.')
-    renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge()
+    renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge(); renderKanban(); renderOS()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
@@ -5437,7 +5438,7 @@ async function aprovarOrc(id) {
   o.status = 'Aprovado'
   try { await db.orcamentos.update(o.id, { status: 'Aprovado' }) } catch (e) { console.warn(e) }
   toast('Orçamento aprovado. Clique em "Gerar OS →" para avançar.', 4000)
-  renderOrc(); renderTimeline(); updateBadge()
+  renderOrc(); renderTimeline(); renderKanban(); updateBadge()
 }
 async function recusarOrc(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
@@ -5445,7 +5446,7 @@ async function recusarOrc(id) {
   o.status = 'Recusado'
   try { await db.orcamentos.update(o.id, { status: 'Recusado' }) } catch (e) { console.warn(e) }
   toast('Orçamento recusado.')
-  renderOrc(); renderTimeline(); updateBadge()
+  renderOrc(); renderTimeline(); renderKanban(); updateBadge()
 }
 
 let _gerarOSPending = null
@@ -5486,6 +5487,7 @@ async function confirmarGerarOS() {
     /* Atualiza status do orçamento */
     o.status = 'OS gerada'; o.osId = novaOS.id
     await db.orcamentos.update(o.id, { status: 'OS gerada', osId: novaOS.id })
+    renderKanban()
 
     /* Baixa automática no estoque para peças vindas do catálogo */
     const baixas = []
@@ -5506,6 +5508,7 @@ async function confirmarGerarOS() {
 
     _gerarOSPending = null
     fecharModal('mPickMec')
+    renderKanban()
     toast(`OS #${novaOS.numero} gerada com mecânico ${mec}. Indo para Ordens de Serviço...`, 4500)
     setTimeout(() => irParaPasso(3), 1200)
   } catch (e) {
@@ -5568,7 +5571,7 @@ async function changeOSStatus(id, s) {
   } catch (e) {
     console.warn('Erro ao salvar status OS:', e)
   }
-  renderOS(); renderTimeline(); updateBadge(); saveState()
+  renderOS(); renderTimeline(); renderKanban(); updateBadge(); saveState()
 }
 
 function lancarFinanceiro(osId) {
@@ -5679,7 +5682,7 @@ async function salvarOSManual() {
         Object.assign(o, atualizado)
         osEditId = null
         fecharModal('mOsAdd'); toast('OS atualizada.')
-        renderOS(); renderTimeline(); updateBadge()
+        renderOS(); renderTimeline(); renderKanban(); updateBadge()
         return
       }
     }
@@ -5688,7 +5691,7 @@ async function salvarOSManual() {
     const novaOS = await db.os.create(lojaAtual.id, dadosOS)
     osData.unshift(novaOS)
     fecharModal('mOsAdd'); toast(`OS #${novaOS.numero} aberta manualmente.`)
-    renderOS(); renderTimeline(); updateBadge()
+    renderOS(); renderTimeline(); renderKanban(); updateBadge()
   } catch (e) {
     console.error('Erro salvarOSManual:', e)
     toast('Erro ao salvar OS: ' + (e.message || ''), 5000)
@@ -6167,7 +6170,7 @@ async function salvarReceita() {
       }
     }
     fecharModal('mFinRec'); resetModalRec()
-    renderFinMetrics(); renderMov(); renderBancoExtrato(); updateBadge(); renderDash()
+    renderFinMetrics(); renderMov(); renderBancoExtrato(); updateBadge(); renderDash(); renderKanban(); renderOS()
   } catch (e) {
     console.error('Erro salvarReceita:', e)
     toast('Erro ao salvar entrada: ' + (e.message || ''), 5000)
@@ -6957,14 +6960,22 @@ async function excluirSrvCat(id) {
 async function excluirOrcamento(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
   if (o.status === 'OS gerada' && o.osId) {
-    if (!confirm(`Este orçamento gerou uma OS. Excluir vai apagar o vínculo (mas não a OS). Continuar?`)) return
+    if (!confirm(`Este orçamento gerou a OS #${o.osId}. Excluir vai remover o vínculo (a OS continua existindo, só deixa de referenciar este orçamento). Continuar?`)) return
   } else if (!confirmar(`Excluir orçamento ${o.numero || o.id}? Esta ação é permanente.`)) return
   try {
+    /* Se a OS gerada por este orçamento ainda existir, limpa a referência órfã (orcId) nela */
+    if (o.osId) {
+      const os = osData.find(x => x.id == o.osId)
+      if (os) {
+        os.orcId = null
+        try { await db.os.update(os.id, { orcId: null }) } catch (_) {}
+      }
+    }
     await db.orcamentos.remove(o.id)
     orcData = orcData.filter(x => x.id != id)
     toast('Orçamento excluído.')
     logAtividade('orc_del', `Orçamento ${o.numero || o.id} excluído`)
-    renderOrc(); renderTimeline(); updateBadge()
+    renderOrc(); renderOS(); renderKanban(); renderTimeline(); updateBadge()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
@@ -6984,7 +6995,7 @@ async function excluirOS(id) {
     }
     toast('OS excluída.')
     logAtividade('os_del', `OS #${o.numero || o.id} excluída`)
-    renderOS(); renderOrc(); renderTimeline(); updateBadge()
+    renderOS(); renderOrc(); renderTimeline(); renderKanban(); updateBadge()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
@@ -7003,7 +7014,7 @@ async function excluirReceita(id) {
     recData = recData.filter(x => x.id != id)
     toast('Receita excluída.')
     logAtividade('rec_del', `Receita excluída · ${fmt(r.total || 0)}`)
-    renderFinMetrics(); renderMov(); renderDash(); updateBadge()
+    renderFinMetrics(); renderMov(); renderDash(); updateBadge(); renderKanban(); renderOS()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
