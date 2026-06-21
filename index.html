@@ -9434,29 +9434,47 @@ if (sbFoot && !sbFoot.querySelector('.btn-limpar')) {
 }
 
 /* ──── Fluxo de autenticação ────
-   - Se há sessão Supabase ativa de Consultor → restaura e abre Painel do Consultor
-   - Se há usuário logado válido (Master/Colaborador via localStorage) → entra no app
+   - Se há sessão Supabase ativa (Consultor, Master ou Colaborador) → restaura e entra direto
    - Senão → mostra login (ou cadastro Master se não há nenhum usuário ainda) */
 async function inicializarSessao() {
   try {
     const session = await db.auth.getSession()
     if (session) {
       const perfil = await db.auth.getPerfil(session.user.id)
-      if (perfil && perfil.ativo && perfil.role === 'consultor') {
-        consultor = {
-          id: perfil.id, nome: perfil.nome, email: perfil.email,
-          login: perfil.email.split('@')[0], _supabase: true, _authId: session.user.id
+      if (perfil && perfil.ativo) {
+        if (perfil.role === 'consultor') {
+          consultor = {
+            id: perfil.id, nome: perfil.nome, email: perfil.email,
+            login: perfil.email.split('@')[0], _supabase: true, _authId: session.user.id
+          }
+          consultorLogado = true
+          saveConsultor()
+          abrirPainelConsultor()
+          setTimeout(() => toast(`Bem-vindo de volta, ${perfil.nome.split(' ')[0]}!`, 2500), 400)
+          return
         }
-        consultorLogado = true
-        saveConsultor()
-        abrirPainelConsultor()
-        setTimeout(() => toast(`Bem-vindo de volta, ${perfil.nome.split(' ')[0]}!`, 2500), 400)
-        return
+        if (perfil.role === 'master' || perfil.role === 'colaborador') {
+          const loja = await db.lojas.get(perfil.loja_id)
+          if (loja && loja.ativa) {
+            lojaAtual = loja
+            usuarioAtual = {
+              id: perfil.id, nome: perfil.nome, login: perfil.email,
+              email: perfil.email, tipo: perfil.role === 'master' ? 'master' : 'colab',
+              perms: perfil.permissoes || (perfil.role === 'master' ? PERMS_DISPONIVEIS.map(p => p.key) : []),
+              ativo: true, _authId: session.user.id, _supabase: true
+            }
+            document.getElementById('sb-sub-loja').textContent = loja.nome
+            db.auth.marcarAcesso(perfil.id).catch(() => {})
+            entrarNoApp()
+            setTimeout(() => toast(`Bem-vindo de volta, ${perfil.nome.split(' ')[0]}!`, 2500), 400)
+            return
+          }
+        }
       }
     }
   } catch (e) { console.warn('Sessão Supabase não restaurada:', e) }
 
-  /* Fluxo legacy para Master/Colaborador (ou consultor sem sessão Supabase) */
+  /* Fluxo legacy (apenas se não houver sessão Supabase válida) */
   if (usuarioAtual) {
     entrarNoApp()
     if (_loaded) setTimeout(() => toast('Dados restaurados da sessão anterior', 2500), 600)
