@@ -6651,8 +6651,6 @@ function renderMec() {
       <div style="font-size:12px">
         <div class="irow"><span class="ik">OS no total</span><span style="font-weight:700">${st.os}</span></div>
         <div class="irow"><span class="ik">Concluídas</span><span style="color:var(--grt)">${st.concl}</span></div>
-        <div class="irow"><span class="ik">Faturado</span><span style="color:var(--grt);font-weight:700">${fmt(st.val)}</span></div>
-        <div class="irow"><span class="ik">Comissão (${m.com}%)</span><span>${fmt(st.val * m.com / 100)}</span></div>
         <div class="irow"><span class="ik">Telefone</span><span style="color:var(--t2)">${m.tel || '—'}</span></div>
       </div>
       <div style="margin-top:10px">
@@ -7596,7 +7594,6 @@ function relMec(periodo, ini, fim) {
   const oss = ossTodas.filter(o => _relMecState.status.includes(o.status))
   const ossConcl = oss.filter(o => o.status === 'Concluída')
   const ossAbertas = oss.filter(o => o.status !== 'Concluída' && o.status !== 'Cancelada')
-  const fat = ossConcl.reduce((a, b) => a + (b.total || 0), 0)
   const fatSrv = ossConcl.reduce((a, b) => a + (b.vsrv || 0), 0)
   const fatPec = ossConcl.reduce((a, b) => a + (b.vpec || 0), 0)
   const comissao = fatSrv * (m.com || 0) / 100
@@ -7626,11 +7623,11 @@ function relMec(periodo, ini, fim) {
       <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">Concluídas</div><div class="mv" style="font-size:14px;font-weight:700;color:var(--grt)">${ossConcl.length}</div></div>
       <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">Em aberto</div><div class="mv" style="font-size:14px;font-weight:700;color:var(--amt)">${ossAbertas.length}</div></div>
       <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">T. médio</div><div class="mv" style="font-size:13px;font-weight:700">${tMed != null ? tMed.toFixed(1)+'d' : '—'}</div></div>
-      <div class="metric" style="padding:8px;border-left:2px solid var(--gr)"><div class="ml" style="font-size:9px">Faturado</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(fat)}</div></div>
+      <div class="metric" style="padding:8px;border-left:2px solid var(--gr)"><div class="ml" style="font-size:9px">Faturado (serv.)</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(fatSrv)}</div></div>
       <div class="metric" style="padding:8px;border-left:2px solid var(--am)"><div class="ml" style="font-size:9px">Comissão</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
-      <div class="metric" style="padding:8px;border-left:2px solid var(--pu)"><div class="ml" style="font-size:9px">Líquido</div><div class="mv" style="font-size:13px;font-weight:700">${fmt(fat-comissao)}</div></div>
+      <div class="metric" style="padding:8px;border-left:2px solid var(--pu)"><div class="ml" style="font-size:9px">Líquido</div><div class="mv" style="font-size:13px;font-weight:700">${fmt(fatSrv-comissao)}</div></div>
     </div>
-    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado = Serv ${fmt(fatSrv)} + Peças ${fmt(fatPec)} · Comissão incide apenas sobre Serviços (apenas OSs concluídas dentro do filtro)</div>
+    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado considera apenas valor de Serviços (Peças: ${fmt(fatPec)} não entram nesse total nem na comissão) · apenas OSs concluídas dentro do filtro</div>
 
     <!-- Tabela detalhada de todas as OSs filtradas -->
     <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-list-details"></i> OSs no filtro (${oss.length})</div>
