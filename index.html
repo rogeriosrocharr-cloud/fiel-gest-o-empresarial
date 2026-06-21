@@ -7481,16 +7481,18 @@ function relOS() {
 /* ── Faturamento por Mecânico ─────────────────────────
    Aceita período: 'tudo' | 'dia' | 'semana' | 'mes' | 'ano' | 'custom'
    Em 'custom', precisa de dataIni/dataFim (formato YYYY-MM-DD). */
-let _relMecState = { periodo: 'mes', ini: null, fim: null, mecId: null }
+const REL_MEC_STATUS_ALL = ['Aberta', 'Em execução', 'Aguardando peça', 'Concluída', 'Cancelada']
+let _relMecState = { periodo: 'semana', ini: null, fim: null, mecId: null, status: ['Concluída'] }
 
 function relMec(periodo, ini, fim) {
   if (periodo) _relMecState.periodo = periodo
   if (ini !== undefined) _relMecState.ini = ini
   if (fim !== undefined) _relMecState.fim = fim
+  if (!_relMecState.status || !_relMecState.status.length) _relMecState.status = ['Concluída']
 
   /* Define janela de datas (em ms) */
   const hoje = new Date(); hoje.setHours(0,0,0,0)
-  let dIni = null, dFim = null, labelPeriodo = 'Período: tudo'
+  let dIni = null, dFim = null, labelPeriodo = 'Tudo'
   if (_relMecState.periodo === 'dia') {
     dIni = hoje.getTime(); dFim = hoje.getTime() + 86400000 - 1
     labelPeriodo = `Hoje (${hoje.toLocaleDateString('pt-BR')})`
@@ -7499,12 +7501,12 @@ function relMec(periodo, ini, fim) {
     const sIni = new Date(hoje); sIni.setDate(hoje.getDate() - dw)
     const sFim = new Date(sIni); sFim.setDate(sIni.getDate() + 6); sFim.setHours(23,59,59)
     dIni = sIni.getTime(); dFim = sFim.getTime()
-    labelPeriodo = `Semana atual (${sIni.toLocaleDateString('pt-BR')} a ${sFim.toLocaleDateString('pt-BR')})`
+    labelPeriodo = `Semana (${sIni.toLocaleDateString('pt-BR')} a ${sFim.toLocaleDateString('pt-BR')})`
   } else if (_relMecState.periodo === 'mes') {
     const mIni = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
     const mFim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59)
     dIni = mIni.getTime(); dFim = mFim.getTime()
-    labelPeriodo = `Mês atual (${mIni.toLocaleDateString('pt-BR', {month:'long', year:'numeric'})})`
+    labelPeriodo = `Mês (${mIni.toLocaleDateString('pt-BR', {month:'long', year:'numeric'})})`
   } else if (_relMecState.periodo === 'ano') {
     const aIni = new Date(hoje.getFullYear(), 0, 1)
     const aFim = new Date(hoje.getFullYear(), 11, 31, 23, 59, 59)
@@ -7514,7 +7516,7 @@ function relMec(periodo, ini, fim) {
     const a = new Date(_relMecState.ini + 'T00:00')
     const b = new Date(_relMecState.fim + 'T23:59:59')
     dIni = a.getTime(); dFim = b.getTime()
-    labelPeriodo = `Personalizado: ${a.toLocaleDateString('pt-BR')} a ${b.toLocaleDateString('pt-BR')}`
+    labelPeriodo = `${a.toLocaleDateString('pt-BR')} a ${b.toLocaleDateString('pt-BR')}`
   }
 
   function dentro(o) {
@@ -7525,40 +7527,63 @@ function relMec(periodo, ini, fim) {
     return t >= dIni && t <= dFim
   }
 
-  /* Botões de filtro de período */
+  /* Botões de filtro de período (compactos) */
   const btn = (pid, label) => {
     const ativo = _relMecState.periodo === pid
-    return `<button class="btn btn-sm" style="${ativo ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="relMec('${pid}')">${label}</button>`
+    return `<button class="btn btn-sm" style="padding:4px 9px;font-size:11px;${ativo ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="relMec('${pid}')">${label}</button>`
   }
   const isCustom = _relMecState.periodo === 'custom'
-  const filtros = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+  const filtroPeriodo = `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
     ${btn('dia','Hoje')}${btn('semana','Semana')}${btn('mes','Mês')}${btn('ano','Ano')}${btn('tudo','Tudo')}
-    <button class="btn btn-sm" style="${isCustom ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="document.getElementById('relMecCustom').style.display = document.getElementById('relMecCustom').style.display === 'none' ? 'flex' : 'none'">Personalizado…</button>
-    <div id="relMecCustom" style="display:${isCustom ? 'flex' : 'none'};gap:6px;align-items:center;margin-left:6px">
-      <input type="date" id="relMec_ini" value="${_relMecState.ini || ''}" style="padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
-      <span style="color:var(--t3);font-size:11px">até</span>
-      <input type="date" id="relMec_fim" value="${_relMecState.fim || ''}" style="padding:6px 8px;font-size:12px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
-      <button class="btn btn-sm btn-pu" onclick="relMec('custom', document.getElementById('relMec_ini').value, document.getElementById('relMec_fim').value)"><i class="ti ti-check"></i> Aplicar</button>
+    <button class="btn btn-sm" style="padding:4px 9px;font-size:11px;${isCustom ? 'background:var(--pu);color:#fff;border-color:var(--pu)' : ''}" onclick="document.getElementById('relMecCustom').style.display = document.getElementById('relMecCustom').style.display === 'none' ? 'flex' : 'none'">Período…</button>
+    <div id="relMecCustom" style="display:${isCustom ? 'flex' : 'none'};gap:5px;align-items:center">
+      <input type="date" id="relMec_ini" value="${_relMecState.ini || ''}" style="padding:4px 6px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
+      <span style="color:var(--t3);font-size:10px">até</span>
+      <input type="date" id="relMec_fim" value="${_relMecState.fim || ''}" style="padding:4px 6px;font-size:11px;border:1px solid var(--bd);border-radius:6px;background:var(--s2);color:var(--t1)">
+      <button class="btn btn-sm btn-pu" style="padding:4px 9px;font-size:11px" onclick="relMec('custom', document.getElementById('relMec_ini').value, document.getElementById('relMec_fim').value)"><i class="ti ti-check"></i></button>
     </div>
-  </div>
-  <div style="font-size:11px;color:var(--t3);margin-bottom:14px"><i class="ti ti-calendar-event"></i> ${labelPeriodo}</div>`
+  </div>`
+
+  /* Filtro de status (checkboxes compactos) */
+  const corSt = st => st === 'Concluída' ? 'var(--grt)' : st === 'Cancelada' ? 'var(--ret)' : 'var(--amt)'
+  const filtroStatus = `<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+    ${REL_MEC_STATUS_ALL.map(st => {
+      const ativo = _relMecState.status.includes(st)
+      return `<label style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${ativo ? corSt(st) : 'var(--bd)'};color:${ativo ? corSt(st) : 'var(--t3)'};background:${ativo ? corSt(st) + '18' : 'transparent'}">
+        <input type="checkbox" ${ativo ? 'checked' : ''} onchange="relMecToggleStatus('${st}')" style="width:11px;height:11px;margin:0;accent-color:${corSt(st)}">${st}
+      </label>`
+    }).join('')}
+    <button class="btn btn-sm" style="padding:3px 8px;font-size:10px" onclick="relMecToggleStatus('__all__')">${_relMecState.status.length === REL_MEC_STATUS_ALL.length ? 'Limpar' : 'Todos'}</button>
+  </div>`
 
   /* Seletor de mecânico */
-  const selMec = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;padding:12px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
-    <label style="font-weight:600;font-size:13px;white-space:nowrap"><i class="ti ti-user-check" style="color:var(--pul)"></i> Mecânico:</label>
-    <select id="relMec_sel" style="flex:1;padding:8px 10px;font-size:13px;border:1px solid var(--bd2);border-radius:8px;background:var(--s1);color:var(--t1);cursor:pointer" onchange="relMecSelecionou(this.value)">
+  const selMec = `<div style="display:flex;gap:8px;align-items:center;margin:10px 0;padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px">
+    <label style="font-weight:600;font-size:12px;white-space:nowrap"><i class="ti ti-user-check" style="color:var(--pul)"></i> Mecânico:</label>
+    <select id="relMec_sel" style="flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--bd2);border-radius:7px;background:var(--s1);color:var(--t1);cursor:pointer" onchange="relMecSelecionou(this.value)">
       <option value="">— Selecione o mecânico —</option>
       ${mecData.map(m => `<option value="${m.id}" ${_relMecState.mecId == m.id ? 'selected' : ''}>${m.nome} — ${m.esp || ''}</option>`).join('')}
     </select>
   </div>`
 
+  const barraFiltros = `<div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:4px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Período</span>
+      ${filtroPeriodo}
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Status</span>
+      ${filtroStatus}
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--t3);margin:4px 0 0"><i class="ti ti-calendar-event"></i> ${labelPeriodo} · ${_relMecState.status.length}/${REL_MEC_STATUS_ALL.length} status</div>`
+
   /* Se nenhum mecânico selecionado, mostra apenas o seletor */
   if (!_relMecState.mecId) {
-    document.getElementById('rel-output').innerHTML = `<div class="card">
-      <div class="ct"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
-      ${filtros}
+    document.getElementById('rel-output').innerHTML = `<div class="card" style="padding:14px">
+      <div class="ct" style="font-size:13px;margin-bottom:10px;padding-bottom:8px"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
+      ${barraFiltros}
       ${selMec}
-      <div class="empty" style="margin-top:10px"><i class="ti ti-arrow-up" style="font-size:20px;color:var(--t3)"></i><br>Selecione um mecânico acima para ver o relatório completo.</div>
+      <div class="empty" style="padding:16px;font-size:12px"><i class="ti ti-arrow-up" style="font-size:18px;color:var(--t3)"></i><br>Selecione um mecânico acima para ver o relatório.</div>
     </div>`
     return
   }
@@ -7567,7 +7592,8 @@ function relMec(periodo, ini, fim) {
   const m = mecData.find(x => x.id == _relMecState.mecId)
   if (!m) { _relMecState.mecId = null; relMec(); return }
 
-  const oss = osData.filter(o => o.mec === m.nome && dentro(o))
+  const ossTodas = osData.filter(o => o.mec === m.nome && dentro(o))
+  const oss = ossTodas.filter(o => _relMecState.status.includes(o.status))
   const ossConcl = oss.filter(o => o.status === 'Concluída')
   const ossAbertas = oss.filter(o => o.status !== 'Concluída' && o.status !== 'Cancelada')
   const fat = ossConcl.reduce((a, b) => a + (b.total || 0), 0)
@@ -7577,94 +7603,71 @@ function relMec(periodo, ini, fim) {
   const tempos = ossConcl.filter(o => o.dataConclusao && o.data).map(o => diasEntre(o.data, o.dataConclusao)).filter(d => d != null && d >= 0)
   const tMed = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : null
 
-  /* Agrupa OSs concluídas por cliente para resumo */
-  const porCliente = {}
-  ossConcl.forEach(o => {
-    const k = o.cliNome || '(sem nome)'
-    if (!porCliente[k]) porCliente[k] = { cli: k, oss: [], total: 0 }
-    porCliente[k].oss.push(o)
-    porCliente[k].total += (o.total || 0)
-  })
-  const listaClientes = Object.values(porCliente).sort((a, b) => b.total - a.total)
-
   /* Sigla / avatar */
   const sigla = m.sigla || m.nome.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
 
-  document.getElementById('rel-output').innerHTML = `<div class="card">
-    <div class="ct"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
-    ${filtros}
+  document.getElementById('rel-output').innerHTML = `<div class="card" style="padding:14px">
+    <div class="ct" style="font-size:13px;margin-bottom:10px;padding-bottom:8px"><i class="ti ti-user-check" style="color:var(--amt)"></i>Faturamento por Mecânico</div>
+    ${barraFiltros}
     ${selMec}
 
-    <!-- Cabeçalho do mecânico -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:16px;background:linear-gradient(135deg,var(--s2),var(--s1));border:1px solid var(--bd);border-radius:var(--r);border-left:4px solid var(--pu)">
-      <div class="av" style="width:52px;height:52px;font-size:18px;background:var(--pub);color:var(--pul)">${sigla}</div>
-      <div style="flex:1">
-        <div style="font-size:18px;font-weight:700;color:var(--t1)">${m.nome}</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">${m.esp || ''} · Tel: ${m.tel || '—'} · Comissão: ${m.com || 0}%</div>
+    <!-- Cabeçalho do mecânico (compacto) -->
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0;padding:9px 12px;background:linear-gradient(135deg,var(--s2),var(--s1));border:1px solid var(--bd);border-radius:8px;border-left:3px solid var(--pu)">
+      <div class="av" style="width:38px;height:38px;font-size:14px;background:var(--pub);color:var(--pul)">${sigla}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.nome}</div>
+        <div style="font-size:11px;color:var(--t3)">${m.esp || ''} · Comissão ${m.com || 0}%</div>
       </div>
     </div>
 
-    <!-- Métricas -->
-    <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
-      <div class="metric"><div class="ml">OSs no período</div><div class="mv" style="font-size:18px;font-weight:700">${oss.length}</div></div>
-      <div class="metric"><div class="ml">Concluídas</div><div class="mv" style="font-size:18px;font-weight:700;color:var(--grt)">${ossConcl.length}</div></div>
-      <div class="metric"><div class="ml">Em aberto</div><div class="mv" style="font-size:18px;font-weight:700;color:var(--amt)">${ossAbertas.length}</div></div>
-      <div class="metric"><div class="ml">Tempo médio</div><div class="mv" style="font-size:18px;font-weight:700">${tMed != null ? tMed.toFixed(1) + ' dias' : '—'}</div></div>
+    <!-- Métricas compactas em uma linha só -->
+    <div class="grid" style="grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px">
+      <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">No filtro</div><div class="mv" style="font-size:14px;font-weight:700">${oss.length}</div></div>
+      <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">Concluídas</div><div class="mv" style="font-size:14px;font-weight:700;color:var(--grt)">${ossConcl.length}</div></div>
+      <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">Em aberto</div><div class="mv" style="font-size:14px;font-weight:700;color:var(--amt)">${ossAbertas.length}</div></div>
+      <div class="metric" style="padding:8px"><div class="ml" style="font-size:9px">T. médio</div><div class="mv" style="font-size:13px;font-weight:700">${tMed != null ? tMed.toFixed(1)+'d' : '—'}</div></div>
+      <div class="metric" style="padding:8px;border-left:2px solid var(--gr)"><div class="ml" style="font-size:9px">Faturado</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(fat)}</div></div>
+      <div class="metric" style="padding:8px;border-left:2px solid var(--am)"><div class="ml" style="font-size:9px">Comissão</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
+      <div class="metric" style="padding:8px;border-left:2px solid var(--pu)"><div class="ml" style="font-size:9px">Líquido</div><div class="mv" style="font-size:13px;font-weight:700">${fmt(fat-comissao)}</div></div>
     </div>
-    <div class="grid g3" style="margin-bottom:18px">
-      <div class="metric" style="border-left:3px solid var(--gr)"><div class="ml">Faturado (total)</div><div class="mv" style="font-size:17px;font-weight:700;color:var(--grt)">${fmt(fat)}</div>
-        <div style="font-size:10px;color:var(--t3);margin-top:4px">Serv: ${fmt(fatSrv)} · Peças: ${fmt(fatPec)}</div>
-      </div>
-      <div class="metric" style="border-left:3px solid var(--am)"><div class="ml">Comissão (${m.com || 0}%)</div><div class="mv" style="font-size:17px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
-      <div class="metric" style="border-left:3px solid var(--pu)"><div class="ml">Líquido oficina</div><div class="mv" style="font-size:17px;font-weight:700">${fmt(fat - comissao)}</div></div>
-    </div>
+    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado = Serv ${fmt(fatSrv)} + Peças ${fmt(fatPec)} (apenas OSs concluídas dentro do filtro)</div>
 
-    <!-- Resumo por cliente -->
-    ${listaClientes.length ? `<div style="margin-bottom:18px">
-      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"><i class="ti ti-users"></i> Resumo por cliente</div>
-      <table>
-        <thead><tr><th>Cliente</th><th>Qtd. OSs</th><th style="text-align:right">Total faturado</th><th style="text-align:right">% do faturamento</th></tr></thead>
-        <tbody>
-          ${listaClientes.map(c => `<tr>
-            <td><b>${c.cli}</b></td>
-            <td>${c.oss.length}</td>
-            <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(c.total)}</td>
-            <td style="text-align:right;color:var(--t2)">${fat > 0 ? (c.total / fat * 100).toFixed(1) : 0}%</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>` : ''}
-
-    <!-- Tabela detalhada de todas as OSs -->
-    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"><i class="ti ti-list-details"></i> Todas as OSs no período (${oss.length})</div>
-    ${oss.length ? `<table>
-      <thead><tr><th>OS</th><th>Data</th><th>Status</th><th>Cliente</th><th>Veículo</th><th>Placa</th><th>Serviço</th><th style="text-align:right">Serv. (R$)</th><th style="text-align:right">Peças (R$)</th><th style="text-align:right">Total</th></tr></thead>
+    <!-- Tabela detalhada de todas as OSs filtradas -->
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-list-details"></i> OSs no filtro (${oss.length})</div>
+    ${oss.length ? `<table style="font-size:11px">
+      <thead><tr><th style="padding:6px 7px">OS</th><th style="padding:6px 7px">Data</th><th style="padding:6px 7px">Status</th><th style="padding:6px 7px">Cliente</th><th style="padding:6px 7px">Placa</th><th style="padding:6px 7px;text-align:right">Total</th></tr></thead>
       <tbody>
         ${oss.map(o => {
           const st = o.status
-          const cor = st === 'Concluída' ? 'var(--grt)' : st === 'Cancelada' ? 'var(--ret)' : 'var(--amt)'
+          const cor = corSt(st)
           return `<tr>
-            <td><b style="color:var(--pul)">${o.numero || o.id}</b></td>
-            <td style="font-size:12px;color:var(--t2)">${o.dataConclusao || o.data}</td>
-            <td><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;color:${cor};background:${cor}18">${st}</span></td>
-            <td>${o.cliNome || '—'}</td>
-            <td>${o.vei || '—'}</td>
-            <td style="font-family:monospace;color:var(--pul);font-size:12px">${o.pla || '—'}</td>
-            <td style="font-size:11px;color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.srv || '').replace(/"/g, '')}">${o.srv || '—'}</td>
-            <td style="text-align:right;font-size:12px">${fmt(o.vsrv || 0)}</td>
-            <td style="text-align:right;font-size:12px">${fmt(o.vpec || 0)}</td>
-            <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
+            <td style="padding:5px 7px"><b style="color:var(--pul)">${o.numero || o.id}</b></td>
+            <td style="padding:5px 7px;color:var(--t2)">${o.dataConclusao || o.data}</td>
+            <td style="padding:5px 7px"><span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600;color:${cor};background:${cor}18">${st}</span></td>
+            <td style="padding:5px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.cliNome || '—'}</td>
+            <td style="padding:5px 7px;font-family:monospace;color:var(--pul);font-size:10px">${o.pla || '—'}</td>
+            <td style="padding:5px 7px;text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
           </tr>`
         }).join('')}
         <tr style="border-top:2px solid var(--bd)">
-          <td colspan="7" style="text-align:right;font-weight:700">TOTAIS</td>
-          <td style="text-align:right;font-weight:700">${fmt(oss.reduce((a,o) => a + (o.vsrv||0), 0))}</td>
-          <td style="text-align:right;font-weight:700">${fmt(oss.reduce((a,o) => a + (o.vpec||0), 0))}</td>
-          <td style="text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.total||0), 0))}</td>
+          <td colspan="5" style="padding:6px 7px;text-align:right;font-weight:700">TOTAL</td>
+          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.total||0), 0))}</td>
         </tr>
       </tbody>
-    </table>` : `<div class="empty">Nenhuma OS encontrada neste período.</div>`}
+    </table>` : `<div class="empty" style="padding:16px;font-size:12px">Nenhuma OS encontrada com os filtros atuais.</div>`}
   </div>`
+}
+
+function relMecToggleStatus(st) {
+  if (st === '__all__') {
+    _relMecState.status = _relMecState.status.length === REL_MEC_STATUS_ALL.length ? [] : [...REL_MEC_STATUS_ALL]
+  } else {
+    const i = _relMecState.status.indexOf(st)
+    if (i >= 0) _relMecState.status.splice(i, 1)
+    else _relMecState.status.push(st)
+  }
+  if (!_relMecState.status.length) _relMecState.status = ['Concluída']
+  relMec()
 }
 
 function relMecSelecionou(val) {
