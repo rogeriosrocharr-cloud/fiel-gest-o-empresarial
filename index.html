@@ -4667,7 +4667,7 @@ function renderKanban() {
   const c1 = orcData.filter(o => o.status === 'Aguardando aprovação')
   const c2 = osData.filter(o => ['Aberta', 'Em execução', 'Aguardando peça'].includes(o.status))
   const c3 = osData.filter(o => o.status === 'Concluída')
-  const c4 = recData
+  const c4 = recData.filter(r => r.osId && osData.some(o => o.id == r.osId))
   const cols = [
     { label: '① Aguardando Aprovação', cor: 'var(--am)', bg: 'var(--amb)', items: c1, tipo: 'orc' },
     { label: '② Em Execução (OS)', cor: 'var(--bl)', bg: 'var(--blb)', items: c2, tipo: 'os_ab' },
@@ -6959,23 +6959,32 @@ async function excluirSrvCat(id) {
 /* ─── EXCLUSÕES (Fase 5/6) ─── */
 async function excluirOrcamento(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
-  if (o.status === 'OS gerada' && o.osId) {
-    if (!confirm(`Este orçamento gerou a OS #${o.osId}. Excluir vai remover o vínculo (a OS continua existindo, só deixa de referenciar este orçamento). Continuar?`)) return
-  } else if (!confirmar(`Excluir orçamento ${o.numero || o.id}? Esta ação é permanente.`)) return
+  const os = o.osId ? osData.find(x => x.id == o.osId) : null
+  const rec = os?.finId ? recData.find(r => r.id == os.finId) : null
+
+  let msg = `Excluir orçamento ${o.numero || o.id}?`
+  if (os && rec) msg = `Este orçamento gerou a OS #${os.numero || os.id} que já tem receita lançada (${fmt(rec.total)}). Excluir vai remover o orçamento, a OS e a receita vinculada. Continuar?`
+  else if (os) msg = `Este orçamento gerou a OS #${os.numero || os.id}. Excluir vai remover o orçamento e a OS vinculada. Continuar?`
+  if (!confirm(msg)) return
+
   try {
-    /* Se a OS gerada por este orçamento ainda existir, limpa a referência órfã (orcId) nela */
-    if (o.osId) {
-      const os = osData.find(x => x.id == o.osId)
-      if (os) {
-        os.orcId = null
-        try { await db.os.update(os.id, { orcId: null }) } catch (_) {}
-      }
+    /* 1. Remove a receita vinculada à OS, se existir */
+    if (rec) {
+      await db.entradas.remove(rec.id)
+      recData = recData.filter(x => x.id != rec.id)
     }
+    /* 2. Remove a OS vinculada, se existir */
+    if (os) {
+      await db.os.remove(os.id)
+      osData = osData.filter(x => x.id != os.id)
+    }
+    /* 3. Remove o orçamento */
     await db.orcamentos.remove(o.id)
     orcData = orcData.filter(x => x.id != id)
-    toast('Orçamento excluído.')
+
+    toast('Orçamento excluído' + (os ? ' (OS' + (rec ? ' e receita' : '') + ' removidos junto)' : '') + '.')
     logAtividade('orc_del', `Orçamento ${o.numero || o.id} excluído`)
-    renderOrc(); renderOS(); renderKanban(); renderTimeline(); updateBadge()
+    renderOrc(); renderOS(); renderKanban(); renderTimeline(); renderFinMetrics(); renderMov(); updateBadge()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
