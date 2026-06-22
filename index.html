@@ -9481,7 +9481,7 @@ async function inicializarSessao() {
             }
             document.getElementById('sb-sub-loja').textContent = loja.nome
             db.auth.marcarAcesso(perfil.id).catch(() => {})
-            entrarNoApp()
+            await entrarNoApp()
             setTimeout(() => toast(`Bem-vindo de volta, ${perfil.nome.split(' ')[0]}!`, 2500), 400)
             return
           }
@@ -9492,20 +9492,18 @@ async function inicializarSessao() {
 
   /* Fluxo legacy (apenas se não houver sessão Supabase válida) */
   if (usuarioAtual) {
-    entrarNoApp()
+    await entrarNoApp()
     if (_loaded) setTimeout(() => toast('Dados restaurados da sessão anterior', 2500), 600)
   } else {
     mostrarTelaAuth()
   }
 }
-inicializarSessao()
-
-
-
-renderDash()
-updateBadge()
-updateSbSteps()
-atualizarIconeTema()
+inicializarSessao().then(() => {
+  renderDash()
+  updateBadge()
+  updateSbSteps()
+  atualizarIconeTema()
+})
 
 /* ═══════════════════════════════════════════════════
    PWA — SERVICE WORKER + INSTALAÇÃO + OFFLINE
