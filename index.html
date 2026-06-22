@@ -3963,6 +3963,52 @@ function limparDados() {
   location.reload()
 }
 
+/* Apaga TODOS os dados operacionais (OS, orçamentos, receitas, despesas, transações bancárias)
+   da loja atual diretamente no Supabase. Mantém cadastros (clientes, mecânicos, veículos,
+   estoque, fornecedores, catálogo). Útil para zerar o sistema antes de operar comercialmente. */
+async function limparDadosOperacionaisSupabase() {
+  if (!lojaAtual?.id) { toast('Loja não identificada.', 4000); return }
+  if (!confirm(`⚠️ ATENÇÃO — AÇÃO DESTRUTIVA\n\nIsso vai APAGAR PERMANENTEMENTE do banco de dados da loja "${lojaAtual.nome}":\n\n• Todas as Ordens de Serviço\n• Todos os Orçamentos\n• Todas as Receitas (entradas)\n• Todas as Despesas (saídas)\n• Todas as transações bancárias\n\nCadastros (clientes, mecânicos, veículos, estoque, fornecedores, catálogo) NÃO serão afetados.\n\nDeseja continuar?`)) return
+  const confirma = prompt(`Para confirmar, digite exatamente:  ZERAR\n\n(Esta ação NÃO pode ser desfeita.)`)
+  if (confirma !== 'ZERAR') { toast('Operação cancelada — texto de confirmação não confere.', 4000); return }
+
+  const lid = lojaAtual.id
+  toast('Apagando dados operacionais... aguarde.', 3000)
+  let erros = []
+  /* Ordem importa: primeiro receitas/despesas/banco (não dependem de OS),
+     depois OS (libera vínculo finId), por último orçamentos (libera vínculo osId).
+     Como vamos apagar tudo, o vínculo entre eles deixa de importar. */
+  try {
+    const tabelas = [
+      { tabela: 'entradas', rotulo: 'receitas', arr: 'recData' },
+      { tabela: 'saidas', rotulo: 'despesas', arr: 'despData' },
+      { tabela: 'banco_transacoes', rotulo: 'banco', arr: 'bancData' },
+      { tabela: 'ordens_servico', rotulo: 'OS', arr: 'osData' },
+      { tabela: 'orcamentos', rotulo: 'orçamentos', arr: 'orcData' },
+    ]
+    for (const t of tabelas) {
+      try {
+        const { error } = await sbClient.from(t.tabela).delete().eq('loja_id', lid)
+        if (error) throw error
+      } catch (e) {
+        erros.push(`${t.rotulo}: ${e.message || e}`)
+      }
+    }
+    /* Limpa arrays em memória */
+    orcData = []; osData = []; recData = []; despData = []; bancData = []
+    /* Re-renderiza tudo */
+    renderOrc(); renderOS(); renderTimeline(); renderKanban(); renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge()
+    if (erros.length) {
+      alert(`Limpeza concluída parcialmente. Erros:\n\n${erros.join('\n')}`)
+    } else {
+      toast('✓ Dados operacionais zerados com sucesso.', 5000)
+      logAtividade('limpeza_total', `Limpeza geral de dados operacionais da loja ${lojaAtual.nome}`)
+    }
+  } catch (e) {
+    alert('Erro ao limpar dados: ' + (e.message || e))
+  }
+}
+
 /* refreshAll — re-renderiza apenas a tab ativa + globais */
 /* Define filtros padrão da tela financeiro como "hoje" na primeira vez que abrir nesta sessão */
 let _finFiltroAplicado = false
@@ -9446,7 +9492,7 @@ document.addEventListener('click', e => {
 /* Botão de limpar dados (no rodapé da sidebar) */
 const sbFoot = document.querySelector('.sb-foot')
 if (sbFoot && !sbFoot.querySelector('.btn-limpar')) {
-  sbFoot.innerHTML = `<span class="sdot"></span> v4.0 &nbsp;·&nbsp; Online &nbsp;·&nbsp; <button class="btn-limpar" onclick="limparDados()" style="background:transparent;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:0;text-decoration:underline" title="Apagar todos os dados">limpar</button>`
+  sbFoot.innerHTML = `<span class="sdot"></span> v4.0 &nbsp;·&nbsp; Online &nbsp;·&nbsp; <button class="btn-limpar" onclick="limparDados()" style="background:transparent;border:none;color:var(--t3);font-size:11px;cursor:pointer;padding:0;text-decoration:underline" title="Apagar dados locais (cache do navegador)">limpar cache</button> &nbsp;·&nbsp; <button class="btn-limpar" onclick="limparDadosOperacionaisSupabase()" style="background:transparent;border:none;color:#ff6b6b;font-size:11px;cursor:pointer;padding:0;text-decoration:underline" title="Apagar OS, orçamentos, financeiro do banco">zerar dados</button>`
 }
 
 /* ──── Fluxo de autenticação ────
