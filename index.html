@@ -6990,9 +6990,16 @@ async function excluirOrcamento(id) {
 
 async function excluirOS(id) {
   const o = osData.find(x => x.id == id); if (!o) return
-  if (o.finId) { toast('⚠️ OS tem receita lançada. Cancele a receita antes.', 4500); return }
-  if (!confirmar(`Excluir OS #${o.numero || o.id}? Esta ação é permanente.`)) return
+  const rec = o.finId ? recData.find(r => r.id == o.finId) : null
+  const msg = rec
+    ? `Excluir OS #${o.numero || o.id}? Ela tem receita lançada (${fmt(rec.total)}). A receita será removida junto. Esta ação é permanente.`
+    : `Excluir OS #${o.numero || o.id}? Esta ação é permanente.`
+  if (!confirmar(msg)) return
   try {
+    if (rec) {
+      await db.entradas.remove(rec.id)
+      recData = recData.filter(x => x.id != rec.id)
+    }
     await db.os.remove(o.id)
     osData = osData.filter(x => x.id != id)
     if (o.orcId) {
@@ -7002,9 +7009,9 @@ async function excluirOS(id) {
         try { await db.orcamentos.update(orc.id, { status: 'Aprovado', osId: null }) } catch (_) {}
       }
     }
-    toast('OS excluída.')
+    toast('OS excluída' + (rec ? ' (receita removida junto).' : '.'))
     logAtividade('os_del', `OS #${o.numero || o.id} excluída`)
-    renderOS(); renderOrc(); renderTimeline(); renderKanban(); updateBadge()
+    renderOS(); renderOrc(); renderTimeline(); renderKanban(); renderFinMetrics(); renderMov(); updateBadge()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
