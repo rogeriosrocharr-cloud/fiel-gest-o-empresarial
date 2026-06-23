@@ -3929,16 +3929,24 @@ function loadState() {
   } catch (e) { console.warn('Erro ao carregar estado:', e); return false }
 }
 
+function _adminAuth(callback) {
+  const s = prompt('Digite a senha do administrador:')
+  if (s === null) return
+  if (s !== 'rocha7') { toast('⚠️ Senha incorreta.', 3500); return }
+  callback()
+}
+
 function limparDados() {
-  if (!confirmar('⚠️ Apagar TODOS os dados salvos (incluindo consultor, lojas, usuários e senhas) e voltar do zero? Esta ação não pode ser desfeita.')) return
-  /* Remove tudo relacionado ao app */
-  const chaves = []
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i)
-    if (k && k.startsWith('autogestao_v3')) chaves.push(k)
-  }
-  chaves.forEach(k => localStorage.removeItem(k))
-  location.reload()
+  _adminAuth(() => {
+    if (!confirmar('⚠️ Apagar TODOS os dados salvos (incluindo consultor, lojas, usuários e senhas) e voltar do zero? Esta ação não pode ser desfeita.')) return
+    const chaves = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('autogestao_v3')) chaves.push(k)
+    }
+    chaves.forEach(k => localStorage.removeItem(k))
+    location.reload()
+  })
 }
 
 /* Apaga TODOS os dados operacionais (OS, orçamentos, receitas, despesas, transações bancárias)
@@ -3946,6 +3954,9 @@ function limparDados() {
    estoque, fornecedores, catálogo). Útil para zerar o sistema antes de operar comercialmente. */
 async function limparDadosOperacionaisSupabase() {
   if (!lojaAtual?.id) { toast('Loja não identificada.', 4000); return }
+  const s = prompt('Digite a senha do administrador:')
+  if (s === null) return
+  if (s !== 'rocha7') { toast('⚠️ Senha incorreta.', 3500); return }
   if (!confirm(`⚠️ ATENÇÃO — AÇÃO DESTRUTIVA\n\nIsso vai APAGAR PERMANENTEMENTE do banco de dados da loja "${lojaAtual.nome}":\n\n• Todas as Ordens de Serviço\n• Todos os Orçamentos\n• Todas as Receitas (entradas)\n• Todas as Despesas (saídas)\n• Todas as transações bancárias\n\nCadastros (clientes, mecânicos, veículos, estoque, fornecedores, catálogo) NÃO serão afetados.\n\nDeseja continuar?`)) return
   const confirma = prompt(`Para confirmar, digite exatamente:  ZERAR\n\n(Esta ação NÃO pode ser desfeita.)`)
   if (confirma !== 'ZERAR') { toast('Operação cancelada — texto de confirmação não confere.', 4000); return }
