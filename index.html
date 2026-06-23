@@ -798,28 +798,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
 <!-- FLUXO -->
 <div class="tabpage" id="tab-fluxo">
-  <div style="margin-bottom:16px" class="fb">
-    <span style="font-size:13px;color:var(--t2)">Cada atendimento percorre todas as 5 etapas — acompanhe o ciclo completo abaixo</span>
-    <div class="sb-bar">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--t2);padding:6px 10px;background:var(--s2);border:1px solid var(--bd2);border-radius:var(--r)" title="Hoje + OS não concluídas de dias anteriores">
-        <input id="tl-foco" type="checkbox" checked onchange="renderTimeline()" style="cursor:pointer">
-        <i class="ti ti-target" style="color:var(--pu2)"></i> Foco do dia
-      </label>
-      <input id="tl-busca" type="text" placeholder="Buscar cliente, placa..." style="width:200px;font-size:12px;padding:6px 10px" oninput="renderTimeline()">
-      <select id="tl-fase" onchange="renderTimeline()" style="font-size:12px;padding:6px 10px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1)"><option value="">Todas as fases</option><option value="1">Aguardando aprovação</option><option value="2">Aprovado (gerar OS)</option><option value="3">OS em execução</option><option value="4">OS concluída</option><option value="5">Finalizados</option></select>
-      <input id="tl-de" type="date" title="Data inicial" onchange="renderTimeline()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1)">
-      <input id="tl-ate" type="date" title="Data final" onchange="renderTimeline()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1)">
-    </div>
-  </div>
-
-  <div class="card" style="margin-bottom:18px;padding:0">
-    <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <span class="ct" style="margin:0"><i class="ti ti-route" style="color:var(--pu2)"></i>Linha do Tempo — ciclo completo de cada atendimento</span>
-      <span style="font-size:11px;color:var(--t3)">① Orçamento → ② Aprovação → ③ OS → ④ Conclusão → ⑤ Financeiro</span>
-    </div>
-    <div id="timeline-wrap" style="padding:6px 0"></div>
-  </div>
-
   <div class="ct"><i class="ti ti-layout-kanban" style="color:var(--pu2)"></i>Painel Kanban — visão por etapa atual</div>
   <div class="kboard" id="kanban"></div>
 </div>
@@ -3997,7 +3975,7 @@ async function limparDadosOperacionaisSupabase() {
     /* Limpa arrays em memória */
     orcData = []; osData = []; recData = []; despData = []; bancData = []
     /* Re-renderiza tudo */
-    renderOrc(); renderOS(); renderTimeline(); renderKanban(); renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge()
+    renderOrc(); renderOS(); renderKanban(); renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash(); updateBadge()
     if (erros.length) {
       alert(`Limpeza concluída parcialmente. Erros:\n\n${erros.join('\n')}`)
     } else {
@@ -4024,7 +4002,7 @@ function aplicarFiltroFinanceiroHoje() {
 function refreshAll() {
   const tab = document.querySelector('.tabpage.active')?.id?.replace('tab-', '')
   if (tab === 'dashboard') renderDash()
-  if (tab === 'fluxo') { renderTimeline(); renderKanban() }
+  if (tab === 'fluxo') { renderKanban() }
   if (tab === 'clientes') renderClientes()
   if (tab === 'orcamentos') renderOrc()
   if (tab === 'os') renderOS()
@@ -4159,7 +4137,7 @@ function goTab(id, el, fromUser = true) {
   updateSbSteps()
 
   if (id === 'dashboard') renderDash()
-  if (id === 'fluxo') { renderTimeline(); renderKanban() }
+  if (id === 'fluxo') { renderKanban() }
   if (id === 'clientes') renderClientes()
   if (id === 'orcamentos') { populateClis(); populateMecs(); renderOrc() }
   if (id === 'os') { populateOSSelects(); renderOS() }
@@ -4536,177 +4514,6 @@ function renderDashAtividades() {
       </div>`
     }).join('')}
   </div>`
-}
-
-/* ── KANBAN ──────────────────────────────────────── */
-/* ── LINHA DO TEMPO (ciclo completo do atendimento) ──── */
-/* Consolida orçamentos + OS + receitas relacionadas em uma única visão sequencial */
-function getAtendimentos() {
-  const lista = []
-  /* Cada orçamento gera um "atendimento" (mesmo que ainda não tenha virado OS) */
-  orcData.forEach(o => {
-    const os = o.osId ? osData.find(x => x.id == o.osId) : null
-    const rec = os && os.finId ? recData.find(r => r.id == os.finId) : null
-    lista.push({ orc: o, os, rec, cliNome: o.cliNome, vei: o.vei, pla: o.pla, total: (rec ? rec.total : (os ? os.total : o.total)), data: o.data })
-  })
-  /* OS manuais (sem orçamento) também entram */
-  osData.filter(o => !o.orcId).forEach(os => {
-    const rec = os.finId ? recData.find(r => r.id == os.finId) : null
-    lista.push({ orc: null, os, rec, cliNome: os.cliNome, vei: os.vei, pla: os.pla, total: (rec ? rec.total : os.total), data: os.data })
-  })
-  /* Ordena: mais recentes primeiro */
-  return lista.sort((a, b) => {
-    const da = parseDate(a.data), db = parseDate(b.data)
-    if (!da || !db) return 0
-    return db - da
-  })
-}
-
-/* Determina o estado de cada checkpoint para um atendimento */
-function getCheckpoints(at) {
-  const cp = [
-    { l: 'Orçamento', estado: 'pendente', valor: '' },
-    { l: 'Aprovação', estado: 'pendente', valor: '' },
-    { l: 'OS', estado: 'pendente', valor: '' },
-    { l: 'Conclusão', estado: 'pendente', valor: '' },
-    { l: 'Financeiro', estado: 'pendente', valor: '' },
-  ]
-  /* Etapa 1 — Orçamento */
-  if (at.orc) {
-    cp[0].estado = 'feito'
-    cp[0].valor = at.orc.id
-  } else if (at.os) {
-    /* OS manual — pula etapas 1 e 2 */
-    cp[0].estado = 'feito'; cp[0].valor = 'Manual'
-    cp[1].estado = 'feito'; cp[1].valor = '—'
-  }
-  /* Etapa 2 — Aprovação */
-  if (at.orc) {
-    if (at.orc.status === 'Aguardando aprovação') { cp[1].estado = 'atual'; cp[1].valor = 'Pendente' }
-    else if (at.orc.status === 'Aprovado') { cp[1].estado = 'feito'; cp[1].valor = 'Aprovado' }
-    else if (at.orc.status === 'OS gerada') { cp[1].estado = 'feito'; cp[1].valor = 'Aprovado' }
-    else if (at.orc.status === 'Recusado') { cp[1].estado = 'recusado'; cp[1].valor = 'Recusado' }
-  }
-  /* Etapa 3 — OS gerada */
-  if (at.os) {
-    cp[2].estado = 'feito'
-    cp[2].valor = at.os.id
-  } else if (at.orc && at.orc.status === 'Aprovado') {
-    cp[2].estado = 'atual'; cp[2].valor = 'Gerar OS'
-  } else if (at.orc && at.orc.status === 'Recusado') {
-    cp[2].estado = 'pendente'
-  }
-  /* Etapa 4 — Conclusão da OS */
-  if (at.os) {
-    if (['Aberta', 'Em execução', 'Aguardando peça'].includes(at.os.status)) { cp[3].estado = 'atual'; cp[3].valor = at.os.status }
-    else if (at.os.status === 'Concluída') { cp[3].estado = 'feito'; cp[3].valor = 'Concluída' }
-    else if (at.os.status === 'Cancelada') { cp[3].estado = 'recusado'; cp[3].valor = 'Cancelada' }
-  }
-  /* Etapa 5 — Financeiro */
-  if (at.rec) {
-    cp[4].estado = 'feito'
-    cp[4].valor = at.rec.status
-  } else if (at.os && at.os.status === 'Concluída') {
-    cp[4].estado = 'atual'; cp[4].valor = 'Lançar'
-  }
-  return cp
-}
-
-/* Determina qual fase (1-5) o atendimento está atualmente */
-function getFaseAtual(at) {
-  if (at.rec) return 5
-  if (at.os && at.os.status === 'Concluída') return 5  /* aguardando lançar */
-  if (at.os && ['Aberta', 'Em execução', 'Aguardando peça'].includes(at.os.status)) return 4
-  if (at.orc && at.orc.status === 'Aprovado') return 3
-  if (at.orc && at.orc.status === 'Aguardando aprovação') return 2
-  if (at.orc && at.orc.status === 'OS gerada' && !at.os) return 3
-  return 1
-}
-
-function renderTimeline() {
-  const busca = (document.getElementById('tl-busca')?.value || '').toLowerCase()
-  const fase = document.getElementById('tl-fase')?.value
-  const de = document.getElementById('tl-de')?.value
-  const ate = document.getElementById('tl-ate')?.value
-  const foco = document.getElementById('tl-foco')?.checked
-
-  const filtroFase = {
-    '1': at => at.orc && at.orc.status === 'Aguardando aprovação',
-    '2': at => at.orc && at.orc.status === 'Aprovado' && !at.os,
-    '3': at => at.os && ['Aberta', 'Em execução', 'Aguardando peça'].includes(at.os.status),
-    '4': at => at.os && at.os.status === 'Concluída' && !at.rec,
-    '5': at => !!at.rec,
-  }
-
-  /* Foco do dia: atendimentos de hoje + os que não foram concluídos/finalizados de dias anteriores */
-  const hojeBR = fmtD()
-  const filtroFoco = at => {
-    if (!foco) return true
-    /* Se tem qualquer data de hoje, passa */
-    if (at.data === hojeBR) return true
-    if (at.os && at.os.data === hojeBR) return true
-    if (at.rec && at.rec.data === hojeBR) return true
-    /* Senão, só passa se ainda não foi finalizado/cancelado */
-    const finalizado = at.rec || (at.os && ['Concluída', 'Cancelada'].includes(at.os.status)) || (at.orc && at.orc.status === 'Recusado')
-    return !finalizado
-  }
-
-  const todos = getAtendimentos().filter(at =>
-    (!busca || (at.cliNome + at.pla + (at.orc?.id || '') + (at.os?.id || '')).toLowerCase().includes(busca)) &&
-    (!fase || (filtroFase[fase] && filtroFase[fase](at))) &&
-    dateInRange(at.data, de, ate) &&
-    filtroFoco(at)
-  )
-
-  if (!todos.length) {
-    document.getElementById('timeline-wrap').innerHTML = `<div class="empty" style="padding:30px"><i class="ti ti-route-off"></i>${foco ? 'Nenhum atendimento ativo para hoje. Desmarque "Foco do dia" para ver todo o histórico.' : 'Nenhum atendimento encontrado'}</div>`
-    return
-  }
-
-  document.getElementById('timeline-wrap').innerHTML = todos.map(at => {
-    const cps = getCheckpoints(at)
-    const numTopo = at.orc ? at.orc.id : at.os.id
-    const numSub = at.orc && at.os ? at.os.id : (at.orc ? '' : 'Manual')
-    const acoes = []
-    /* Botões contextuais para avançar ao próximo passo */
-    if (at.orc && at.orc.status === 'Aguardando aprovação') {
-      acoes.push(`<button class="btn btn-xs btn-gr" onclick="aprovarOrc('${at.orc.id}')"><i class="ti ti-check"></i></button>`)
-      acoes.push(`<button class="btn btn-xs btn-re" onclick="recusarOrc('${at.orc.id}')"><i class="ti ti-x"></i></button>`)
-    }
-    if (at.orc && at.orc.status === 'Aprovado' && !at.os) {
-      acoes.push(`<button class="btn btn-xs btn-pu" onclick="gerarOS('${at.orc.id}')"><i class="ti ti-clipboard-list"></i> Gerar OS</button>`)
-    }
-    if (at.os && ['Aberta', 'Em execução', 'Aguardando peça'].includes(at.os.status)) {
-      acoes.push(`<button class="btn btn-xs btn-gr" onclick="changeOSStatus('${at.os.id}','Concluída')"><i class="ti ti-check"></i> Concluir</button>`)
-    }
-    if (at.os && at.os.status === 'Concluída' && !at.rec) {
-      acoes.push(`<button class="btn btn-xs btn-gr" onclick="lancarFinanceiro('${at.os.id}')"><i class="ti ti-cash"></i> Lançar receita</button>`)
-    }
-    if (at.orc) acoes.push(`<button class="btn btn-xs btn-print" onclick="printOrc('${at.orc.id}')" title="PDF Orçamento"><i class="ti ti-file-invoice"></i></button>`)
-    if (at.os) acoes.push(`<button class="btn btn-xs btn-print" onclick="printOS('${at.os.id}')" title="PDF OS"><i class="ti ti-clipboard-list"></i></button>`)
-
-    return `<div class="tl-row">
-      <div class="tl-info">
-        <b>${numTopo}</b>
-        <div class="tl-sub">${numSub || at.data}</div>
-      </div>
-      <div class="tl-cli">
-        <b>${at.cliNome}</b>
-        <small>${at.vei} / ${at.pla}</small>
-      </div>
-      <div class="tl-val">${fmt(at.total)}</div>
-      <div class="tl-cp">
-        ${cps.map((c, i) => `
-          <div class="tl-step ${c.estado}">
-            <div class="tlc"><span class="tlc-n">${i + 1}</span></div>
-            <div class="tlc-l">${c.l}</div>
-            ${c.valor ? `<div class="tlc-v">${c.valor}</div>` : ''}
-          </div>
-        `).join('')}
-      </div>
-      <div class="tl-act">${acoes.join('')}</div>
-    </div>`
-  }).join('')
 }
 
 function renderKanban() {
@@ -5282,7 +5089,7 @@ async function salvarOrc() {
         orcTempSrvs = []; orcTempPecs = []
         fecharModal('mOrcAdd')
         toast('Orçamento atualizado.')
-        renderOrc(); renderTimeline(); renderKanban(); updateBadge()
+        renderOrc(); renderKanban(); updateBadge()
         return
       }
     }
@@ -5295,7 +5102,7 @@ async function salvarOrc() {
     atualizarTotalOrc()
     fecharModal('mOrcAdd')
     toast('Orçamento criado. Aguardando aprovação do cliente.', 4000)
-    renderOrc(); renderTimeline(); renderKanban(); updateBadge()
+    renderOrc(); renderKanban(); updateBadge()
   } catch (e) {
     console.error('Erro salvarOrc:', e)
     toast('Erro ao salvar orçamento: ' + (e.message || ''), 5000)
@@ -5357,7 +5164,7 @@ async function reabrirOrc(id) {
   o.status = 'Aguardando aprovação'
   try { await db.orcamentos.update(o.id, { status: 'Aguardando aprovação', osId: null }) } catch (_) {}
   toast('Orçamento reaberto para edição.', 3500)
-  renderOrc(); renderOS(); renderTimeline(); renderKanban(); updateBadge(); saveState()
+  renderOrc(); renderOS(); renderKanban(); updateBadge(); saveState()
 }
 
 /* ── EDIÇÃO DE OS ────────────────────────────────── */
@@ -5387,7 +5194,7 @@ async function reabrirOS(id) {
   o.status = 'Em execução'
   try { await db.os.update(o.id, { status: 'Em execução' }) } catch (e) { toast('Erro ao salvar: ' + (e.message || ''), 5000); return }
   toast(o.id + ' reaberta para edição.', 3500)
-  renderOS(); renderTimeline(); renderKanban(); updateBadge(); saveState()
+  renderOS(); renderKanban(); updateBadge(); saveState()
 }
 
 /* Cancelar receita lançada (libera a OS para edição) */
@@ -5484,7 +5291,7 @@ async function aprovarOrc(id) {
   o.status = 'Aprovado'
   try { await db.orcamentos.update(o.id, { status: 'Aprovado' }) } catch (e) { console.warn(e) }
   toast('Orçamento aprovado. Clique em "Gerar OS →" para avançar.', 4000)
-  renderOrc(); renderTimeline(); renderKanban(); updateBadge()
+  renderOrc(); renderKanban(); updateBadge()
 }
 async function recusarOrc(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
@@ -5492,7 +5299,7 @@ async function recusarOrc(id) {
   o.status = 'Recusado'
   try { await db.orcamentos.update(o.id, { status: 'Recusado' }) } catch (e) { console.warn(e) }
   toast('Orçamento recusado.')
-  renderOrc(); renderTimeline(); renderKanban(); updateBadge()
+  renderOrc(); renderKanban(); updateBadge()
 }
 
 let _gerarOSPending = null
@@ -5617,7 +5424,7 @@ async function changeOSStatus(id, s) {
   } catch (e) {
     console.warn('Erro ao salvar status OS:', e)
   }
-  renderOS(); renderTimeline(); renderKanban(); updateBadge(); saveState()
+  renderOS(); renderKanban(); updateBadge(); saveState()
 }
 
 function lancarFinanceiro(osId) {
@@ -5728,7 +5535,7 @@ async function salvarOSManual() {
         Object.assign(o, atualizado)
         osEditId = null
         fecharModal('mOsAdd'); toast('OS atualizada.')
-        renderOS(); renderTimeline(); renderKanban(); updateBadge()
+        renderOS(); renderKanban(); updateBadge()
         return
       }
     }
@@ -5737,7 +5544,7 @@ async function salvarOSManual() {
     const novaOS = await db.os.create(lojaAtual.id, dadosOS)
     osData.unshift(novaOS)
     fecharModal('mOsAdd'); toast(`OS #${novaOS.numero} aberta manualmente.`)
-    renderOS(); renderTimeline(); renderKanban(); updateBadge()
+    renderOS(); renderKanban(); updateBadge()
   } catch (e) {
     console.error('Erro salvarOSManual:', e)
     toast('Erro ao salvar OS: ' + (e.message || ''), 5000)
@@ -7137,7 +6944,7 @@ async function excluirOrcamento(id) {
 
     toast('Orçamento excluído' + (os ? ' (OS' + (rec ? ' e receita' : '') + ' removidos junto)' : '') + '.')
     logAtividade('orc_del', `Orçamento ${o.numero || o.id} excluído`)
-    renderOrc(); renderOS(); renderKanban(); renderTimeline(); renderFinMetrics(); renderMov(); updateBadge()
+    renderOrc(); renderOS(); renderKanban(); renderFinMetrics(); renderMov(); updateBadge()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
@@ -7164,7 +6971,7 @@ async function excluirOS(id) {
     }
     toast('OS excluída' + (rec ? ' (receita removida junto).' : '.'))
     logAtividade('os_del', `OS #${o.numero || o.id} excluída`)
-    renderOS(); renderOrc(); renderTimeline(); renderKanban(); renderFinMetrics(); renderMov(); updateBadge()
+    renderOS(); renderOrc(); renderKanban(); renderFinMetrics(); renderMov(); updateBadge()
   } catch (e) { toast('Erro: ' + (e.message || ''), 5000) }
 }
 
@@ -9581,9 +9388,9 @@ document.getElementById('desp_data').value = hoje
 document.getElementById('mec_adm').value = hoje
 
 /* Debounce em campos de busca: substitui oninput inline por listener com delay */
-;['cli-busca','orc-busca','os-busca','est-busca','tl-busca'].forEach(id => {
+;['cli-busca','orc-busca','os-busca','est-busca'].forEach(id => {
   const el = document.getElementById(id); if (!el) return
-  const renderMap = { 'cli-busca': renderClientes, 'orc-busca': renderOrc, 'os-busca': renderOS, 'est-busca': renderEst, 'tl-busca': renderTimeline }
+  const renderMap = { 'cli-busca': renderClientes, 'orc-busca': renderOrc, 'os-busca': renderOS, 'est-busca': renderEst }
   const fn = renderMap[id]; if (!fn) return
   el.removeAttribute('oninput')
   el.addEventListener('input', debounce(fn, 250))
