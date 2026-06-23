@@ -1172,7 +1172,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL HISTÓRICO DO CLIENTE -->
-<div class="ov" id="mCliHist"><div class="modal" style="max-width:880px">
+<div class="ov" id="mCliHist"><div class="modal" style="max-width:980px">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-user-search"></i></div><span id="mCliHist-title">Histórico do Cliente</span></h3><button class="xbtn" onclick="fecharModal('mCliHist')"><i class="ti ti-x"></i></button></div>
   <div id="cli-hist-conteudo"></div>
 </div></div>
@@ -6338,93 +6338,200 @@ function editarDespesa(despId) {
    Mostra todas as OS, orçamentos e receitas vinculados ao cliente */
 function abrirHistoricoCli(cliId) {
   const c = cliData.find(x => x.id == cliId); if (!c) return
-  const oss = osData.filter(o => o.cliId === cliId).slice().sort((a, b) => {
-    const ad = (a.data || '').split('/').reverse().join('-')
-    const bd = (b.data || '').split('/').reverse().join('-')
-    return bd.localeCompare(ad)
-  })
-  const cliNomeNorm = (c.nome || '').toLowerCase()
-  const recs = recData.filter(r =>
-    osData.some(o => o.id === r.osId && o.cliId === cliId) ||
-    (r.cliNome && r.cliNome.toLowerCase() === cliNomeNorm)
-  ).slice().sort((a, b) => {
-    const ad = (a.data || '').split('/').reverse().join('-')
-    const bd = (b.data || '').split('/').reverse().join('-')
-    return bd.localeCompare(ad)
-  })
 
-  const totFat = recs.reduce((a, b) => a + (b.total || 0), 0)
-  const totRecebido = recs.filter(r => r.status === 'Recebido').reduce((a, b) => a + (b.total || 0), 0)
+  const orcs = orcData.filter(o => o.cliId == cliId).slice().sort((a,b) =>
+    (b.data||'').split('/').reverse().join('-').localeCompare((a.data||'').split('/').reverse().join('-')))
+
+  const oss = osData.filter(o => o.cliId == cliId).slice().sort((a,b) =>
+    (b.data||'').split('/').reverse().join('-').localeCompare((a.data||'').split('/').reverse().join('-')))
+
+  const cliNomeNorm = (c.nome||'').toLowerCase()
+  const recs = recData.filter(r =>
+    osData.some(o => o.id == r.osId && o.cliId == cliId) ||
+    (r.cliNome && r.cliNome.toLowerCase() === cliNomeNorm)
+  ).slice().sort((a,b) =>
+    (b.data||'').split('/').reverse().join('-').localeCompare((a.data||'').split('/').reverse().join('-')))
+
+  /* Totais */
+  const totFat     = recs.reduce((a,b) => a + (b.total||0), 0)
+  const totRecebido= recs.filter(r => r.status === 'Recebido').reduce((a,b) => a + (b.total||0), 0)
   const totReceber = totFat - totRecebido
-  const ticketMedio = recs.length > 0 ? totFat / recs.length : 0
-  const todasDatas = [...oss, ...recs].map(x => (x.data || '').split('/').reverse().join('-')).filter(Boolean)
-  todasDatas.sort()
-  const ultData = todasDatas.length ? new Date(todasDatas[todasDatas.length - 1] + 'T12:00').toLocaleDateString('pt-BR') : '—'
+  const ticketMed  = oss.filter(o => o.status === 'Concluída').length
+                     ? totFat / oss.filter(o => o.status === 'Concluída').length : 0
+  const totOrc     = orcs.reduce((a,b) => a + (b.total||0), 0)
+
+  const todasDatas = [...oss, ...recs].map(x => (x.data||'').split('/').reverse().join('-')).filter(Boolean).sort()
+  const ultData    = todasDatas.length ? new Date(todasDatas[todasDatas.length-1]+'T12:00').toLocaleDateString('pt-BR') : '—'
+  const primData   = todasDatas.length ? new Date(todasDatas[0]+'T12:00').toLocaleDateString('pt-BR') : '—'
+
+  const corOrcStatus = s => s === 'Aprovado' ? 'var(--grt)' : s === 'Recusado' ? 'var(--ret)' : s === 'OS gerada' ? 'var(--pul)' : 'var(--amt)'
 
   document.getElementById('mCliHist-title').textContent = `Histórico: ${c.nome}`
   document.getElementById('cli-hist-conteudo').innerHTML = `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;gap:12px;align-items:center">
-      <div class="av" style="background:var(--pub);color:var(--pul);width:48px;height:48px;font-size:16px;flex-shrink:0">${(c.nome || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
+
+    <!-- Cabeçalho do cliente -->
+    <div style="display:flex;gap:12px;align-items:center;padding:12px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:12px">
+      <div class="av" style="background:var(--pub);color:var(--pul);width:44px;height:44px;font-size:15px;flex-shrink:0">${(c.nome||'?').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:15px">${c.nome}</div>
         <div style="font-size:11px;color:var(--t2);margin-top:2px">
-          ${c.cpf ? `<i class="ti ti-id"></i> ${c.cpf} · ` : ''}${c.tel ? `<i class="ti ti-phone"></i> ${c.tel}` : ''}
-          ${c.cid ? `<br><i class="ti ti-map-pin"></i> ${c.cid}${c.uf ? '/' + c.uf : ''}` : ''}
+          ${c.tel ? `<i class="ti ti-phone"></i> ${c.tel}` : ''}
+          ${c.cpf ? ` · <i class="ti ti-id"></i> ${c.cpf}` : ''}
+          ${c.cid ? ` · <i class="ti ti-map-pin"></i> ${c.cid}${c.uf?'/'+c.uf:''}` : ''}
         </div>
+        ${c.veiculos&&c.veiculos.length ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${c.veiculos.map(v=>`<span class="tag" style="font-size:10px"><i class="ti ti-car"></i> ${v.vei||'—'} ${v.pla||''}</span>`).join('')}</div>` : ''}
       </div>
-      <div style="text-align:right;font-size:11px;color:var(--t3)">
-        <div>Última visita</div>
-        <div style="font-weight:700;color:var(--t1);font-size:14px">${ultData}</div>
+      <div style="text-align:right;font-size:10px;color:var(--t3);flex-shrink:0">
+        <div>1ª visita: <b style="color:var(--t2)">${primData}</b></div>
+        <div style="margin-top:2px">Última: <b style="color:var(--t1)">${ultData}</b></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
-      <div class="metric"><div class="mb pu"></div><div class="ml">Total OSs</div><div class="mv">${oss.length}</div><div class="ms">${oss.filter(o => o.status === 'Concluída').length} concluídas</div></div>
-      <div class="metric"><div class="mb gr"></div><div class="ml">Faturado</div><div class="mv" style="font-size:14px;color:var(--grt)">${fmt(totFat)}</div><div class="ms">${recs.length} pgtos</div></div>
-      <div class="metric"><div class="mb bl"></div><div class="ml">Ticket médio</div><div class="mv" style="font-size:14px">${fmt(ticketMedio)}</div></div>
-      <div class="metric"><div class="mb am"></div><div class="ml">A receber</div><div class="mv" style="font-size:14px;color:var(--amt)">${fmt(totReceber)}</div></div>
+
+    <!-- Métricas resumo -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px">
+      <div class="metric" style="padding:8px"><div class="mb pu"></div><div class="ml" style="font-size:9px">Orçamentos</div><div class="mv" style="font-size:15px">${orcs.length}</div><div class="ms">${orcs.filter(o=>o.status==='Aprovado'||o.status==='OS gerada').length} aprovados</div></div>
+      <div class="metric" style="padding:8px"><div class="mb bl"></div><div class="ml" style="font-size:9px">OSs</div><div class="mv" style="font-size:15px">${oss.length}</div><div class="ms">${oss.filter(o=>o.status==='Concluída').length} concluídas</div></div>
+      <div class="metric" style="padding:8px"><div class="mb gr"></div><div class="ml" style="font-size:9px">Faturado</div><div class="mv" style="font-size:13px;color:var(--grt)">${fmt(totFat)}</div><div class="ms">${recs.length} pgtos</div></div>
+      <div class="metric" style="padding:8px"><div class="mb pu"></div><div class="ml" style="font-size:9px">Ticket médio</div><div class="mv" style="font-size:13px">${fmt(ticketMed)}</div><div class="ms">por OS concluída</div></div>
+      <div class="metric" style="padding:8px;border-left:2px solid var(--am)"><div class="ml" style="font-size:9px">A receber</div><div class="mv" style="font-size:13px;color:${totReceber>0?'var(--amt)':'var(--grt)'}">${fmt(totReceber)}</div><div class="ms">${totReceber>0?'pendente':'em dia'}</div></div>
     </div>
-    ${c.veiculos && c.veiculos.length ? `
-    <div class="slabel" style="margin-bottom:6px">Veículos (${c.veiculos.length})</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
-      ${c.veiculos.map(v => `<span class="tag" style="font-size:11px"><i class="ti ti-car"></i> ${v.vei || '—'} · ${v.pla || '—'}</span>`).join('')}
-    </div>` : ''}
-    <div class="slabel" style="margin-bottom:6px">Ordens de Serviço (${oss.length})</div>
-    <div class="tw" style="max-height:220px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px">
-      <table style="font-size:12px">
-        <thead style="position:sticky;top:0;background:var(--s2)"><tr><th>OS</th><th>Data</th><th>Veículo</th><th>Mecânico</th><th style="text-align:right">Total</th><th>Status</th></tr></thead>
-        <tbody>
-        ${oss.length ? oss.map(o => `<tr>
-          <td><b style="color:var(--pul)">OS-${o.id}</b></td>
-          <td style="color:var(--t2);white-space:nowrap">${o.data}</td>
-          <td>${o.vei || '—'}</td>
-          <td style="color:var(--t2)">${o.mec || '—'}</td>
-          <td style="text-align:right;font-weight:600">${fmt(o.total || 0)}</td>
-          <td>${pill(o.status)}</td>
-        </tr>`).join('') : `<tr><td colspan="6" style="padding:18px;text-align:center;color:var(--t3)">Nenhuma OS aberta para este cliente</td></tr>`}
-        </tbody>
-      </table>
+
+    <!-- Abas -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:12px">
+      <button id="cht-tab-orc" onclick="cliHistTab('orc')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--pul);border-bottom:2px solid var(--pul);margin-bottom:-2px">
+        <i class="ti ti-file-text"></i> Orçamentos <span style="background:var(--pub);color:var(--pul);border-radius:10px;padding:1px 6px;font-size:10px">${orcs.length}</span>
+      </button>
+      <button id="cht-tab-os" onclick="cliHistTab('os')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;margin-bottom:-2px">
+        <i class="ti ti-clipboard-list"></i> OSs <span style="background:var(--s2);color:var(--t2);border-radius:10px;padding:1px 6px;font-size:10px">${oss.length}</span>
+      </button>
+      <button id="cht-tab-fin" onclick="cliHistTab('fin')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;margin-bottom:-2px">
+        <i class="ti ti-cash"></i> Financeiro <span style="background:var(--s2);color:var(--t2);border-radius:10px;padding:1px 6px;font-size:10px">${recs.length}</span>
+      </button>
     </div>
-    <div class="slabel" style="margin-bottom:6px">Receitas registradas (${recs.length})</div>
-    <div class="tw" style="max-height:220px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">
-      <table style="font-size:12px">
-        <thead style="position:sticky;top:0;background:var(--s2)"><tr><th>Data</th><th>Referência</th><th style="text-align:right">Valor</th><th>Forma</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-        ${recs.length ? recs.map(r => `<tr>
-          <td style="color:var(--t2);white-space:nowrap">${r.data}</td>
-          <td>${r.osId ? `<b style="color:var(--pul)">OS-${r.osId}</b>` : (r.desc || 'Avulsa')}</td>
-          <td style="text-align:right;font-weight:600;color:var(--grt)">${fmt(r.total)}</td>
-          <td style="color:var(--t2)">${r.forma || '—'}</td>
-          <td>${pill(r.status)}</td>
-          <td><button class="btn btn-xs" onclick="editarReceita(${r.id});fecharModal('mCliHist')" title="Editar"><i class="ti ti-edit"></i></button></td>
-        </tr>`).join('') : `<tr><td colspan="6" style="padding:18px;text-align:center;color:var(--t3)">Nenhuma receita registrada para este cliente</td></tr>`}
-        </tbody>
-      </table>
+
+    <!-- Aba: Orçamentos -->
+    <div id="cht-pane-orc">
+      <div class="tw" style="max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">
+        <table style="font-size:11px">
+          <thead style="position:sticky;top:0;background:var(--s2)"><tr>
+            <th style="padding:6px 8px">Nº</th><th style="padding:6px 8px">Data</th>
+            <th style="padding:6px 8px">Veículo</th><th style="padding:6px 8px">Serviços</th>
+            <th style="padding:6px 8px;text-align:right">Total</th><th style="padding:6px 8px">Status</th>
+            <th style="padding:6px 8px"></th>
+          </tr></thead>
+          <tbody>
+          ${orcs.length ? orcs.map(o => {
+            const cor = corOrcStatus(o.status)
+            const srvs = (o.srvs||[]).map(s=>s.nome||s.desc||'').filter(Boolean).join(', ')
+            return `<tr>
+              <td style="padding:5px 8px"><b style="color:var(--pul)">#${o.numero||o.id}</b></td>
+              <td style="padding:5px 8px;color:var(--t2);white-space:nowrap">${o.data||'—'}</td>
+              <td style="padding:5px 8px">${o.vei||'—'} <span style="font-family:monospace;font-size:10px;color:var(--pul)">${o.pla||''}</span></td>
+              <td style="padding:5px 8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)" title="${srvs}">${srvs||'—'}</td>
+              <td style="padding:5px 8px;text-align:right;font-weight:600">${fmt(o.total||0)}</td>
+              <td style="padding:5px 8px"><span style="display:inline-block;padding:1px 7px;border-radius:8px;font-size:9px;font-weight:600;color:${cor};background:${cor}18">${o.status}</span></td>
+              <td style="padding:5px 8px">
+                <button class="btn btn-xs" onclick="fecharModal('mCliHist');goTab('orcamentos',document.querySelector('.sb-item[onclick*=\\'orcamentos\\']'));setTimeout(()=>editarOrcamento(${o.id}),300)" title="Ver orçamento"><i class="ti ti-external-link"></i></button>
+              </td>
+            </tr>`
+          }).join('') : `<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--t3)"><i class="ti ti-file-off"></i> Nenhum orçamento para este cliente</td></tr>`}
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div class="mf">
+
+    <!-- Aba: OSs -->
+    <div id="cht-pane-os" style="display:none">
+      <div class="tw" style="max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">
+        <table style="font-size:11px">
+          <thead style="position:sticky;top:0;background:var(--s2)"><tr>
+            <th style="padding:6px 8px">OS</th><th style="padding:6px 8px">Data</th>
+            <th style="padding:6px 8px">Veículo</th><th style="padding:6px 8px">Mecânico</th>
+            <th style="padding:6px 8px;text-align:right">Serviços</th><th style="padding:6px 8px;text-align:right">Peças</th>
+            <th style="padding:6px 8px;text-align:right">Total</th><th style="padding:6px 8px">Status</th>
+            <th style="padding:6px 8px"></th>
+          </tr></thead>
+          <tbody>
+          ${oss.length ? oss.map(o => `<tr>
+            <td style="padding:5px 8px"><b style="color:var(--pul)">#${o.numero||o.id}</b></td>
+            <td style="padding:5px 8px;color:var(--t2);white-space:nowrap">${o.data||'—'}</td>
+            <td style="padding:5px 8px">${o.vei||'—'} <span style="font-family:monospace;font-size:10px;color:var(--pul)">${o.pla||''}</span></td>
+            <td style="padding:5px 8px;color:var(--t2)">${o.mec||'—'}</td>
+            <td style="padding:5px 8px;text-align:right;color:var(--t2)">${fmt(o.vsrv||0)}</td>
+            <td style="padding:5px 8px;text-align:right;color:var(--t2)">${fmt(o.vpec||0)}</td>
+            <td style="padding:5px 8px;text-align:right;font-weight:600">${fmt(o.total||0)}</td>
+            <td style="padding:5px 8px">${pill(o.status)}</td>
+            <td style="padding:5px 8px">
+              <button class="btn btn-xs" onclick="fecharModal('mCliHist');goTab('os',document.querySelector('.sb-item[onclick*=\\'os\\']'));setTimeout(()=>editarOS(${o.id}),300)" title="Ver OS"><i class="ti ti-external-link"></i></button>
+            </td>
+          </tr>`).join('') : `<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--t3)"><i class="ti ti-clipboard-off"></i> Nenhuma OS para este cliente</td></tr>`}
+          ${oss.length ? `<tr style="border-top:2px solid var(--bd)">
+            <td colspan="4" style="padding:6px 8px;text-align:right;font-weight:700;font-size:10px">TOTAIS</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(oss.reduce((a,o)=>a+(o.vsrv||0),0))}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(oss.reduce((a,o)=>a+(o.vpec||0),0))}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o)=>a+(o.total||0),0))}</td>
+            <td colspan="2"></td>
+          </tr>` : ''}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Aba: Financeiro -->
+    <div id="cht-pane-fin" style="display:none">
+      <div class="tw" style="max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--r)">
+        <table style="font-size:11px">
+          <thead style="position:sticky;top:0;background:var(--s2)"><tr>
+            <th style="padding:6px 8px">Data</th><th style="padding:6px 8px">Referência</th>
+            <th style="padding:6px 8px;text-align:right">Serviços</th><th style="padding:6px 8px;text-align:right">Peças</th>
+            <th style="padding:6px 8px;text-align:right">Total</th><th style="padding:6px 8px">Forma</th>
+            <th style="padding:6px 8px">Status</th><th style="padding:6px 8px"></th>
+          </tr></thead>
+          <tbody>
+          ${recs.length ? recs.map(r => `<tr>
+            <td style="padding:5px 8px;color:var(--t2);white-space:nowrap">${r.data||'—'}</td>
+            <td style="padding:5px 8px">${r.osId ? `<b style="color:var(--pul)">OS-${r.osId}</b>` : (r.desc||'Avulsa')}</td>
+            <td style="padding:5px 8px;text-align:right;color:var(--t2)">${fmt(r.vsrv||0)}</td>
+            <td style="padding:5px 8px;text-align:right;color:var(--t2)">${fmt(r.vpec||0)}</td>
+            <td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--grt)">${fmt(r.total||0)}</td>
+            <td style="padding:5px 8px;color:var(--t2)">${r.forma||'—'}</td>
+            <td style="padding:5px 8px">${pill(r.status)}</td>
+            <td style="padding:5px 8px">
+              <button class="btn btn-xs" onclick="editarReceita(${r.id});fecharModal('mCliHist')" title="Editar"><i class="ti ti-edit"></i></button>
+            </td>
+          </tr>`).join('') : `<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--t3)"><i class="ti ti-cash-off"></i> Nenhuma receita para este cliente</td></tr>`}
+          ${recs.length ? `<tr style="border-top:2px solid var(--bd)">
+            <td colspan="2" style="padding:6px 8px;text-align:right;font-weight:700;font-size:10px">TOTAIS</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(recs.reduce((a,r)=>a+(r.vsrv||0),0))}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(recs.reduce((a,r)=>a+(r.vpec||0),0))}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700;color:var(--grt)">${fmt(totFat)}</td>
+            <td colspan="3"></td>
+          </tr>` : ''}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="mf" style="margin-top:14px">
       <button class="btn" onclick="fecharModal('mCliHist')">Fechar</button>
-      <button class="btn btn-pu" onclick="editarCliente(${c.id});fecharModal('mCliHist')"><i class="ti ti-edit"></i> Editar dados</button>
+      <button class="btn btn-pu" onclick="editarCliente(${c.id});fecharModal('mCliHist')"><i class="ti ti-edit"></i> Editar cadastro</button>
+      <button class="btn btn-gr" onclick="fecharModal('mCliHist');goTab('orcamentos',document.querySelector('.sb-item[onclick*=\\'orcamentos\\']'));setTimeout(()=>{document.getElementById('orc_cli').value='${c.nome.replace(/'/g,"\\'")}';document.getElementById('orc_cli').dispatchEvent(new Event('input'))},300)"><i class="ti ti-file-plus"></i> Novo orçamento</button>
     </div>`
+
   abrirModal('mCliHist')
+}
+
+function cliHistTab(tab) {
+  ;['orc','os','fin'].forEach(t => {
+    const pane = document.getElementById('cht-pane-' + t)
+    const btn  = document.getElementById('cht-tab-' + t)
+    if (!pane || !btn) return
+    const ativo = t === tab
+    pane.style.display = ativo ? '' : 'none'
+    btn.style.color = ativo ? 'var(--pul)' : 'var(--t3)'
+    btn.style.borderBottom = ativo ? '2px solid var(--pul)' : '2px solid transparent'
+  })
 }
 
 /* ── FORNECEDORES ──────────────────────────────────
