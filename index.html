@@ -506,7 +506,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 .psign{margin-top:4mm;display:grid;grid-template-columns:1fr 1fr;gap:8mm}
 .psign-l{border-top:1px solid #ccc;padding-top:1.5mm;font-size:8.5px;color:#888;text-align:center}
 .pfoot{margin-top:3mm;padding-top:2mm;border-top:1px solid #e0d8f8;display:flex;justify-content:space-between;font-size:8.5px;color:#aaa}
-@media print{.app,.pclose{display:none!important}.pov{position:static!important;background:none!important;padding:0!important;display:block!important}.pdoc{width:100%!important;box-shadow:none!important;padding:10mm!important}}
+@media print{.app,.pclose{display:none!important}.pov{position:static!important;background:none!important;padding:0!important;display:block!important}.pdoc{width:100%!important;box-shadow:none!important;padding:8mm 10mm!important;box-sizing:border-box!important}@page{margin:0;size:A4}}
 #toast{position:fixed;bottom:22px;right:22px;background:var(--s2);border:1px solid var(--pu2);color:var(--t1);padding:11px 16px;border-radius:var(--rl);font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(92,20,220,.3)}
 #toast i{color:var(--pul)}#toast.show{opacity:1;transform:translateY(0)}
 </style>
@@ -8961,8 +8961,10 @@ function printOrc(id) {
     if (linha) linha.style.display = 'none'
   }
   document.getElementById('p-orc-tot').textContent = fmt(o.total)
-  document.getElementById('p-orc-obs').textContent = limparMetaObs(o.obs) || 'Orçamento válido até a data indicada. Sujeito à disponibilidade de peças.'
-  document.getElementById('p-orc-val').textContent = (o.validade && o.validade !== '—') ? '⏳ Válido até: ' + o.validade : ''
+  const obsTexto = limparMetaObs(o.obs) || 'Orçamento válido até a data indicada. Sujeito à disponibilidade de peças.'
+  const valTexto = (o.validade && o.validade !== '—') ? o.validade : null
+  document.getElementById('p-orc-obs').innerHTML = obsTexto.replace(/\n/g,'<br>') + (valTexto ? `<div style="margin-top:4px;font-weight:700;color:#5c14dc;font-size:10px">⏳ Validade deste orçamento: ${valTexto}</div>` : '')
+  document.getElementById('p-orc-val').textContent = ''
   document.getElementById('p-orc-gen').textContent = 'Gerado em: ' + fmtD()
   document.getElementById('povOrc').classList.add('open')
 }
