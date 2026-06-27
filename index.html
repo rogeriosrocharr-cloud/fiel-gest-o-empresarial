@@ -840,7 +840,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
   <div class="card card-sm">
     <div class="tw"><table>
-      <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Veículo</th><th>Serviços</th><th>Peças</th><th>Total</th><th>Validade</th><th>Status</th><th>Ações</th></tr></thead>
+      <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Veículo</th><th>Serviços</th><th>Peças</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
       <tbody id="orc-tbody"></tbody>
     </table></div>
   <div id="orc-prox"></div>
@@ -1268,7 +1268,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="fg"><label>Veículo *</label><select id="orc_vei"><option value="">Selecione o cliente primeiro</option></select></div>
     </div>
     <div class="fr g2" style="margin-top:10px">
-      <div class="fg"><label><i class="ti ti-calendar-due" style="color:var(--pul)"></i> Validade do orçamento</label><input id="orc_val" type="date" onchange="_orcValCache=this.value"></div>
       <div class="fg"><label>Observações / Condições</label><input id="orc_obs" type="text" placeholder="Prazo, garantia..."></div>
     </div>
     <div style="background:var(--s2);border-radius:var(--r);padding:10px;border:1px solid var(--bd);font-size:12px;color:var(--t3)"><i class="ti ti-info-circle"></i> Selecione o cliente e o veículo a serem orçados. Depois avance para "Serviços e Peças".</div>
@@ -1468,7 +1467,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:70px">Tempo (h)</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><div class="ps-t">Peças / Materiais</div><table class="ptable" id="p-orc-pecs"><thead><tr><th>Peça / Material</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Unit.</th><th style="width:90px;text-align:right">Total</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><table class="ptable"><tbody><tr><td>Subtotal serviços</td><td style="text-align:right;font-weight:600" id="p-orc-tsrv">R$ 0,00</td></tr><tr><td>Subtotal peças</td><td style="text-align:right;font-weight:600" id="p-orc-tpec">R$ 0,00</td></tr><tr><td>Desconto aplicado</td><td style="text-align:right;color:#c43030" id="p-orc-tdesc">—</td></tr></tbody></table><div class="ptot"><div class="tl">Total do orçamento</div><div class="tv" id="p-orc-tot">R$ 0,00</div></div></div>
-  <div class="ps"><div class="ps-t">Observações / Condições</div><div class="pobs" id="p-orc-obs"></div><div id="p-orc-val" style="margin-top:2mm;font-size:9px;color:#888;font-weight:600"></div></div>
+  <div class="ps"><div class="ps-t">Observações / Condições</div><div class="pobs" id="p-orc-obs"></div></div>
   <div class="psign"><div class="psign-l">Assinatura do cliente — Aprovação</div><div class="psign-l">FIEL Gestão de Empresas</div></div>
   <div class="pfoot"><span>FIEL — Rondonópolis, MT</span><span id="p-orc-gen"></span></div>
 </div></div>
@@ -2201,12 +2200,12 @@ const db = {
   orcamentos: {
     _mapFromDB(o) {
       /* obs pode conter metadata JSON no formato: texto\n###META###\n{json} */
-      let obs = o.obs || '', mec = '', validade = '—', mostrarDesc = true, osId = null
+      let obs = o.obs || '', mec = '', mostrarDesc = true, osId = null
       const metaIdx = (obs || '').indexOf('\n###META###\n')
       if (metaIdx >= 0) {
         try {
           const meta = JSON.parse(obs.substring(metaIdx + 13))
-          mec = meta.mec || ''; validade = meta.validade || '—'; mostrarDesc = meta.mostrarDesc !== false; osId = meta.osId || null
+          mec = meta.mec || ''; mostrarDesc = meta.mostrarDesc !== false; osId = meta.osId || null
           obs = obs.substring(0, metaIdx)
         } catch (_) {}
       }
@@ -2220,7 +2219,7 @@ const db = {
         tSrv: Number(o.v_srv) || 0, tPec: Number(o.v_pec) || 0,
         total: Number(o.total) || 0,
         status: o.status || 'Aguardando aprovação',
-        obs, mec, validade, mostrarDesc, osId
+        obs, mec, mostrarDesc, osId
       }
     },
     _mapToDB(d) {
@@ -2238,12 +2237,11 @@ const db = {
       if (d.total !== undefined) o.total = Number(d.total) || 0
       /* Só toca no obs se algum campo correlato foi fornecido (texto ou meta).
          Caso contrário, NÃO inclui obs no payload — preserva o que está no DB. */
-      const tocaObs = d.obs !== undefined || d.mec !== undefined || d.validade !== undefined || d.mostrarDesc !== undefined || d.osId !== undefined
+      const tocaObs = d.obs !== undefined || d.mec !== undefined || d.mostrarDesc !== undefined || d.osId !== undefined
       if (tocaObs) {
         const obsText = d.obs || ''
         const meta = {}
         if (d.mec !== undefined) meta.mec = d.mec
-        if (d.validade !== undefined) meta.validade = d.validade
         if (d.mostrarDesc !== undefined) meta.mostrarDesc = d.mostrarDesc
         if (d.osId !== undefined) meta.osId = d.osId
         o.obs = Object.keys(meta).length ? obsText + '\n###META###\n' + JSON.stringify(meta) : obsText || null
@@ -2269,9 +2267,9 @@ const db = {
     async update(id, dados) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
       /* Se algum campo embutido no META do obs está sendo atualizado parcialmente
-         (mec, validade, mostrarDesc, osId, obs), precisamos primeiro buscar o registro atual
+         (mec, mostrarDesc, osId, obs), precisamos primeiro buscar o registro atual
          e mesclar — caso contrário o _mapToDB reescreve o obs do zero e apaga campos. */
-      const camposMeta = ['mec', 'validade', 'mostrarDesc', 'osId']
+      const camposMeta = ['mec', 'mostrarDesc', 'osId']
       const tocaMeta = camposMeta.some(k => dados[k] !== undefined) || dados.obs !== undefined
       const tocaTodosOsMeta = camposMeta.every(k => dados[k] !== undefined) && dados.obs !== undefined
       let dadosFinais = dados
@@ -2289,7 +2287,6 @@ const db = {
           ...dados,
           obs: dados.obs !== undefined ? dados.obs : obsAtual,
           mec: dados.mec !== undefined ? dados.mec : (metaAtual.mec || ''),
-          validade: dados.validade !== undefined ? dados.validade : (metaAtual.validade || '—'),
           mostrarDesc: dados.mostrarDesc !== undefined ? dados.mostrarDesc : (metaAtual.mostrarDesc !== false),
           osId: dados.osId !== undefined ? dados.osId : (metaAtual.osId || null)
         }
@@ -4045,7 +4042,6 @@ let orcTempPecs = []
 let orcEditId = null
 let osEditId = null
 let orcCurStep = 1
-let _orcValCache = ''
 let osData = []
 let osCounter = 1
 let recData = []
@@ -5084,14 +5080,12 @@ async function salvarOrc() {
   const dP = parseFloat(document.getElementById('orc_descPec').value) || 0
   const total = (tS * (1 - dS / 100)) + (tP * (1 - dP / 100))
   const vei = cli.veiculos.find(v => v.pla === pla) || cli.veiculos[0]
-  const vd = document.getElementById('orc_val').value || _orcValCache
 
   const dadosOrc = {
     cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla,
     srvs: [...orcTempSrvs], pecs: [...orcTempPecs],
     tSrv: tS, tPec: tP, descSrv: dS, descPec: dP, total,
     mostrarDesc: document.getElementById('orc_mostrarDesc').checked,
-    validade: vd ? new Date(vd + 'T12:00').toLocaleDateString('pt-BR') : '—',
     obs: document.getElementById('orc_obs').value,
     data: fmtD()
   }
@@ -5132,14 +5126,9 @@ async function salvarOrc() {
 /* Navegação entre steps do modal de orçamento */
 function orcShowStep(n) {
   if (n < 1 || n > 3) return
-  /* Salva valor da validade antes de qualquer mudança de step */
-  const valEl = document.getElementById('orc_val')
-  if (valEl && valEl.value) _orcValCache = valEl.value
   orcCurStep = n
   document.querySelectorAll('#mOrcAdd .orc-tab').forEach(t => t.classList.toggle('active', parseInt(t.dataset.step) === n))
   document.querySelectorAll('#mOrcAdd .orc-step').forEach(s => s.classList.toggle('active', parseInt(s.dataset.step) === n))
-  /* Restaura o valor após tornar o step ativo */
-  if (valEl) valEl.value = _orcValCache
   const prev = document.getElementById('orc-btn-prev')
   const next = document.getElementById('orc-btn-next')
   if (prev) prev.style.visibility = n > 1 ? 'visible' : 'hidden'
@@ -5164,10 +5153,6 @@ function editarOrc(id) {
   document.getElementById('orc_descPec').value = o.descPec || 0
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
-  /* Validade: tenta converter DD/MM/AAAA para YYYY-MM-DD e popula cache */
-  const valIso = brToIso(o.validade)
-  document.getElementById('orc_val').value = valIso
-  _orcValCache = valIso
   renderTempOrc(); atualizarTotalOrc()
   orcShowStep(1)
   /* Mudar título do modal */
@@ -5256,8 +5241,7 @@ async function cancelarDespesa(id) {
 function resetModalOrc() {
   orcEditId = null
   orcTempSrvs = []; orcTempPecs = []
-  _orcValCache = ''
-  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_val','orc_srv_desc','orc_srv_h','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_srv_desc','orc_srv_h','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
   document.getElementById('orc_descSrv').value = 0
   document.getElementById('orc_descPec').value = 0
@@ -5294,7 +5278,6 @@ function renderOrc() {
     <td style="color:var(--grt);font-weight:600">${fmt(r.tSrv)}</td>
     <td style="color:var(--blt);font-weight:600">${fmt(r.tPec)}</td>
     <td style="font-weight:700">${fmt(r.total)}</td>
-    <td style="font-size:12px;color:var(--t2)">${r.validade}</td>
     <td>${pill(r.status)}</td>
     <td style="display:flex;gap:4px;flex-wrap:wrap">
       <button class="btn btn-sm btn-print" onclick="printOrc('${r.id}')" title="PDF"><i class="ti ti-printer"></i></button>
@@ -9002,9 +8985,7 @@ function printOrc(id) {
   }
   document.getElementById('p-orc-tot').textContent = fmt(o.total)
   const obsTexto = limparMetaObs(o.obs) || 'Orçamento válido até a data indicada. Sujeito à disponibilidade de peças.'
-  const valTexto = (o.validade && o.validade !== '—') ? o.validade : null
-  document.getElementById('p-orc-obs').innerHTML = obsTexto.replace(/\n/g,'<br>') + (valTexto ? `<div style="margin-top:4px;font-weight:700;color:#5c14dc;font-size:10px">⏳ Validade deste orçamento: ${valTexto}</div>` : '')
-  document.getElementById('p-orc-val').textContent = ''
+  document.getElementById('p-orc-obs').innerHTML = obsTexto.replace(/\n/g,'<br>')
   document.getElementById('p-orc-gen').textContent = 'Gerado em: ' + fmtD()
   document.getElementById('povOrc').classList.add('open')
 }
