@@ -470,7 +470,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 .badge-on{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--grt);background:var(--grb);padding:4px 10px;border-radius:20px;border:1px solid rgba(24,168,118,.2)}
 .pov{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
 .pov.open{display:flex}
-.pdoc{background:#fff;color:#111;width:210mm;min-height:260mm;padding:9mm 11mm;border-radius:4px;font-family:'Inter',Arial,sans-serif;font-size:11px;position:relative;margin:auto;box-sizing:border-box}
+.pdoc{background:#fff;color:#111;width:794px;min-height:260mm;padding:9mm 11mm;border-radius:4px;font-family:'Inter',Arial,sans-serif;font-size:11px;position:relative;margin:auto;box-sizing:border-box}
 .pclose{position:absolute;top:8px;right:8px;display:flex;gap:8px;z-index:10}.pclose button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
 .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:4mm;padding-bottom:2.5mm;border-bottom:1.5px solid #5c14dc}
 .ph-logo{display:flex;align-items:center;gap:6px}
@@ -8816,52 +8816,54 @@ async function gerarPDFDoPrint(printElId, nomeArq) {
   const el = document.getElementById(printElId)
   if (!el) throw new Error('Elemento de impressão não encontrado.')
 
-  /* Garante que o modal está visível para o layout ser calculado */
   const estavaAberto = el.classList.contains('open')
   if (!estavaAberto) el.classList.add('open')
 
   const pdoc = el.querySelector('.pdoc') || el.firstElementChild || el
 
-  /* Clona o .pdoc para um container isolado fora do overlay,
-     assim o html2canvas captura sem interferência do .pov */
-  const container = document.createElement('div')
-  container.style.cssText = [
-    'position:fixed', 'top:0', 'left:0', 'z-index:-9999',
-    'width:794px',          /* 210mm a 96dpi */
-    'background:#ffffff',
-    'pointer-events:none',
-    'overflow:visible'
-  ].join(';')
-  const clone = pdoc.cloneNode(true)
-  clone.style.width = '794px'
-  clone.style.minHeight = 'auto'
-  clone.style.boxShadow = 'none'
-  clone.style.margin = '0'
-  /* Remove botões de ação do clone se existirem */
-  clone.querySelectorAll('.pclose').forEach(b => b.remove())
-  container.appendChild(clone)
-  document.body.appendChild(container)
+  /* Esconde botões de ação temporariamente */
+  const closeBar = pdoc.querySelector('.pclose')
+  if (closeBar) closeBar.style.visibility = 'hidden'
+
+  /* Força largura em px para evitar variação por DPI/zoom do navegador */
+  const wOrig = pdoc.style.width
+  const mOrig = pdoc.style.margin
+  pdoc.style.width = '794px'
+  pdoc.style.margin = '0'
 
   const opt = {
     margin: 0,
     filename: nomeArq,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.97 },
     html2canvas: {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
-      width: 794,
-      windowWidth: 794
+      onclone: (clonedDoc) => {
+        /* No documento clonado pelo html2canvas, garante que o pdoc
+           não herde width:210mm que depende do DPI da tela */
+        const clonedPdoc = clonedDoc.querySelector('.pdoc')
+        if (clonedPdoc) {
+          clonedPdoc.style.width = '794px'
+          clonedPdoc.style.minHeight = 'auto'
+          clonedPdoc.style.margin = '0'
+          clonedPdoc.style.boxShadow = 'none'
+          const cb = clonedPdoc.querySelector('.pclose')
+          if (cb) cb.style.display = 'none'
+        }
+      }
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }
 
   try {
-    const blob = await html2pdf().set(opt).from(clone).outputPdf('blob')
+    const blob = await html2pdf().set(opt).from(pdoc).outputPdf('blob')
     return blob
   } finally {
-    document.body.removeChild(container)
+    pdoc.style.width = wOrig
+    pdoc.style.margin = mOrig
+    if (closeBar) closeBar.style.visibility = ''
     if (!estavaAberto) el.classList.remove('open')
   }
 }
