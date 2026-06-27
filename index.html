@@ -8824,17 +8824,22 @@ async function gerarPDFDoPrint(printElId, nomeArq) {
   if (closeBar) closeBar.style.display = 'none'
   /* Pega o conteúdo do documento (página A4 real do print) */
   const alvo = el.querySelector('.pdoc') || el.firstElementChild || el
+  /* Garante largura correta antes de capturar — force o .pdoc para a largura exata de A4 */
+  const larguraA4px = 794  /* 210mm a 96dpi */
+  const larguraOriginal = alvo.style.width
+  alvo.style.width = larguraA4px + 'px'
   const opt = {
-    margin: [8, 8, 8, 8],
+    margin: 0,
     filename: nomeArq,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: larguraA4px, windowWidth: larguraA4px },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }
   try {
     const blob = await html2pdf().set(opt).from(alvo).outputPdf('blob')
     return blob
   } finally {
+    alvo.style.width = larguraOriginal
     if (closeBar) closeBar.style.display = prevDisplay || ''
     if (!estavaAberto) el.classList.remove('open')
   }
