@@ -8815,32 +8815,53 @@ function telWhats(tel) {
 async function gerarPDFDoPrint(printElId, nomeArq) {
   const el = document.getElementById(printElId)
   if (!el) throw new Error('Elemento de impressão não encontrado.')
-  /* Garante que o modal de print está aberto/visível antes de capturar */
+
+  /* Garante que o modal está visível para o layout ser calculado */
   const estavaAberto = el.classList.contains('open')
   if (!estavaAberto) el.classList.add('open')
-  /* Esconde temporariamente a barra de botões (Fechar/WhatsApp/Imprimir) */
-  const closeBar = el.querySelector('.pclose')
-  const prevDisplay = closeBar ? closeBar.style.display : null
-  if (closeBar) closeBar.style.display = 'none'
-  /* Pega o conteúdo do documento (página A4 real do print) */
-  const alvo = el.querySelector('.pdoc') || el.firstElementChild || el
-  /* Garante largura correta antes de capturar — force o .pdoc para a largura exata de A4 */
-  const larguraA4px = 794  /* 210mm a 96dpi */
-  const larguraOriginal = alvo.style.width
-  alvo.style.width = larguraA4px + 'px'
+
+  const pdoc = el.querySelector('.pdoc') || el.firstElementChild || el
+
+  /* Clona o .pdoc para um container isolado fora do overlay,
+     assim o html2canvas captura sem interferência do .pov */
+  const container = document.createElement('div')
+  container.style.cssText = [
+    'position:fixed', 'top:0', 'left:0', 'z-index:-9999',
+    'width:794px',          /* 210mm a 96dpi */
+    'background:#ffffff',
+    'pointer-events:none',
+    'overflow:visible'
+  ].join(';')
+  const clone = pdoc.cloneNode(true)
+  clone.style.width = '794px'
+  clone.style.minHeight = 'auto'
+  clone.style.boxShadow = 'none'
+  clone.style.margin = '0'
+  /* Remove botões de ação do clone se existirem */
+  clone.querySelectorAll('.pclose').forEach(b => b.remove())
+  container.appendChild(clone)
+  document.body.appendChild(container)
+
   const opt = {
     margin: 0,
     filename: nomeArq,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: larguraA4px, windowWidth: larguraA4px },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: 794,
+      windowWidth: 794
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }
+
   try {
-    const blob = await html2pdf().set(opt).from(alvo).outputPdf('blob')
+    const blob = await html2pdf().set(opt).from(clone).outputPdf('blob')
     return blob
   } finally {
-    alvo.style.width = larguraOriginal
-    if (closeBar) closeBar.style.display = prevDisplay || ''
+    document.body.removeChild(container)
     if (!estavaAberto) el.classList.remove('open')
   }
 }
