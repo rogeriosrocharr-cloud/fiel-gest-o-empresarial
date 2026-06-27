@@ -5084,6 +5084,7 @@ async function salvarOrc() {
   const total = (tS * (1 - dS / 100)) + (tP * (1 - dP / 100))
   const vei = cli.veiculos.find(v => v.pla === pla) || cli.veiculos[0]
   const vd = document.getElementById('orc_val').value
+  toast(`[DEBUG] validade campo: "${vd}"`, 5000)
 
   const dadosOrc = {
     cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla,
