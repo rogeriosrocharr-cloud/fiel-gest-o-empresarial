@@ -1267,6 +1267,10 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       </div>
       <div class="fg"><label>Veículo *</label><select id="orc_vei"><option value="">Selecione o cliente primeiro</option></select></div>
     </div>
+    <div class="fr g2" style="margin-top:10px">
+      <div class="fg"><label><i class="ti ti-calendar-due" style="color:var(--pul)"></i> Validade do orçamento</label><input id="orc_val" type="date"></div>
+      <div class="fg"><label>Observações / Condições</label><input id="orc_obs" type="text" placeholder="Prazo, garantia..."></div>
+    </div>
     <div style="background:var(--s2);border-radius:var(--r);padding:10px;border:1px solid var(--bd);font-size:12px;color:var(--t3)"><i class="ti ti-info-circle"></i> Selecione o cliente e o veículo a serem orçados. Depois avance para "Serviços e Peças".</div>
   </div>
 
@@ -1290,7 +1294,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
   <div class="orc-step" data-step="3">
     <div class="fr g2"><div class="fg"><label>Desc. Serviços (%)</label><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div><div class="fg"><label>Desc. Peças (%)</label><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div></div>
-    <div class="fg" style="margin-bottom:14px"><label>Observações / Condições</label><input id="orc_obs" type="text" placeholder="Prazo, garantia..."></div>
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
       <input id="orc_mostrarDesc" type="checkbox" checked style="width:16px;height:16px;cursor:pointer">
       <label for="orc_mostrarDesc" style="font-size:12px;cursor:pointer;flex:1">
@@ -1312,10 +1315,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <button class="btn btn-sm" id="orc-btn-next" onclick="orcShowStep(orcCurStep+1)">Próximo <i class="ti ti-chevron-right"></i></button>
     </div>
     <div style="display:flex;gap:10px;align-items:center">
-      <div style="display:flex;align-items:center;gap:6px">
-        <label style="font-size:11px;color:var(--t3);white-space:nowrap"><i class="ti ti-calendar-due"></i> Validade:</label>
-        <input id="orc_val" type="date" style="padding:5px 8px;font-size:12px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1)">
-      </div>
       <button class="btn" onclick="fecharModal('mOrcAdd');resetModalOrc()">Cancelar</button>
       <button class="btn btn-pu" onclick="salvarOrc()"><i class="ti ti-check"></i> Salvar Orçamento</button>
     </div>
