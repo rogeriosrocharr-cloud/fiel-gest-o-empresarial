@@ -1268,7 +1268,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="fg"><label>Veículo *</label><select id="orc_vei"><option value="">Selecione o cliente primeiro</option></select></div>
     </div>
     <div class="fr g2" style="margin-top:10px">
-      <div class="fg"><label><i class="ti ti-calendar-due" style="color:var(--pul)"></i> Validade do orçamento</label><input id="orc_val" type="date"></div>
+      <div class="fg"><label><i class="ti ti-calendar-due" style="color:var(--pul)"></i> Validade do orçamento</label><input id="orc_val" type="date" onchange="_orcValCache=this.value"></div>
       <div class="fg"><label>Observações / Condições</label><input id="orc_obs" type="text" placeholder="Prazo, garantia..."></div>
     </div>
     <div style="background:var(--s2);border-radius:var(--r);padding:10px;border:1px solid var(--bd);font-size:12px;color:var(--t3)"><i class="ti ti-info-circle"></i> Selecione o cliente e o veículo a serem orçados. Depois avance para "Serviços e Peças".</div>
@@ -4045,6 +4045,7 @@ let orcTempPecs = []
 let orcEditId = null
 let osEditId = null
 let orcCurStep = 1
+let _orcValCache = ''
 let osData = []
 let osCounter = 1
 let recData = []
@@ -5083,8 +5084,7 @@ async function salvarOrc() {
   const dP = parseFloat(document.getElementById('orc_descPec').value) || 0
   const total = (tS * (1 - dS / 100)) + (tP * (1 - dP / 100))
   const vei = cli.veiculos.find(v => v.pla === pla) || cli.veiculos[0]
-  const vd = document.getElementById('orc_val').value
-  toast(`[DEBUG] validade campo: "${vd}"`, 5000)
+  const vd = document.getElementById('orc_val').value || _orcValCache
 
   const dadosOrc = {
     cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla,
@@ -5132,9 +5132,14 @@ async function salvarOrc() {
 /* Navegação entre steps do modal de orçamento */
 function orcShowStep(n) {
   if (n < 1 || n > 3) return
+  /* Salva valor da validade antes de qualquer mudança de step */
+  const valEl = document.getElementById('orc_val')
+  if (valEl && valEl.value) _orcValCache = valEl.value
   orcCurStep = n
   document.querySelectorAll('#mOrcAdd .orc-tab').forEach(t => t.classList.toggle('active', parseInt(t.dataset.step) === n))
   document.querySelectorAll('#mOrcAdd .orc-step').forEach(s => s.classList.toggle('active', parseInt(s.dataset.step) === n))
+  /* Restaura o valor após tornar o step ativo */
+  if (valEl) valEl.value = _orcValCache
   const prev = document.getElementById('orc-btn-prev')
   const next = document.getElementById('orc-btn-next')
   if (prev) prev.style.visibility = n > 1 ? 'visible' : 'hidden'
@@ -5159,8 +5164,10 @@ function editarOrc(id) {
   document.getElementById('orc_descPec').value = o.descPec || 0
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
-  /* Validade: tenta converter DD/MM/AAAA para YYYY-MM-DD */
-  document.getElementById('orc_val').value = brToIso(o.validade)
+  /* Validade: tenta converter DD/MM/AAAA para YYYY-MM-DD e popula cache */
+  const valIso = brToIso(o.validade)
+  document.getElementById('orc_val').value = valIso
+  _orcValCache = valIso
   renderTempOrc(); atualizarTotalOrc()
   orcShowStep(1)
   /* Mudar título do modal */
@@ -5249,6 +5256,7 @@ async function cancelarDespesa(id) {
 function resetModalOrc() {
   orcEditId = null
   orcTempSrvs = []; orcTempPecs = []
+  _orcValCache = ''
   ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_val','orc_srv_desc','orc_srv_h','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
   document.getElementById('orc_descSrv').value = 0
