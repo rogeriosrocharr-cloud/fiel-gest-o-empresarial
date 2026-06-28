@@ -884,7 +884,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <!-- Sub-abas -->
   <div class="subtabs">
     <button class="subtab active" id="subtab-mov" onclick="goSubFin('mov')"><i class="ti ti-arrows-up-down"></i> Movimentações</button>
-    <button class="subtab" id="subtab-banco" onclick="goSubFin('banco')"><i class="ti ti-building-bank"></i> Banco <span class="subtab-badge" id="banco-pend-badge" style="display:none">0</span></button>
+    <button class="subtab" id="subtab-banco" onclick="goSubFin('banco')"><i class="ti ti-building-bank"></i> Contas / Banco <span class="subtab-badge" id="banco-pend-badge" style="display:none">0</span></button>
   </div>
 
   <!-- SUB-ABA: MOVIMENTAÇÕES (entradas + saídas unificadas) -->
@@ -897,6 +897,8 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <select id="mov-tipo" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Tudo</option><option value="entrada">Só entradas</option><option value="saida">Só saídas</option></select>
       <span style="font-size:11px;color:var(--t3);white-space:nowrap;margin-left:8px">Status:</span>
       <select id="mov-status" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Tudo</option><option value="ok">Pago/Recebido</option><option value="pend">Pendente</option></select>
+      <span style="font-size:11px;color:var(--t3);white-space:nowrap;margin-left:8px">Conta:</span>
+      <select id="mov-conta" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todas as contas</option></select>
     </div>
 
     <div class="fb" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -910,34 +912,48 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
     <div class="card card-sm">
       <div class="tw"><table>
-        <thead><tr><th style="width:8px"></th><th>Data</th><th>Descrição</th><th>Categoria</th><th style="text-align:right">Valor</th><th>Forma Pgto</th><th>Status</th><th style="text-align:center" title="Conferido no extrato bancário"><i class="ti ti-building-bank"></i></th><th>Ações</th></tr></thead>
+        <thead><tr><th style="width:8px"></th><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th style="text-align:right">Valor</th><th>Forma Pgto</th><th>Status</th><th style="text-align:center" title="Conferido no extrato bancário"><i class="ti ti-building-bank"></i></th><th>Ações</th></tr></thead>
         <tbody id="mov-tbody"></tbody>
       </table></div>
     </div>
   </div>
 
-  <!-- SUB-ABA: BANCO (extrato e conferência) -->
+  <!-- SUB-ABA: BANCO (saldos por conta + conciliação) -->
   <div id="sub-fin-banco" class="sub-fin-page">
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;font-size:13px;color:var(--t2)">
-      <i class="ti ti-info-circle" style="color:var(--pu2)"></i> O <b>extrato bancário</b> é importado pelo arquivo .ofx do seu banco. Aqui você confere se cada movimento do extrato está vinculado a uma entrada ou saída do sistema.
-    </div>
 
-    <div class="grid g3" style="margin-bottom:14px" id="banco-metrics"></div>
+    <!-- Cards de saldo por conta -->
+    <div id="banco-contas-cards" style="margin-bottom:14px"></div>
 
+    <!-- Ações -->
     <div class="fb" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div class="slabel" style="margin:0">Transações do extrato</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-pu btn-sm" onclick="autoConciliar()"><i class="ti ti-wand"></i> Conferir automaticamente</button>
+      <div class="slabel" style="margin:0">Conciliação bancária</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-pu btn-sm" onclick="autoConciliar()"><i class="ti ti-wand"></i> Sugerir matches</button>
+        <button class="btn btn-sm" onclick="abrirModal('mContas');renderContasList()"><i class="ti ti-building-bank"></i> Gerenciar contas</button>
         <button class="btn btn-sm" onclick="abrirModalOFX()"><i class="ti ti-file-import"></i> Importar extrato</button>
       </div>
     </div>
 
-    <div class="card card-sm">
-      <div class="tw"><table>
-        <thead><tr><th>Data</th><th>Descrição (banco)</th><th style="text-align:right">Valor</th><th>Vinculado a</th><th>Ações</th></tr></thead>
-        <tbody id="banco-tbody"></tbody>
-      </table></div>
+    <!-- Visão lado a lado: lançamentos do sistema vs extrato -->
+    <div id="banco-conciliacao-wrap">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <!-- Coluna esquerda: entradas do sistema não conciliadas -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--grb);border-radius:6px;color:var(--grt)"><i class="ti ti-arrow-down-left"></i> Entradas do sistema <span id="rec-nconc-count"></span></div>
+          <div id="banco-rec-lista" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+        <!-- Coluna direita: transações do extrato não conciliadas -->
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--pub);border-radius:6px;color:var(--pul)"><i class="ti ti-file-spreadsheet"></i> Extrato bancário <span id="banc-nconc-count"></span></div>
+          <div id="banco-banc-lista" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+      </div>
+
+      <!-- Resumo de diferença -->
+      <div id="banco-diff-resumo" style="margin-top:14px"></div>
     </div>
+
+    <div class="grid g3" style="margin-bottom:14px" id="banco-metrics"></div>
   </div>
 </div>
 
@@ -1388,7 +1404,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <!-- Comum aos dois modos -->
-  <div class="fr g2"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
+  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
 
   <div class="mf"><button class="btn" onclick="fecharModal('mFinRec');resetModalRec()">Cancelar</button><button class="btn btn-gr" onclick="salvarReceita()"><i class="ti ti-check"></i> <span id="rec-btn-label">Lançar Entrada</span></button></div>
@@ -1400,8 +1416,20 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
   <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma"><option>PIX</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Cartão</option></select></div></div>
-  <div class="fr g2"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
+  <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mFinDesp');resetModalDesp()">Cancelar</button><button class="btn btn-re" onclick="salvarDespesa()"><i class="ti ti-check"></i> <span id="desp-btn-label">Lançar Saída</span></button></div>
+</div></div>
+
+<!-- MODAL CONTAS BANCÁRIAS -->
+<div class="ov" id="mContas"><div class="modal" style="max-width:600px">
+  <div class="mh"><h3><div class="mh-ic" style="background:var(--blb);color:var(--blt)"><i class="ti ti-building-bank"></i></div>Contas Bancárias</h3><button class="xbtn" onclick="fecharModal('mContas')"><i class="ti ti-x"></i></button></div>
+  <div id="contas-lista" style="margin-bottom:14px"></div>
+  <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:12px">
+    <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:10px"><i class="ti ti-plus"></i> Nova conta</div>
+    <div class="fr g2"><div class="fg"><label>Nome da conta *</label><input id="cta_nome" type="text" placeholder="Ex: Bradesco PJ, Nubank, Maquininha"></div><div class="fg"><label>Banco</label><input id="cta_banco" type="text" placeholder="Ex: Bradesco, Itaú, Stone..."></div></div>
+    <div class="fr g3"><div class="fg"><label>Tipo</label><select id="cta_tipo"><option value="corrente">Conta Corrente</option><option value="poupanca">Poupança</option><option value="maquininha">Maquininha</option><option value="carteira">Carteira/Caixa</option><option value="outro">Outro</option></select></div><div class="fg"><label>Saldo inicial (R$)</label><input id="cta_saldo" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Cor</label><input id="cta_cor" type="color" value="#5c14dc" style="height:38px;width:100%;padding:2px;border-radius:var(--r);border:1px solid var(--bd)"></div></div>
+    <div class="mf" style="margin-top:10px"><button class="btn btn-pu" onclick="adicionarConta()"><i class="ti ti-plus"></i> Adicionar conta</button></div>
+  </div>
 </div></div>
 
 <!-- MODAL PEÇA -->
@@ -2585,6 +2613,36 @@ const db = {
     }
   },
 
+  /* ─── CONTAS BANCÁRIAS (armazena em campo JSON na loja) ─── */
+  contas: {
+    _storageKey() { return `fiel_contas_${lojaAtual?.id || 'local'}` },
+    list() {
+      try {
+        const raw = localStorage.getItem(this._storageKey())
+        return raw ? JSON.parse(raw) : []
+      } catch { return [] }
+    },
+    save(contas) {
+      try { localStorage.setItem(this._storageKey(), JSON.stringify(contas)) } catch {}
+    },
+    add(dados) {
+      const lista = this.list()
+      const nova = { id: Date.now(), nome: dados.nome, banco: dados.banco || '', agencia: dados.agencia || '', conta: dados.conta || '', tipo: dados.tipo || 'corrente', cor: dados.cor || '#5c14dc', saldoInicial: Number(dados.saldoInicial) || 0, ativa: true }
+      lista.push(nova)
+      this.save(lista)
+      return nova
+    },
+    update(id, dados) {
+      const lista = this.list()
+      const idx = lista.findIndex(c => c.id == id)
+      if (idx >= 0) { lista[idx] = { ...lista[idx], ...dados }; this.save(lista) }
+    },
+    remove(id) {
+      const lista = this.list().filter(c => c.id != id)
+      this.save(lista)
+    }
+  },
+
   /* ─── ATIVIDADES (feed de auditoria) ─── */
   atividades: {
     _mapFromDB(a) {
@@ -3640,6 +3698,7 @@ async function carregarCadastrosDaLoja() {
   recData = entradas || []
   despData = saidas || []
   bancData = banco || []
+  contasData = db.contas.list()  /* carrega do localStorage */
   recCatCustom = (categorias && categorias.rec) || []
   despCatCustom = (categorias && categorias.desp) || []
   pecCatCustom = (categorias && categorias.pec) || []
@@ -4046,6 +4105,7 @@ let osData = []
 let osCounter = 1
 let recData = []
 let recCounter = 1
+let contasData = []  /* contas bancárias cadastradas */
 let bancData = []
 let bancCounter = 1
 let despData = []
@@ -5383,6 +5443,7 @@ async function confirmarGerarOS() {
 
 /* ── ORDENS DE SERVIÇO ───────────────────────────── */
 function populateOSSelects() {
+  populateContasSelects()
   populateClis(); populateMecs()
   const recOs = document.getElementById('rec_os')
   if (recOs) recOs.innerHTML = '<option value="">Selecionar OS concluída...</option>' +
@@ -5596,7 +5657,8 @@ function renderMov() {
   const de = document.getElementById('fin-de')?.value
   const ate = document.getElementById('fin-ate')?.value
   const tipo = document.getElementById('mov-tipo')?.value
-  const sf = document.getElementById('mov-status')?.value  /* '' | 'ok' | 'pend' */
+  const sf = document.getElementById('mov-status')?.value
+  const contaFiltro = document.getElementById('mov-conta')?.value
 
   const ehOk = s => s === 'Recebido' || s === 'Pago'
   const passaStatus = it => {
@@ -5604,16 +5666,15 @@ function renderMov() {
     if (sf === 'ok') return ehOk(it.status)
     return !ehOk(it.status)
   }
+  const passaConta = it => !contaFiltro || String(it.contaId) === String(contaFiltro)
 
-  /* Entradas vêm de recData; saídas de despData */
   let itens = []
   if (tipo !== 'saida') {
-    itens = itens.concat(recData.filter(r => dateInRange(r.data, de, ate) && passaStatus(r)).map(r => ({ ...r, _tipo: 'entrada' })))
+    itens = itens.concat(recData.filter(r => dateInRange(r.data, de, ate) && passaStatus(r) && passaConta(r)).map(r => ({ ...r, _tipo: 'entrada' })))
   }
   if (tipo !== 'entrada') {
-    itens = itens.concat(despData.filter(d => dateInRange(d.data, de, ate) && passaStatus(d)).map(d => ({ ...d, _tipo: 'saida' })))
+    itens = itens.concat(despData.filter(d => dateInRange(d.data, de, ate) && passaStatus(d) && passaConta(d)).map(d => ({ ...d, _tipo: 'saida' })))
   }
-  /* Ordena por data desc */
   itens.sort((a, b) => {
     const ad = (a.data || '').split('/').reverse().join('-')
     const bd = (b.data || '').split('/').reverse().join('-')
@@ -5623,16 +5684,16 @@ function renderMov() {
 
   const tbody = document.getElementById('mov-tbody')
   if (!itens.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty" style="padding:24px"><i class="ti ti-cash-off"></i>Nenhuma movimentação no período</div></td></tr>`
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty" style="padding:24px"><i class="ti ti-cash-off"></i>Nenhuma movimentação no período</div></td></tr>`
     return
   }
   tbody.innerHTML = itens.map(it => {
     const ent = it._tipo === 'entrada'
     const valor = ent ? it.total : it.valor
+    const conta = contasData.find(c => c.id == it.contaId)
     const desc = ent
       ? (it.osId ? `<b style="color:var(--pul)">OS-${it.osId}</b> · ${it.cliNome || '—'}` : `Avulso · ${it.cliNome || it.desc || '—'}`)
       : `${it.desc || '—'}${it.fornecedor ? `<div style="font-size:10px;color:var(--t3);margin-top:2px"><i class="ti ti-truck-delivery" style="font-size:11px"></i> ${it.fornecedor}</div>` : ''}`
-    /* Indicador de vencimento se status for "A receber/A pagar" */
     const isPend = ent ? it.status === 'A receber' : (it.status === 'A pagar' || it.status === 'Atrasado')
     let descComVenc = desc
     if (isPend && it.dataVenc) {
@@ -5649,6 +5710,9 @@ function renderMov() {
     const cat = ent
       ? (it.vpec > 0 && it.vsrv > 0 ? 'Serviços + Peças' : (it.vpec > 0 ? 'Peças' : 'Serviços'))
       : `<span class="tag">${it.cat || 'Outros'}</span>`
+    const contaCell = conta
+      ? `<span style="font-size:10px;padding:2px 6px;border-radius:8px;background:${conta.cor||'var(--pu)'}22;color:${conta.cor||'var(--pul)'};font-weight:600;border:1px solid ${conta.cor||'var(--pu)'}44">${conta.nome}</span>`
+      : '<span style="color:var(--t3);font-size:11px">—</span>'
     const banco = ent
       ? (it.reconciliada
         ? `<span style="color:var(--grt);font-size:14px" title="Confirmado no banco${it.ofxDesc ? ': ' + it.ofxDesc : ''}"><i class="ti ti-circle-check-filled"></i></span>`
@@ -5662,6 +5726,7 @@ function renderMov() {
       <td style="color:var(--t2);white-space:nowrap">${it.data}</td>
       <td>${descComVenc}</td>
       <td>${cat}</td>
+      <td>${contaCell}</td>
       <td style="text-align:right;font-weight:700;color:${ent ? 'var(--grt)' : 'var(--ret)'};white-space:nowrap">${ent ? '+' : '−'} ${fmt(valor)}</td>
       <td style="color:var(--t2)">${it.forma || '—'}</td>
       <td>${pill(it.status)}</td>
@@ -5672,46 +5737,211 @@ function renderMov() {
 }
 
 /* Aba Banco: lista transações do extrato com indicação de vínculo */
-function renderBancoExtrato() {
-  const metrics = document.getElementById('banco-metrics')
-  if (!bancData || !bancData.length) {
-    metrics.innerHTML = `<div class="card" style="grid-column:1/-1;padding:24px;text-align:center;color:var(--t3)">
-      <i class="ti ti-file-off" style="font-size:32px;color:var(--t3);display:block;margin-bottom:8px"></i>
-      <div style="font-size:14px;color:var(--t2);font-weight:600;margin-bottom:4px">Nenhum extrato importado ainda</div>
-      <div style="font-size:12px;margin-bottom:14px">Importe o arquivo .ofx do seu banco para conferir as movimentações automaticamente.</div>
-      <button class="btn btn-pu btn-sm" onclick="abrirModalOFX()"><i class="ti ti-file-import"></i> Importar extrato agora</button>
-    </div>`
-    document.getElementById('banco-tbody').innerHTML = ''
-    document.getElementById('banco-pend-badge').style.display = 'none'
+/* ── CONTAS BANCÁRIAS ──────────────────────────────────────── */
+function populateContasSelects() {
+  const selects = ['rec_conta', 'desp_conta', 'mov-conta']
+  selects.forEach(id => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const val = el.value
+    const isFilter = id === 'mov-conta'
+    el.innerHTML = isFilter
+      ? '<option value="">Todas as contas</option>'
+      : '<option value="">— Sem conta específica —</option>'
+    contasData.forEach(c => {
+      const op = document.createElement('option')
+      op.value = c.id
+      op.textContent = c.nome + (c.banco ? ` · ${c.banco}` : '')
+      el.appendChild(op)
+    })
+    if (val) el.value = val
+  })
+}
+
+function renderContasList() {
+  contasData = db.contas.list()
+  const el = document.getElementById('contas-lista'); if (!el) return
+  if (!contasData.length) {
+    el.innerHTML = `<div class="empty" style="padding:14px;font-size:12px">Nenhuma conta cadastrada ainda.</div>`
     return
   }
-  /* Identifica quais do extrato já têm match com receitas */
-  const vinculadas = bancData.filter(b => recData.some(r => r.ofxId === b.id))
-  const naoVinc = bancData.length - vinculadas.length
-  metrics.innerHTML = `
-    <div class="metric"><div class="mb pu"></div><div class="ml">Transações no extrato</div><div class="mv">${bancData.length}</div></div>
-    <div class="metric"><div class="mb gr"></div><div class="ml">Já conferidas</div><div class="mv">${vinculadas.length}</div><div class="ms">${bancData.length ? Math.round(vinculadas.length / bancData.length * 100) : 0}%</div></div>
-    <div class="metric"><div class="mb am"></div><div class="ml">Pendentes de conferência</div><div class="mv">${naoVinc}</div></div>`
-  /* Atualiza badge da sub-aba */
-  const badge = document.getElementById('banco-pend-badge')
-  if (naoVinc > 0) { badge.textContent = naoVinc; badge.style.display = '' }
-  else badge.style.display = 'none'
-
-  document.getElementById('banco-tbody').innerHTML = bancData.map(b => {
-    const recVinc = recData.find(r => r.ofxId === b.id)
-    const ehCred = b.tipo === 'C' || b.valor > 0
-    return `<tr style="border-left:3px solid ${ehCred ? 'var(--gr)' : 'var(--re)'}">
-      <td style="color:var(--t2);white-space:nowrap">${b.data}</td>
-      <td style="font-size:12px">${b.desc || '—'}</td>
-      <td style="text-align:right;font-weight:700;color:${ehCred ? 'var(--grt)' : 'var(--ret)'};white-space:nowrap">${ehCred ? '+' : '−'} ${fmt(Math.abs(b.valor))}</td>
-      <td>${recVinc
-        ? `<span style="color:var(--grt);font-size:12px"><i class="ti ti-link"></i> <b>OS-${recVinc.osId || recVinc.id}</b> · ${recVinc.cliNome || ''}</span>`
-        : '<span style="color:var(--am);font-size:11px"><i class="ti ti-circle-dashed"></i> Não vinculado</span>'}</td>
-      <td>${recVinc
-        ? `<button class="btn btn-xs" onclick="desvincularBanco(${b.id})" title="Desvincular"><i class="ti ti-unlink"></i></button>`
-        : `<button class="btn btn-xs btn-pu" onclick="vincularBancoManual(${b.id})" title="Vincular a uma entrada"><i class="ti ti-link"></i> Vincular</button>`}</td>
-    </tr>`
+  el.innerHTML = contasData.map(c => {
+    const recConta = recData.filter(r => r.contaId == c.id && r.status === 'Recebido').reduce((a,b) => a+(b.total||0),0)
+    const despConta = despData.filter(d => d.contaId == c.id && d.status === 'Pago').reduce((a,b) => a+(b.valor||0),0)
+    const saldo = (c.saldoInicial||0) + recConta - despConta
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:6px;border-left:4px solid ${c.cor||'var(--pu)'}">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">${c.nome}</div>
+        <div style="font-size:11px;color:var(--t3)">${c.banco||''} · ${({corrente:'Conta Corrente',poupanca:'Poupança',maquininha:'Maquininha',carteira:'Carteira/Caixa'}[c.tipo]||c.tipo)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--t3)">Saldo calculado</div>
+        <div style="font-weight:700;font-size:15px;color:${saldo>=0?'var(--grt)':'var(--ret)'}">${fmt(saldo)}</div>
+        <div style="font-size:10px;color:var(--t3)">Inicial: ${fmt(c.saldoInicial||0)} + ${fmt(recConta)} − ${fmt(despConta)}</div>
+      </div>
+      <button class="btn btn-xs btn-re" onclick="removerConta(${c.id})" title="Remover"><i class="ti ti-trash"></i></button>
+    </div>`
   }).join('')
+}
+
+function adicionarConta() {
+  const nome = document.getElementById('cta_nome')?.value.trim()
+  if (!nome) { toast('⚠️ Nome da conta é obrigatório.', 3000); return }
+  const nova = db.contas.add({
+    nome,
+    banco: document.getElementById('cta_banco')?.value.trim(),
+    tipo: document.getElementById('cta_tipo')?.value,
+    saldoInicial: document.getElementById('cta_saldo')?.value,
+    cor: document.getElementById('cta_cor')?.value
+  })
+  contasData = db.contas.list()
+  ;['cta_nome','cta_banco','cta_saldo'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
+  toast(`✓ Conta "${nova.nome}" adicionada.`, 3000)
+  renderContasList()
+  populateContasSelects()
+  renderBancoExtrato()
+}
+
+function removerConta(id) {
+  const c = contasData.find(x => x.id == id); if (!c) return
+  if (!confirmar(`Remover a conta "${c.nome}"? Os lançamentos vinculados a ela não serão apagados, só perderão o vínculo com a conta.`)) return
+  db.contas.remove(id)
+  contasData = db.contas.list()
+  renderContasList()
+  populateContasSelects()
+  renderBancoExtrato()
+  toast('Conta removida.', 3000)
+}
+
+function renderBancoExtrato() {
+  contasData = db.contas.list()
+  populateContasSelects()
+
+  /* Cards de saldo por conta */
+  const cardsEl = document.getElementById('banco-contas-cards')
+  if (cardsEl) {
+    if (!contasData.length) {
+      cardsEl.innerHTML = `<div style="padding:10px 14px;background:var(--s2);border:1px dashed var(--bd);border-radius:var(--r);font-size:12px;color:var(--t3);display:flex;align-items:center;gap:10px">
+        <i class="ti ti-building-bank" style="font-size:20px"></i>
+        <div>Nenhuma conta cadastrada. <button class="btn btn-sm btn-pu" style="margin-left:8px" onclick="abrirModal('mContas');renderContasList()"><i class="ti ti-plus"></i> Adicionar conta</button></div>
+      </div>`
+    } else {
+      const grid = contasData.map(c => {
+        const recConta = recData.filter(r => r.contaId == c.id && r.status === 'Recebido').reduce((a,b) => a+(b.total||0),0)
+        const despConta = despData.filter(d => d.contaId == c.id && d.status === 'Pago').reduce((a,b) => a+(b.valor||0),0)
+        const saldo = (c.saldoInicial||0) + recConta - despConta
+        return `<div class="metric" style="border-left:4px solid ${c.cor||'var(--pu)'}">
+          <div class="ml" style="font-size:10px;font-weight:700">${c.nome.toUpperCase()}</div>
+          <div class="mv" style="font-size:16px;font-weight:700;color:${saldo>=0?'var(--grt)':'var(--ret)'}">${fmt(saldo)}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px">${c.banco||c.tipo} · ${contasData.filter(x=>x.id==c.id).length ? fmt(recConta)+' entrada / '+fmt(despConta)+' saída' : ''}</div>
+        </div>`
+      }).join('')
+      const totalSaldo = contasData.reduce((a,c) => {
+        const r = recData.filter(x => x.contaId == c.id && x.status === 'Recebido').reduce((s,b) => s+(b.total||0),0)
+        const d = despData.filter(x => x.contaId == c.id && x.status === 'Pago').reduce((s,b) => s+(b.valor||0),0)
+        return a + (c.saldoInicial||0) + r - d
+      }, 0)
+      cardsEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:8px">${grid}</div>
+        <div style="text-align:right;font-size:11px;color:var(--t3)">Saldo total consolidado: <b style="color:${totalSaldo>=0?'var(--grt)':'var(--ret)'};font-size:13px">${fmt(totalSaldo)}</b></div>`
+    }
+  }
+
+  const metrics = document.getElementById('banco-metrics')
+
+  /* Conciliação: lado a lado */
+  const recNConc = recData.filter(r => r.status === 'Recebido' && !r.reconciliada)
+  const bancNConc = bancData.filter(b => !recData.some(r => r.ofxId === b.id) && (b.tipo === 'C' || b.valor > 0))
+
+  const countRec = document.getElementById('rec-nconc-count')
+  const countBanc = document.getElementById('banc-nconc-count')
+  if (countRec) countRec.textContent = `(${recNConc.length})`
+  if (countBanc) countBanc.textContent = `(${bancNConc.length})`
+
+  /* Lista entradas não conciliadas */
+  const recLista = document.getElementById('banco-rec-lista')
+  if (recLista) {
+    recLista.innerHTML = recNConc.length
+      ? recNConc.map(r => {
+          const conta = contasData.find(c => c.id == r.contaId)
+          return `<div style="padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;border-left:3px solid var(--grt)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--grt)">${fmt(r.total||0)}</div>
+                <div style="font-size:10px;color:var(--t2)">${r.data} · ${r.cliNome||r.desc||'Avulsa'}</div>
+                ${conta ? `<div style="font-size:9px;color:var(--t3)"><i class="ti ti-building-bank"></i> ${conta.nome}</div>` : ''}
+              </div>
+              <button class="btn btn-xs btn-gr" onclick="marcarConciliadoManual(${r.id})" title="Marcar como conferido"><i class="ti ti-check"></i></button>
+            </div>
+          </div>`
+        }).join('')
+      : `<div style="padding:20px;text-align:center;color:var(--grt);font-size:12px"><i class="ti ti-circle-check" style="font-size:24px;display:block;margin-bottom:6px"></i>Todas as entradas estão conferidas!</div>`
+  }
+
+  /* Lista extrato não conciliado */
+  const bancLista = document.getElementById('banco-banc-lista')
+  if (bancLista) {
+    bancLista.innerHTML = bancNConc.length
+      ? bancNConc.map(b => {
+          /* Sugestão automática: valor igual ou muito próximo */
+          const sugestao = recNConc.find(r => Math.abs((r.total||0) - Math.abs(b.valor)) < 0.02)
+          return `<div style="padding:8px 10px;background:var(--s2);border:1px solid ${sugestao?'var(--am)':'var(--bd)'};border-radius:8px;border-left:3px solid ${sugestao?'var(--amt)':'var(--t3)'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11px;font-weight:700;color:var(--blt)">${fmt(Math.abs(b.valor))}</div>
+                <div style="font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.data} · ${b.desc||'—'}</div>
+                ${sugestao ? `<div style="font-size:9px;color:var(--amt)"><i class="ti ti-bulb"></i> Match sugerido: ${sugestao.cliNome||''} ${fmt(sugestao.total)}</div>` : ''}
+              </div>
+              <div style="display:flex;gap:4px;flex-shrink:0">
+                ${sugestao ? `<button class="btn btn-xs" style="background:var(--am);color:#fff" onclick="vincularMatch(${b.id},${sugestao.id})" title="Aceitar match sugerido"><i class="ti ti-link"></i> Match</button>` : ''}
+                <button class="btn btn-xs btn-pu" onclick="vincularBancoManual(${b.id})" title="Vincular manualmente"><i class="ti ti-search"></i></button>
+              </div>
+            </div>
+          </div>`
+        }).join('')
+      : `<div style="padding:20px;text-align:center;color:var(--t3);font-size:12px">${bancData.length ? '<i class="ti ti-circle-check" style="font-size:24px;color:var(--grt);display:block;margin-bottom:6px"></i>Extrato totalmente conciliado!' : 'Nenhum extrato importado.'} ${!bancData.length ? '<br><button class="btn btn-sm btn-pu" style="margin-top:8px" onclick="abrirModalOFX()"><i class="ti ti-file-import"></i> Importar extrato</button>' : ''}</div>`
+  }
+
+  /* Resumo de diferença */
+  const diffEl = document.getElementById('banco-diff-resumo')
+  if (diffEl && bancData.length) {
+    const totalBanco = bancData.filter(b => b.tipo === 'C' || b.valor > 0).reduce((a,b) => a+Math.abs(b.valor),0)
+    const totalSistema = recData.filter(r => r.status === 'Recebido').reduce((a,r) => a+(r.total||0),0)
+    const diff = totalBanco - totalSistema
+    diffEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
+      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Entradas no extrato</div><div style="font-size:15px;font-weight:700;color:var(--blt)">${fmt(totalBanco)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Receitas no sistema</div><div style="font-size:15px;font-weight:700;color:var(--grt)">${fmt(totalSistema)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Diferença</div><div style="font-size:15px;font-weight:700;color:${Math.abs(diff)<0.01?'var(--grt)':'var(--ret)'}">${diff>=0?'+':''}${fmt(diff)}</div><div style="font-size:9px;color:var(--t3)">${Math.abs(diff)<0.01?'✓ Tudo bate':'⚠ Verificar'}</div></div>
+    </div>`
+  } else if (diffEl) diffEl.innerHTML = ''
+
+  /* Métricas de conciliação */
+  if (metrics) {
+    const conciliadas = bancData.filter(b => recData.some(r => r.ofxId === b.id)).length
+    const pend = bancData.length - conciliadas
+    metrics.innerHTML = bancData.length ? `
+      <div class="metric"><div class="mb pu"></div><div class="ml">No extrato</div><div class="mv">${bancData.length}</div></div>
+      <div class="metric"><div class="mb gr"></div><div class="ml">Conciliados</div><div class="mv" style="color:var(--grt)">${conciliadas}</div><div class="ms">${bancData.length?Math.round(conciliadas/bancData.length*100):0}%</div></div>
+      <div class="metric"><div class="mb am"></div><div class="ml">Pendentes</div><div class="mv" style="color:${pend?'var(--amt)':'var(--grt)'}">${pend}</div></div>` : ''
+    const badge = document.getElementById('banco-pend-badge')
+    if (badge) { if (pend > 0) { badge.textContent = pend; badge.style.display = '' } else badge.style.display = 'none' }
+  }
+}
+
+function marcarConciliadoManual(recId) {
+  const r = recData.find(x => x.id == recId); if (!r) return
+  r.reconciliada = true
+  try { db.entradas.update && db.entradas.update(r.id, { reconciliada: true }) } catch {}
+  toast('Entrada marcada como conferida.', 3000)
+  renderBancoExtrato(); renderMov()
+}
+
+function vincularMatch(banId, recId) {
+  const b = bancData.find(x => x.id == banId)
+  const r = recData.find(x => x.id == recId)
+  if (!b || !r) return
+  r.ofxId = b.id; r.ofxDesc = b.desc; r.reconciliada = true
+  toast(`✓ Match aceito: ${r.cliNome||''} ${fmt(r.total)} ↔ ${b.desc||''}`, 4000)
+  renderBancoExtrato(); renderMov(); saveState()
 }
 
 /* Manter renderReceitas e renderDespesas como aliases pra renderMov (compatibilidade) */
@@ -5977,6 +6207,7 @@ async function salvarReceita() {
         cat: vsrv > 0 && vpec > 0 ? 'Serviços + Peças (OS)' : (vpec > 0 ? 'Peças (OS)' : 'Serviços (OS)'),
         forma: document.getElementById('rec_forma').value,
         status: document.getElementById('rec_status').value,
+        contaId: document.getElementById('rec_conta')?.value || null,
         tipo: 'os'
       }
 
@@ -6011,6 +6242,7 @@ async function salvarReceita() {
         vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
         forma: document.getElementById('rec_forma').value,
         status: document.getElementById('rec_status').value,
+        contaId: document.getElementById('rec_conta')?.value || null,
         tipo: 'avulsa'
       }
 
@@ -6058,7 +6290,8 @@ async function salvarDespesa() {
     data: dataFmt, dataVenc: dataVencFmt, desc, fornecedor, fornId,
     cat, valor,
     forma: document.getElementById('desp_forma').value,
-    status: document.getElementById('desp_status').value
+    status: document.getElementById('desp_status').value,
+    contaId: document.getElementById('desp_conta')?.value || null
   }
 
   try {
@@ -6129,6 +6362,7 @@ function editarReceita(recId) {
   document.getElementById('rec_forma').value = r.forma || 'PIX'
   document.getElementById('rec_status').value = r.status || 'Recebido'
   document.getElementById('rec_venc').value = r.dataVenc ? (r.dataVenc.split('/').reverse().join('-')) : ''
+  if (document.getElementById('rec_conta')) document.getElementById('rec_conta').value = r.contaId || ''
   abrirModal('mFinRec')
 }
 
@@ -6149,6 +6383,7 @@ function editarDespesa(despId) {
   document.getElementById('desp_forma').value = d.forma || 'PIX'
   document.getElementById('desp_status').value = d.status || 'Pago'
   document.getElementById('desp_venc').value = d.dataVenc ? (d.dataVenc.split('/').reverse().join('-')) : ''
+  if (document.getElementById('desp_conta')) document.getElementById('desp_conta').value = d.contaId || ''
   abrirModal('mFinDesp')
 }
 
@@ -8904,7 +9139,9 @@ async function compartilharPDFWhats(tipo, o, cli) {
     window.open(buildWhatsURL(tel, mensagem), '_blank')
     toast('PDF baixado. Cole no chat aberto e envie. 📎', 6000)
   } else {
-    navigator.clipboard?.writeText(mensagem).then(() => toast('PDF baixado. Cliente sem telefone — anexe manualmente no WhatsApp.', 6000))
+    window.open('https://web.whatsapp.com', '_blank')
+    navigator.clipboard?.writeText(mensagem).then(() => {})
+    toast('PDF baixado. Cliente sem telefone cadastrado — WhatsApp aberto, selecione o contato e cole o PDF. 📎', 7000)
   }
 }
 
