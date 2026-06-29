@@ -927,7 +927,9 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <!-- Ações -->
     <div class="fb" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div class="slabel" style="margin:0">Conciliação bancária</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:11px;color:var(--t3);white-space:nowrap">Conta:</label>
+        <select id="conc-conta-filtro" onchange="renderBancoExtrato()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todas</option></select>
         <button class="btn btn-pu btn-sm" onclick="autoConciliar()"><i class="ti ti-wand"></i> Sugerir matches</button>
         <button class="btn btn-sm" onclick="abrirModal('mContas');renderContasList()"><i class="ti ti-building-bank"></i> Gerenciar contas</button>
         <button class="btn btn-sm" onclick="abrirModalOFX()"><i class="ti ti-file-import"></i> Importar extrato</button>
@@ -937,14 +939,14 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <!-- Visão lado a lado: lançamentos do sistema vs extrato -->
     <div id="banco-conciliacao-wrap">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <!-- Coluna esquerda: entradas do sistema não conciliadas -->
+        <!-- Coluna esquerda: lançamentos do sistema (entradas + saídas) -->
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--grb);border-radius:6px;color:var(--grt)"><i class="ti ti-arrow-down-left"></i> Entradas do sistema <span id="rec-nconc-count"></span></div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--t1)"><i class="ti ti-arrows-up-down"></i> Lançamentos do sistema <span id="rec-nconc-count" style="color:var(--t3);font-weight:500"></span></div>
           <div id="banco-rec-lista" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
         </div>
-        <!-- Coluna direita: transações do extrato não conciliadas -->
+        <!-- Coluna direita: transações do extrato -->
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--pub);border-radius:6px;color:var(--pul)"><i class="ti ti-file-spreadsheet"></i> Extrato bancário <span id="banc-nconc-count"></span></div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--pub);border-radius:6px;color:var(--pul)"><i class="ti ti-file-spreadsheet"></i> Extrato bancário <span id="banc-nconc-count" style="color:var(--t3);font-weight:500"></span></div>
           <div id="banco-banc-lista" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
         </div>
       </div>
@@ -5772,14 +5774,14 @@ function renderMov() {
 /* Aba Banco: lista transações do extrato com indicação de vínculo */
 /* ── CONTAS BANCÁRIAS ──────────────────────────────────────── */
 function populateContasSelects() {
-  const selects = ['rec_conta', 'desp_conta', 'mov-conta']
+  const selects = ['rec_conta', 'desp_conta', 'mov-conta', 'conc-conta-filtro']
   selects.forEach(id => {
     const el = document.getElementById(id)
     if (!el) return
     const val = el.value
-    const isFilter = id === 'mov-conta'
+    const isFilter = id === 'mov-conta' || id === 'conc-conta-filtro'
     el.innerHTML = isFilter
-      ? '<option value="">Todas as contas</option>'
+      ? (id === 'conc-conta-filtro' ? '<option value="">Todas</option>' : '<option value="">Todas as contas</option>')
       : '<option value="">— Sem conta específica —</option>'
     contasData.forEach(c => {
       const op = document.createElement('option')
@@ -5881,33 +5883,58 @@ function renderBancoExtrato() {
 
   const metrics = document.getElementById('banco-metrics')
 
-  /* Conciliação: lado a lado */
-  const recNConc = recData.filter(r => r.status === 'Recebido' && !r.reconciliada)
-  const bancNConc = bancData.filter(b => !recData.some(r => r.ofxId === b.id) && (b.tipo === 'C' || b.valor > 0))
+  /* Conciliação: lado a lado — entradas + saídas do sistema vs extrato */
+  const contaFiltroConc = document.getElementById('conc-conta-filtro')?.value || ''
+  const passaConta = it => !contaFiltroConc || String(it.contaId || '') === String(contaFiltroConc)
+
+  /* Entradas (recebidas) não conciliadas */
+  const recNConc = recData
+    .filter(r => r.status === 'Recebido' && !r.reconciliada && passaConta(r))
+    .map(r => ({ ...r, _tipo: 'entrada' }))
+
+  /* Saídas (pagas) não conciliadas */
+  const despNConc = despData
+    .filter(d => d.status === 'Pago' && !d.reconciliada && passaConta(d))
+    .map(d => ({ ...d, _tipo: 'saida', total: d.valor, cliNome: d.fornecedor || d.desc || '' }))
+
+  /* Combinar e ordenar por data desc */
+  const lancSistema = [...recNConc, ...despNConc].sort((a,b) => {
+    const ad = (a.data||'').split('/').reverse().join('-')
+    const bd = (b.data||'').split('/').reverse().join('-')
+    return bd.localeCompare(ad)
+  })
+
+  const bancNConc = bancData.filter(b => !recData.some(r => r.ofxId === b.id) && !despData.some(d => d.ofxId === b.id))
 
   const countRec = document.getElementById('rec-nconc-count')
   const countBanc = document.getElementById('banc-nconc-count')
-  if (countRec) countRec.textContent = `(${recNConc.length})`
+  if (countRec) countRec.textContent = `(${lancSistema.length})`
   if (countBanc) countBanc.textContent = `(${bancNConc.length})`
 
-  /* Lista entradas não conciliadas */
+  /* Lista lançamentos do sistema não conciliados (entradas + saídas) */
   const recLista = document.getElementById('banco-rec-lista')
   if (recLista) {
-    recLista.innerHTML = recNConc.length
-      ? recNConc.map(r => {
-          const conta = contasData.find(c => c.id == r.contaId)
-          return `<div style="padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;border-left:3px solid var(--grt)">
+    recLista.innerHTML = lancSistema.length
+      ? lancSistema.map(it => {
+          const conta = contasData.find(c => c.id == it.contaId)
+          const ent = it._tipo === 'entrada'
+          const corValor = ent ? 'var(--grt)' : 'var(--ret)'
+          const corBorda = ent ? 'var(--grt)' : 'var(--ret)'
+          const sinal = ent ? '+' : '−'
+          const titulo = ent ? (it.cliNome || it.desc || 'Avulsa') : (it.desc || it.fornecedor || 'Despesa')
+          const checkFn = ent ? `marcarConciliadoManual(${it.id})` : `marcarConciliadoManualDesp(${it.id})`
+          return `<div style="padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;border-left:3px solid ${corBorda}">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <div>
-                <div style="font-size:11px;font-weight:700;color:var(--grt)">${fmt(r.total||0)}</div>
-                <div style="font-size:10px;color:var(--t2)">${r.data} · ${r.cliNome||r.desc||'Avulsa'}</div>
-                ${conta ? `<div style="font-size:9px;color:var(--t3)"><i class="ti ti-building-bank"></i> ${conta.nome}</div>` : ''}
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11px;font-weight:700;color:${corValor}">${sinal} ${fmt(it.total||0)}</div>
+                <div style="font-size:10px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.data} · ${titulo}</div>
+                ${conta ? `<div style="font-size:9px;color:${conta.cor||'var(--t3)'}"><i class="ti ti-building-bank"></i> ${conta.nome}</div>` : '<div style="font-size:9px;color:var(--am)"><i class="ti ti-alert-circle"></i> Sem conta vinculada</div>'}
               </div>
-              <button class="btn btn-xs btn-gr" onclick="marcarConciliadoManual(${r.id})" title="Marcar como conferido"><i class="ti ti-check"></i></button>
+              <button class="btn btn-xs btn-gr" onclick="${checkFn}" title="Marcar como conferido"><i class="ti ti-check"></i></button>
             </div>
           </div>`
         }).join('')
-      : `<div style="padding:20px;text-align:center;color:var(--grt);font-size:12px"><i class="ti ti-circle-check" style="font-size:24px;display:block;margin-bottom:6px"></i>Todas as entradas estão conferidas!</div>`
+      : `<div style="padding:20px;text-align:center;color:var(--grt);font-size:12px"><i class="ti ti-circle-check" style="font-size:24px;display:block;margin-bottom:6px"></i>Tudo conferido${contaFiltroConc?' nesta conta':''}!</div>`
   }
 
   /* Lista extrato não conciliado */
@@ -5937,13 +5964,25 @@ function renderBancoExtrato() {
   /* Resumo de diferença */
   const diffEl = document.getElementById('banco-diff-resumo')
   if (diffEl && bancData.length) {
-    const totalBanco = bancData.filter(b => b.tipo === 'C' || b.valor > 0).reduce((a,b) => a+Math.abs(b.valor),0)
-    const totalSistema = recData.filter(r => r.status === 'Recebido').reduce((a,r) => a+(r.total||0),0)
-    const diff = totalBanco - totalSistema
-    diffEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
-      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Entradas no extrato</div><div style="font-size:15px;font-weight:700;color:var(--blt)">${fmt(totalBanco)}</div></div>
-      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Receitas no sistema</div><div style="font-size:15px;font-weight:700;color:var(--grt)">${fmt(totalSistema)}</div></div>
-      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Diferença</div><div style="font-size:15px;font-weight:700;color:${Math.abs(diff)<0.01?'var(--grt)':'var(--ret)'}">${diff>=0?'+':''}${fmt(diff)}</div><div style="font-size:9px;color:var(--t3)">${Math.abs(diff)<0.01?'✓ Tudo bate':'⚠ Verificar'}</div></div>
+    const totalEntBanco = bancData.filter(b => b.tipo === 'C' || b.valor > 0).reduce((a,b) => a+Math.abs(b.valor),0)
+    const totalSaiBanco = bancData.filter(b => b.tipo === 'D' || b.valor < 0).reduce((a,b) => a+Math.abs(b.valor),0)
+    const totalRecSistema = recData.filter(r => r.status === 'Recebido' && passaConta(r)).reduce((a,r) => a+(r.total||0),0)
+    const totalDespSistema = despData.filter(d => d.status === 'Pago' && passaConta(d)).reduce((a,d) => a+(d.valor||0),0)
+    const diffEnt = totalEntBanco - totalRecSistema
+    const diffSai = totalSaiBanco - totalDespSistema
+    diffEl.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
+        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:6px;font-weight:600">↓ Entradas</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--t2)">No extrato:</span><b style="color:var(--blt)">${fmt(totalEntBanco)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px"><span style="color:var(--t2)">No sistema:</span><b style="color:var(--grt)">${fmt(totalRecSistema)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)"><span style="font-weight:700">Diferença:</span><b style="color:${Math.abs(diffEnt)<0.01?'var(--grt)':'var(--ret)'}">${diffEnt>=0?'+':''}${fmt(diffEnt)}</b></div>
+      </div>
+      <div style="padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
+        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:6px;font-weight:600">↑ Saídas</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--t2)">No extrato:</span><b style="color:var(--blt)">${fmt(totalSaiBanco)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px"><span style="color:var(--t2)">No sistema:</span><b style="color:var(--ret)">${fmt(totalDespSistema)}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)"><span style="font-weight:700">Diferença:</span><b style="color:${Math.abs(diffSai)<0.01?'var(--grt)':'var(--ret)'}">${diffSai>=0?'+':''}${fmt(diffSai)}</b></div>
+      </div>
     </div>`
   } else if (diffEl) diffEl.innerHTML = ''
 
@@ -5965,6 +6004,15 @@ function marcarConciliadoManual(recId) {
   r.reconciliada = true
   try { db.entradas.update && db.entradas.update(r.id, { reconciliada: true }) } catch {}
   toast('Entrada marcada como conferida.', 3000)
+  renderBancoExtrato(); renderMov()
+}
+
+function marcarConciliadoManualDesp(despId) {
+  const d = despData.find(x => x.id == despId); if (!d) return
+  d.reconciliada = true
+  /* Saídas não têm coluna reconciliada no banco, mantemos só em memória + saveState */
+  try { typeof saveState === 'function' && saveState() } catch {}
+  toast('Saída marcada como conferida.', 3000)
   renderBancoExtrato(); renderMov()
 }
 
