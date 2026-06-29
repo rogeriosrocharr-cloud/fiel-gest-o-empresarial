@@ -2448,16 +2448,30 @@ const db = {
 
   /* ─── ENTRADAS (receitas) ─── */
   entradas: {
+    /* Helpers para anexar/extrair contaId no campo descricao via marcador [CTA:id]
+       (a tabela banco do Supabase ainda não tem coluna conta_id) */
+    _extrairConta(desc) {
+      if (!desc) return { desc: '', contaId: null }
+      const m = desc.match(/\s*\[CTA:([^\]]+)\]\s*$/)
+      if (!m) return { desc, contaId: null }
+      return { desc: desc.replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim(), contaId: m[1] }
+    },
+    _anexarConta(desc, contaId) {
+      const limpa = (desc || '').replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim()
+      return contaId ? (limpa + ' [CTA:' + contaId + ']') : limpa
+    },
     _mapFromDB(r) {
+      const { desc: descLimpa, contaId } = this._extrairConta(r.descricao || '')
       return {
         id: r.id, numero: r.numero, data: r.data || '', dataVenc: r.data_venc || null,
-        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: r.descricao || '',
+        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: descLimpa,
         cat: r.cat || '', tipo: r.tipo || 'os',
         vsrv: Number(r.v_srv) || 0, vpec: Number(r.v_pec) || 0,
         descSrv: Number(r.desc_srv) || 0, descPec: Number(r.desc_pec) || 0,
         subSrv: Number(r.sub_srv) || 0, subPec: Number(r.sub_pec) || 0,
         total: Number(r.total) || 0,
         forma: r.forma || '', status: r.status || 'Recebido',
+        contaId: contaId,
         reconciliada: !!r.reconciliada, ofxDesc: r.ofx_desc || ''
       }
     },
@@ -2467,7 +2481,11 @@ const db = {
       if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
       if (d.osId !== undefined) o.os_id = d.osId || null
       if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
-      if (d.desc !== undefined) o.descricao = d.desc || null
+      /* Anexa o contaId à descrição apenas se contaId estiver presente nos dados de update */
+      if (d.desc !== undefined || d.contaId !== undefined) {
+        const descBase = d.desc !== undefined ? (d.desc || '') : ''
+        o.descricao = this._anexarConta(descBase, d.contaId || null) || null
+      }
       ;['cat','tipo','forma','status'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.vsrv !== undefined) o.v_srv = Number(d.vsrv) || 0
       if (d.vpec !== undefined) o.v_pec = Number(d.vpec) || 0
@@ -2510,20 +2528,35 @@ const db = {
 
   /* ─── SAÍDAS (despesas) ─── */
   saidas: {
+    _extrairConta(desc) {
+      if (!desc) return { desc: '', contaId: null }
+      const m = desc.match(/\s*\[CTA:([^\]]+)\]\s*$/)
+      if (!m) return { desc, contaId: null }
+      return { desc: desc.replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim(), contaId: m[1] }
+    },
+    _anexarConta(desc, contaId) {
+      const limpa = (desc || '').replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim()
+      return contaId ? (limpa + ' [CTA:' + contaId + ']') : limpa
+    },
     _mapFromDB(d) {
+      const { desc: descLimpa, contaId } = this._extrairConta(d.descricao || '')
       return {
         id: d.id, numero: d.numero, data: d.data || '', dataVenc: d.data_venc || null,
-        desc: d.descricao || '', cat: d.cat || '',
+        desc: descLimpa, cat: d.cat || '',
         fornecedor: d.fornecedor || '', fornId: d.fornecedor_id || null,
         valor: Number(d.valor) || 0, forma: d.forma || '',
-        status: d.status || 'Pago'
+        status: d.status || 'Pago',
+        contaId: contaId
       }
     },
     _mapToDB(d) {
       const o = {}
       if (d.data !== undefined) o.data = d.data || null
       if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
-      if (d.desc !== undefined) o.descricao = d.desc || null
+      if (d.desc !== undefined || d.contaId !== undefined) {
+        const descBase = d.desc !== undefined ? (d.desc || '') : ''
+        o.descricao = this._anexarConta(descBase, d.contaId || null) || null
+      }
       ;['cat','forma','status','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.fornId !== undefined) o.fornecedor_id = d.fornId || null
       if (d.valor !== undefined) o.valor = Number(d.valor) || 0
