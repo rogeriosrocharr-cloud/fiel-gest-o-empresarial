@@ -5758,15 +5758,15 @@ function renderMov() {
       : `<button class="btn btn-xs" onclick="editarDespesa(${it.id})" title="Editar saída"><i class="ti ti-edit"></i></button><button class="btn btn-xs btn-re" onclick="cancelarDespesa(${it.id})" title="Cancelar saída"><i class="ti ti-x"></i></button>`
     return `<tr class="mov-row-${it._tipo}">
       <td style="padding:0"></td>
-      <td style="color:var(--t2);white-space:nowrap">${it.data}</td>
-      <td>${descComVenc}</td>
-      <td>${cat}</td>
-      <td>${contaCell}</td>
-      <td style="text-align:right;font-weight:700;color:${ent ? 'var(--grt)' : 'var(--ret)'};white-space:nowrap">${ent ? '+' : '−'} ${fmt(valor)}</td>
-      <td style="color:var(--t2)">${it.forma || '—'}</td>
-      <td>${pill(it.status)}</td>
-      <td style="text-align:center">${banco}</td>
-      <td style="display:flex;gap:3px">${acoes}</td>
+      <td style="color:var(--t2);white-space:nowrap;vertical-align:middle">${it.data}</td>
+      <td style="vertical-align:middle">${descComVenc}</td>
+      <td style="vertical-align:middle">${cat}</td>
+      <td style="vertical-align:middle">${contaCell}</td>
+      <td style="text-align:right;font-weight:700;color:${ent ? 'var(--grt)' : 'var(--ret)'};white-space:nowrap;vertical-align:middle">${ent ? '+' : '−'} ${fmt(valor)}</td>
+      <td style="color:var(--t2);vertical-align:middle">${it.forma || '—'}</td>
+      <td style="vertical-align:middle">${pill(it.status)}</td>
+      <td style="text-align:center;vertical-align:middle">${banco}</td>
+      <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">${acoes}</div></td>
     </tr>`
   }).join('')
 }
