@@ -1407,8 +1407,22 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <!-- Comum aos dois modos -->
-  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
+  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="toggleRecParc()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
+
+  <!-- Parcelamento (aparece só para Crédito da casa e Cartão crédito) -->
+  <div id="rec_parc_wrap" style="display:none;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--pul);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
+    <div class="fr g2" style="margin-bottom:8px">
+      <div class="fg"><label>Valor de entrada (R$) <span style="color:var(--t3);font-weight:400">(0 = sem entrada)</span></label><input id="rec_parc_entrada" type="number" step="0.01" value="0" min="0" oninput="calcRecParc()"></div>
+      <div class="fg"><label>Nº de parcelas</label><select id="rec_parc_qtd" onchange="calcRecParc()"><option value="1">1x (à vista)</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="12">12x</option></select></div>
+    </div>
+    <div class="fr g2">
+      <div class="fg"><label>1ª parcela vence em</label><input id="rec_parc_ini" type="date"></div>
+      <div class="fg"><label>Intervalo entre parcelas</label><select id="rec_parc_intervalo"><option value="30">Mensal (30 dias)</option><option value="15">Quinzenal</option><option value="7">Semanal</option></select></div>
+    </div>
+    <div id="rec_parc_preview" style="margin-top:10px;font-size:11px;color:var(--t2)"></div>
+  </div>
 
   <div class="mf"><button class="btn" onclick="fecharModal('mFinRec');resetModalRec()">Cancelar</button><button class="btn btn-gr" onclick="salvarReceita()"><i class="ti ti-check"></i> <span id="rec-btn-label">Lançar Entrada</span></button></div>
 </div></div>
@@ -1418,8 +1432,19 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="mh"><h3><div class="mh-ic" style="background:var(--reb);color:var(--ret)"><i class="ti ti-trending-down"></i></div><span id="mFinDesp-title">Nova Saída</span></h3><button class="xbtn" onclick="fecharModal('mFinDesp');resetModalDesp()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
-  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma"><option>PIX</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Cartão</option></select></div></div>
+  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01" oninput="calcDespParc()"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma" onchange="toggleDespParc()"><option>PIX</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Cartão</option></select></div></div>
   <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
+
+  <!-- Parcelamento de despesa (aparece para Boleto e Cartão) -->
+  <div id="desp_parc_wrap" style="display:none;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--ret);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
+    <div class="fr g3">
+      <div class="fg"><label>Nº de parcelas</label><select id="desp_parc_qtd" onchange="calcDespParc()"><option value="1">1x (à vista)</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="12">12x</option></select></div>
+      <div class="fg"><label>1ª parcela vence em</label><input id="desp_parc_ini" type="date"></div>
+      <div class="fg"><label>Intervalo</label><select id="desp_parc_intervalo"><option value="30">Mensal (30 dias)</option><option value="15">Quinzenal</option><option value="7">Semanal</option></select></div>
+    </div>
+    <div id="desp_parc_preview" style="margin-top:10px;font-size:11px;color:var(--t2)"></div>
+  </div>
   <div class="mf"><button class="btn" onclick="fecharModal('mFinDesp');resetModalDesp()">Cancelar</button><button class="btn btn-re" onclick="salvarDespesa()"><i class="ti ti-check"></i> <span id="desp-btn-label">Lançar Saída</span></button></div>
 </div></div>
 
@@ -6221,6 +6246,126 @@ function alternarTipoRec(tipo) {
   document.getElementById('rec-modo-avulsa').style.display = tipo === 'avulsa' ? '' : 'none'
 }
 
+/* ── PARCELAMENTO ─────────────────────────────────────────── */
+function toggleRecParc() {
+  const forma = document.getElementById('rec_forma').value
+  const wrap = document.getElementById('rec_parc_wrap')
+  if (!wrap) return
+  const mostra = forma === 'Crédito da casa' || forma === 'Cartão crédito'
+  wrap.style.display = mostra ? '' : 'none'
+  if (mostra) {
+    /* Auto-fill 1ª parcela: 30 dias a partir de hoje */
+    const ini = document.getElementById('rec_parc_ini')
+    if (ini && !ini.value) {
+      const d = new Date(); d.setDate(d.getDate() + 30)
+      ini.value = d.toISOString().split('T')[0]
+    }
+    calcRecParc()
+  }
+}
+
+function calcRecParc() {
+  const preview = document.getElementById('rec_parc_preview'); if (!preview) return
+  const forma = document.getElementById('rec_forma').value
+  if (forma !== 'Crédito da casa' && forma !== 'Cartão crédito') { preview.innerHTML = ''; return }
+
+  /* Pega o total da receita (modo OS ou avulso) */
+  const modoOS = document.getElementById('rec_modo_os')?.checked !== false
+  let total = 0
+  if (modoOS) {
+    /* No modo OS o total é calculado automaticamente */
+    const vsrv = parseFloat(document.getElementById('rec_vsrv')?.value) || 0
+    const vpec = parseFloat(document.getElementById('rec_vpec')?.value) || 0
+    const dsrv = parseFloat(document.getElementById('rec_dsrv')?.value) || 0
+    const dpec = parseFloat(document.getElementById('rec_dpec')?.value) || 0
+    total = (vsrv * (1 - dsrv/100)) + (vpec * (1 - dpec/100))
+  } else {
+    total = parseFloat(document.getElementById('rec_av_valor')?.value) || 0
+  }
+
+  const entrada = parseFloat(document.getElementById('rec_parc_entrada')?.value) || 0
+  const nParc = parseInt(document.getElementById('rec_parc_qtd')?.value) || 1
+  const iniDate = document.getElementById('rec_parc_ini')?.value
+  const intervalo = parseInt(document.getElementById('rec_parc_intervalo')?.value) || 30
+
+  if (total <= 0) { preview.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--am)"></i> Preencha o valor total primeiro.'; return }
+  if (entrada >= total) { preview.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--am)"></i> Entrada não pode ser maior que o total.'; return }
+
+  const restante = total - entrada
+  const valorParc = Math.round(restante / nParc * 100) / 100
+
+  let html = ''
+  if (entrada > 0) html += `<div style="margin-bottom:6px"><b style="color:var(--grt)">Entrada:</b> ${fmt(entrada)} (recebida na data do lançamento)</div>`
+  html += `<div style="margin-bottom:4px"><b>${nParc}x</b> de <b style="color:var(--amt)">${fmt(valorParc)}</b> = ${fmt(valorParc * nParc)}</div>`
+
+  if (iniDate) {
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'
+    for (let i = 0; i < nParc; i++) {
+      const d = new Date(iniDate + 'T12:00')
+      d.setDate(d.getDate() + (intervalo * i))
+      const label = d.toLocaleDateString('pt-BR')
+      html += `<span style="padding:2px 7px;background:var(--s3);border-radius:6px;font-size:10px">${i+1}ª ${label}</span>`
+    }
+    html += '</div>'
+  }
+  preview.innerHTML = html
+}
+
+function toggleDespParc() {
+  const forma = document.getElementById('desp_forma').value
+  const wrap = document.getElementById('desp_parc_wrap')
+  if (!wrap) return
+  const mostra = forma === 'Boleto' || forma === 'Cartão'
+  wrap.style.display = mostra ? '' : 'none'
+  if (mostra) {
+    const ini = document.getElementById('desp_parc_ini')
+    if (ini && !ini.value) {
+      const d = new Date(); d.setDate(d.getDate() + 30)
+      ini.value = d.toISOString().split('T')[0]
+    }
+    calcDespParc()
+  }
+}
+
+function calcDespParc() {
+  const preview = document.getElementById('desp_parc_preview'); if (!preview) return
+  const forma = document.getElementById('desp_forma').value
+  if (forma !== 'Boleto' && forma !== 'Cartão') { preview.innerHTML = ''; return }
+
+  const total = parseFloat(document.getElementById('desp_valor')?.value) || 0
+  const nParc = parseInt(document.getElementById('desp_parc_qtd')?.value) || 1
+  const iniDate = document.getElementById('desp_parc_ini')?.value
+  const intervalo = parseInt(document.getElementById('desp_parc_intervalo')?.value) || 30
+
+  if (total <= 0) { preview.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--am)"></i> Preencha o valor total primeiro.'; return }
+
+  const valorParc = Math.round(total / nParc * 100) / 100
+
+  let html = `<div style="margin-bottom:4px"><b>${nParc}x</b> de <b style="color:var(--ret)">${fmt(valorParc)}</b> = ${fmt(valorParc * nParc)}</div>`
+
+  if (iniDate) {
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'
+    for (let i = 0; i < nParc; i++) {
+      const d = new Date(iniDate + 'T12:00')
+      d.setDate(d.getDate() + (intervalo * i))
+      html += `<span style="padding:2px 7px;background:var(--s3);border-radius:6px;font-size:10px">${i+1}ª ${d.toLocaleDateString('pt-BR')}</span>`
+    }
+    html += '</div>'
+  }
+  preview.innerHTML = html
+}
+
+/* Helper: gerar datas de parcelas */
+function gerarDatasParcelas(dataIni, qtd, intervalo) {
+  const datas = []
+  for (let i = 0; i < qtd; i++) {
+    const d = new Date(dataIni + 'T12:00')
+    d.setDate(d.getDate() + (intervalo * i))
+    datas.push(d.toLocaleDateString('pt-BR'))
+  }
+  return datas
+}
+
 function resetModalRec() {
   recEditId = null
   _recTipoModo = 'os'
@@ -6234,6 +6379,12 @@ function resetModalRec() {
   document.getElementById('rec_av_cat').onchange = () => onChangeSelectCat('rec_av_cat', 'rec')
   document.getElementById('rec_forma').value = 'PIX'
   document.getElementById('rec_status').value = 'Recebido'
+  /* Reset parcelamento */
+  const rpw = document.getElementById('rec_parc_wrap'); if (rpw) rpw.style.display = 'none'
+  ;['rec_parc_entrada'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '0' })
+  const rpq = document.getElementById('rec_parc_qtd'); if (rpq) rpq.value = '1'
+  const rpp = document.getElementById('rec_parc_preview'); if (rpp) rpp.innerHTML = ''
+  const rpi = document.getElementById('rec_parc_ini'); if (rpi) rpi.value = ''
   document.getElementById('mFinRec-title').textContent = 'Nova Entrada'
   document.getElementById('rec-btn-label').textContent = 'Lançar Entrada'
   atualizarTotRec()
@@ -6248,6 +6399,11 @@ function resetModalDesp() {
   popularFornecedoresList()
   document.getElementById('desp_forma').value = 'PIX'
   document.getElementById('desp_status').value = 'Pago'
+  /* Reset parcelamento */
+  const dpw = document.getElementById('desp_parc_wrap'); if (dpw) dpw.style.display = 'none'
+  const dpq = document.getElementById('desp_parc_qtd'); if (dpq) dpq.value = '1'
+  const dpp = document.getElementById('desp_parc_preview'); if (dpp) dpp.innerHTML = ''
+  const dpi = document.getElementById('desp_parc_ini'); if (dpi) dpi.value = ''
   document.getElementById('mFinDesp-title').textContent = 'Nova Saída'
   document.getElementById('desp-btn-label').textContent = 'Lançar Saída'
 }
@@ -6354,6 +6510,68 @@ async function salvarReceita() {
         try { await db.categorias.add(lojaAtual.id, 'rec', cat) } catch (_) {}
       }
     }
+
+    /* ── Gerar parcelas adicionais se for parcelamento ── */
+    const forma = document.getElementById('rec_forma').value
+    const parcWrap = document.getElementById('rec_parc_wrap')
+    if (!recEditId && parcWrap && parcWrap.style.display !== 'none' && (forma === 'Crédito da casa' || forma === 'Cartão crédito')) {
+      const nParc = parseInt(document.getElementById('rec_parc_qtd')?.value) || 1
+      const entrada = parseFloat(document.getElementById('rec_parc_entrada')?.value) || 0
+      const iniDate = document.getElementById('rec_parc_ini')?.value
+      const intervalo = parseInt(document.getElementById('rec_parc_intervalo')?.value) || 30
+
+      if (nParc > 1 && iniDate) {
+        /* O lançamento principal já foi criado acima com o valor total.
+           Agora preciso: ajustar o principal como entrada (se tiver) + criar parcelas */
+        const ultimoRec = recData[0] /* o que acabou de ser criado */
+        const totalOriginal = ultimoRec.total
+
+        if (entrada > 0) {
+          /* Ajustar o lançamento principal para ser a entrada (valor = entrada, status = Recebido) */
+          ultimoRec.total = entrada
+          ultimoRec.desc = (ultimoRec.desc || ultimoRec.cliNome || '') + ' (ENTRADA)'
+          ultimoRec.status = 'Recebido'
+          try { await db.entradas.update(ultimoRec.id, { total: entrada, desc: ultimoRec.desc, status: 'Recebido' }) } catch {}
+        } else {
+          /* Sem entrada: ajustar o principal para 1ª parcela */
+          const valorParc = Math.round(totalOriginal / nParc * 100) / 100
+          ultimoRec.total = valorParc
+          ultimoRec.desc = (ultimoRec.desc || ultimoRec.cliNome || '') + ' (1/' + nParc + ')'
+          ultimoRec.status = 'A receber'
+          ultimoRec.dataVenc = new Date(iniDate + 'T12:00').toLocaleDateString('pt-BR')
+          try { await db.entradas.update(ultimoRec.id, { total: valorParc, desc: ultimoRec.desc, status: 'A receber', dataVenc: ultimoRec.dataVenc }) } catch {}
+        }
+
+        /* Criar as parcelas restantes */
+        const restante = entrada > 0 ? totalOriginal - entrada : totalOriginal
+        const valorParc = Math.round(restante / nParc * 100) / 100
+        const parcInicio = entrada > 0 ? 0 : 1 /* se tem entrada, começa da 1ª parcela; se não, pula a 1ª (já criada) */
+
+        for (let i = parcInicio; i < nParc; i++) {
+          const d = new Date(iniDate + 'T12:00')
+          d.setDate(d.getDate() + (intervalo * i))
+          const dataVencParc = d.toLocaleDateString('pt-BR')
+          const parcDados = {
+            data: ultimoRec.data, dataVenc: dataVencParc,
+            osId: ultimoRec.osId || null,
+            cliNome: ultimoRec.cliNome || '',
+            desc: (ultimoRec.cliNome || ultimoRec.desc || '').replace(/\s*\(.*\)\s*$/, '') + ` (${i+1}/${nParc})`,
+            cat: ultimoRec.cat || 'Parcelamento',
+            vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0,
+            total: valorParc,
+            forma, status: 'A receber',
+            contaId: ultimoRec.contaId || null,
+            tipo: ultimoRec.tipo || 'avulsa'
+          }
+          try {
+            const novo = await db.entradas.create(lojaAtual.id, parcDados)
+            recData.unshift(novo)
+          } catch (err) { console.error('Erro parcela', i, err) }
+        }
+        toast(`✓ ${entrada > 0 ? 'Entrada + ' : ''}${nParc} parcelas geradas.`, 4000)
+      }
+    }
+
     fecharModal('mFinRec'); resetModalRec()
     renderFinMetrics(); renderMov(); renderBancoExtrato(); updateBadge(); renderDash(); renderKanban(); renderOS()
   } catch (e) {
@@ -6401,6 +6619,47 @@ async function salvarDespesa() {
     if (cat && !DESP_CAT_PADRAO.includes(cat) && !despCatCustom.includes(cat)) {
       despCatCustom.push(cat)
       try { await db.categorias.add(lojaAtual.id, 'desp', cat) } catch (_) {}
+    }
+
+    /* ── Gerar parcelas adicionais se for parcelamento de despesa ── */
+    const formaDesp = document.getElementById('desp_forma').value
+    const parcWrapD = document.getElementById('desp_parc_wrap')
+    if (!despEditId && parcWrapD && parcWrapD.style.display !== 'none' && (formaDesp === 'Boleto' || formaDesp === 'Cartão')) {
+      const nParc = parseInt(document.getElementById('desp_parc_qtd')?.value) || 1
+      const iniDate = document.getElementById('desp_parc_ini')?.value
+      const intervalo = parseInt(document.getElementById('desp_parc_intervalo')?.value) || 30
+
+      if (nParc > 1 && iniDate) {
+        const ultimoDesp = despData[0]
+        const valorParc = Math.round(valor / nParc * 100) / 100
+
+        /* Ajustar o primeiro lançamento para ser a 1ª parcela */
+        ultimoDesp.valor = valorParc
+        ultimoDesp.desc = desc + ' (1/' + nParc + ')'
+        ultimoDesp.status = 'A pagar'
+        ultimoDesp.dataVenc = new Date(iniDate + 'T12:00').toLocaleDateString('pt-BR')
+        try { await db.saidas.update(ultimoDesp.id, { valor: valorParc, desc: ultimoDesp.desc, status: 'A pagar', dataVenc: ultimoDesp.dataVenc }) } catch {}
+
+        /* Criar as parcelas restantes */
+        for (let i = 1; i < nParc; i++) {
+          const d = new Date(iniDate + 'T12:00')
+          d.setDate(d.getDate() + (intervalo * i))
+          const dataVencParc = d.toLocaleDateString('pt-BR')
+          const parcDados = {
+            data: dataFmt, dataVenc: dataVencParc,
+            desc: desc + ` (${i+1}/${nParc})`,
+            fornecedor, fornId, cat,
+            valor: valorParc,
+            forma: formaDesp, status: 'A pagar',
+            contaId: ultimoDesp.contaId || null
+          }
+          try {
+            const novo = await db.saidas.create(lojaAtual.id, parcDados)
+            despData.unshift(novo)
+          } catch (err) { console.error('Erro parcela desp', i, err) }
+        }
+        toast(`✓ ${nParc} parcelas de despesa geradas.`, 4000)
+      }
     }
 
     fecharModal('mFinDesp'); resetModalDesp()
