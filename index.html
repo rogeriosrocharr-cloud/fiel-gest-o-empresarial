@@ -506,7 +506,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 .psign{margin-top:4mm;display:grid;grid-template-columns:1fr 1fr;gap:8mm}
 .psign-l{border-top:1px solid #ccc;padding-top:1.5mm;font-size:8.5px;color:#888;text-align:center}
 .pfoot{margin-top:3mm;padding-top:2mm;border-top:1px solid #e0d8f8;display:flex;justify-content:space-between;font-size:8.5px;color:#aaa}
-@media print{.app,.pclose{display:none!important}.pov{position:static!important;background:none!important;padding:0!important;display:block!important}.pdoc{width:100%!important;box-shadow:none!important;padding:8mm 10mm!important;box-sizing:border-box!important}@page{margin:0;size:A4}}
+@media print{.app,.pclose{display:none!important}.pov{display:none!important}.pov.open{position:static!important;background:none!important;padding:0!important;display:block!important}.pdoc{width:100%!important;box-shadow:none!important;padding:8mm 10mm!important;box-sizing:border-box!important}@page{margin:0;size:A4}}
 #toast{position:fixed;bottom:22px;right:22px;background:var(--s2);border:1px solid var(--pu2);color:var(--t1);padding:11px 16px;border-radius:var(--rl);font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(92,20,220,.3)}
 #toast i{color:var(--pul)}#toast.show{opacity:1;transform:translateY(0)}
 </style>
@@ -1652,7 +1652,7 @@ const toast = (m, t = 3000) => {
 }
 const abrirModal = id => document.getElementById(id).classList.add('open')
 const fecharModal = id => document.getElementById(id).classList.remove('open')
-document.querySelectorAll('.ov,.pov').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') }))
+/* Modais só fecham pelo botão X ou Cancelar — evita perda acidental de dados ao clicar fora */
 
 const pillMap = {
   'Aguardando aprovação': 'p-am', 'Aprovado': 'p-gr', 'Recusado': 'p-re', 'OS gerada': 'p-pu',
