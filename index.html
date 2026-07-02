@@ -1407,8 +1407,9 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <!-- Comum aos dois modos -->
-  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="toggleRecParc()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
+  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="toggleRecParc()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status" onchange="toggleRecDataPgto()"><option>Recebido</option><option>A receber</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
+  <div id="rec_datapgto_wrap" style="display:none;margin-bottom:14px"><div class="fg"><label><i class="ti ti-calendar-check" style="color:var(--grt)"></i> Data que recebeu <span style="color:var(--t3);font-weight:400">(quando o dinheiro entrou de fato)</span></label><input id="rec_datapgto" type="date" style="max-width:200px"></div></div>
 
   <!-- Parcelamento (aparece só para Crédito da casa e Cartão crédito) -->
   <div id="rec_parc_wrap" style="display:none;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px">
@@ -2482,18 +2483,24 @@ const db = {
   entradas: {
     /* Helpers para anexar/extrair contaId no campo descricao via marcador [CTA:id]
        (a tabela banco do Supabase ainda não tem coluna conta_id) */
-    _extrairConta(desc) {
-      if (!desc) return { desc: '', contaId: null }
-      const m = desc.match(/\s*\[CTA:([^\]]+)\]\s*$/)
-      if (!m) return { desc, contaId: null }
-      return { desc: desc.replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim(), contaId: m[1] }
+    _extrairMarcadores(desc) {
+      if (!desc) return { desc: '', contaId: null, dataPgto: null }
+      let contaId = null, dataPgto = null
+      let limpa = desc
+      const mCta = limpa.match(/\s*\[CTA:([^\]]+)\]/)
+      if (mCta) { contaId = mCta[1]; limpa = limpa.replace(mCta[0], '') }
+      const mPgto = limpa.match(/\s*\[PGTO:([^\]]+)\]/)
+      if (mPgto) { dataPgto = mPgto[1]; limpa = limpa.replace(mPgto[0], '') }
+      return { desc: limpa.trim(), contaId, dataPgto }
     },
-    _anexarConta(desc, contaId) {
-      const limpa = (desc || '').replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim()
-      return contaId ? (limpa + ' [CTA:' + contaId + ']') : limpa
+    _anexarMarcadores(desc, contaId, dataPgto) {
+      let limpa = (desc || '').replace(/\s*\[CTA:[^\]]+\]/g, '').replace(/\s*\[PGTO:[^\]]+\]/g, '').trim()
+      if (contaId) limpa += ' [CTA:' + contaId + ']'
+      if (dataPgto) limpa += ' [PGTO:' + dataPgto + ']'
+      return limpa
     },
     _mapFromDB(r) {
-      const { desc: descLimpa, contaId } = this._extrairConta(r.descricao || '')
+      const { desc: descLimpa, contaId, dataPgto } = this._extrairMarcadores(r.descricao || '')
       return {
         id: r.id, numero: r.numero, data: r.data || '', dataVenc: r.data_venc || null,
         osId: r.os_id || null, cliNome: r.cli_nome || '', desc: descLimpa,
@@ -2503,7 +2510,7 @@ const db = {
         subSrv: Number(r.sub_srv) || 0, subPec: Number(r.sub_pec) || 0,
         total: Number(r.total) || 0,
         forma: r.forma || '', status: r.status || 'Recebido',
-        contaId: contaId,
+        contaId, dataPgto,
         reconciliada: !!r.reconciliada, ofxDesc: r.ofx_desc || ''
       }
     },
@@ -2513,10 +2520,9 @@ const db = {
       if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
       if (d.osId !== undefined) o.os_id = d.osId || null
       if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
-      /* Anexa o contaId à descrição apenas se contaId estiver presente nos dados de update */
-      if (d.desc !== undefined || d.contaId !== undefined) {
+      if (d.desc !== undefined || d.contaId !== undefined || d.dataPgto !== undefined) {
         const descBase = d.desc !== undefined ? (d.desc || '') : ''
-        o.descricao = this._anexarConta(descBase, d.contaId || null) || null
+        o.descricao = this._anexarMarcadores(descBase, d.contaId || null, d.dataPgto || null) || null
       }
       ;['cat','tipo','forma','status'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.vsrv !== undefined) o.v_srv = Number(d.vsrv) || 0
@@ -5738,14 +5744,28 @@ function renderMov() {
 
   let itens = []
   if (tipo !== 'saida') {
-    itens = itens.concat(recData.filter(r => dateInRange(r.data, de, ate) && passaStatus(r) && passaConta(r)).map(r => ({ ...r, _tipo: 'entrada' })))
+    itens = itens.concat(recData.filter(r => {
+      const isPend = r.status === 'A receber'
+      const dataRef = isPend && r.dataVenc ? r.dataVenc : r.data
+      return dateInRange(dataRef, de, ate) && passaStatus(r) && passaConta(r)
+    }).map(r => ({ ...r, _tipo: 'entrada' })))
   }
   if (tipo !== 'entrada') {
-    itens = itens.concat(despData.filter(d => dateInRange(d.data, de, ate) && passaStatus(d) && passaConta(d)).map(d => ({ ...d, _tipo: 'saida' })))
+    itens = itens.concat(despData.filter(d => {
+      const isPend = d.status === 'A pagar' || d.status === 'Atrasado'
+      const dataRef = isPend && d.dataVenc ? d.dataVenc : d.data
+      return dateInRange(dataRef, de, ate) && passaStatus(d) && passaConta(d)
+    }).map(d => ({ ...d, _tipo: 'saida' })))
   }
+  /* Data de exibição: pendentes = vencimento, pagos/recebidos = data do pagamento */
+  itens.forEach(it => {
+    const ent = it._tipo === 'entrada'
+    const isPend = ent ? it.status === 'A receber' : (it.status === 'A pagar' || it.status === 'Atrasado')
+    it._dataExib = isPend && it.dataVenc ? it.dataVenc : (it.dataPgto || it.data)
+  })
   itens.sort((a, b) => {
-    const ad = (a.data || '').split('/').reverse().join('-')
-    const bd = (b.data || '').split('/').reverse().join('-')
+    const ad = (a._dataExib || '').split('/').reverse().join('-')
+    const bd = (b._dataExib || '').split('/').reverse().join('-')
     if (bd !== ad) return bd.localeCompare(ad)
     return (b.id || 0) - (a.id || 0)
   })
@@ -5791,7 +5811,7 @@ function renderMov() {
       : `<button class="btn btn-xs" onclick="editarDespesa(${it.id})" title="Editar saída"><i class="ti ti-edit"></i></button><button class="btn btn-xs btn-re" onclick="cancelarDespesa(${it.id})" title="Cancelar saída"><i class="ti ti-x"></i></button>`
     return `<tr class="mov-row-${it._tipo}">
       <td style="padding:0"></td>
-      <td style="color:var(--t2);white-space:nowrap;vertical-align:middle">${it.data}</td>
+      <td style="color:var(--t2);white-space:nowrap;vertical-align:middle">${it._dataExib}${isPend && it.dataVenc ? '<div style="font-size:9px;color:var(--amt)"><i class="ti ti-calendar-due"></i> venc.</div>' : (it.dataPgto && it.dataPgto !== it.data ? '<div style="font-size:9px;color:var(--grt)"><i class="ti ti-check"></i> pgto</div>' : '')}</td>
       <td style="vertical-align:middle">${descComVenc}</td>
       <td style="vertical-align:middle">${cat}</td>
       <td style="vertical-align:middle">${contaCell}</td>
@@ -6247,6 +6267,19 @@ function alternarTipoRec(tipo) {
 }
 
 /* ── PARCELAMENTO ─────────────────────────────────────────── */
+function toggleRecDataPgto() {
+  const status = document.getElementById('rec_status')?.value
+  const wrap = document.getElementById('rec_datapgto_wrap')
+  if (!wrap) return
+  /* Mostra campo de data de pagamento quando muda para Recebido em edição (parcela que era "A receber") */
+  const isRecebido = status === 'Recebido'
+  const temVenc = !!document.getElementById('rec_venc')?.value
+  wrap.style.display = isRecebido && (temVenc || recEditId) ? '' : 'none'
+  if (isRecebido && !document.getElementById('rec_datapgto')?.value) {
+    document.getElementById('rec_datapgto').value = new Date().toISOString().split('T')[0]
+  }
+}
+
 function toggleRecParc() {
   const forma = document.getElementById('rec_forma').value
   const wrap = document.getElementById('rec_parc_wrap')
@@ -6385,6 +6418,8 @@ function resetModalRec() {
   const rpq = document.getElementById('rec_parc_qtd'); if (rpq) rpq.value = '1'
   const rpp = document.getElementById('rec_parc_preview'); if (rpp) rpp.innerHTML = ''
   const rpi = document.getElementById('rec_parc_ini'); if (rpi) rpi.value = ''
+  const rdp = document.getElementById('rec_datapgto'); if (rdp) rdp.value = ''
+  const rdpw = document.getElementById('rec_datapgto_wrap'); if (rdpw) rdpw.style.display = 'none'
   document.getElementById('mFinRec-title').textContent = 'Nova Entrada'
   document.getElementById('rec-btn-label').textContent = 'Lançar Entrada'
   atualizarTotRec()
@@ -6453,6 +6488,7 @@ async function salvarReceita() {
         forma: document.getElementById('rec_forma').value,
         status: document.getElementById('rec_status').value,
         contaId: document.getElementById('rec_conta')?.value || null,
+        dataPgto: document.getElementById('rec_status').value === 'Recebido' && document.getElementById('rec_datapgto')?.value ? new Date(document.getElementById('rec_datapgto').value + 'T12:00').toLocaleDateString('pt-BR') : null,
         tipo: 'os'
       }
 
@@ -6488,6 +6524,7 @@ async function salvarReceita() {
         forma: document.getElementById('rec_forma').value,
         status: document.getElementById('rec_status').value,
         contaId: document.getElementById('rec_conta')?.value || null,
+        dataPgto: document.getElementById('rec_status').value === 'Recebido' && document.getElementById('rec_datapgto')?.value ? new Date(document.getElementById('rec_datapgto').value + 'T12:00').toLocaleDateString('pt-BR') : null,
         tipo: 'avulsa'
       }
 
@@ -6711,6 +6748,8 @@ function editarReceita(recId) {
   document.getElementById('rec_status').value = r.status || 'Recebido'
   document.getElementById('rec_venc').value = r.dataVenc ? (r.dataVenc.split('/').reverse().join('-')) : ''
   if (document.getElementById('rec_conta')) document.getElementById('rec_conta').value = r.contaId || ''
+  if (document.getElementById('rec_datapgto')) document.getElementById('rec_datapgto').value = r.dataPgto ? brToIso(r.dataPgto) : ''
+  toggleRecDataPgto()
   abrirModal('mFinRec')
 }
 
