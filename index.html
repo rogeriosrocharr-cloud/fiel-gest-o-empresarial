@@ -836,7 +836,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <input id="orc-de" type="date" title="Data inicial" onchange="renderOrc()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
       <input id="orc-ate" type="date" title="Data final" onchange="renderOrc()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
     </div>
-    <button class="btn btn-pu" onclick="resetModalOrc();populateClis();populateMecs();abrirModal('mOrcAdd')"><i class="ti ti-plus"></i> Novo Orçamento</button>
+    <button class="btn btn-pu" onclick="resetModalOrc();populateClis();populateMecs();abrirModal('mOrcAdd');setTimeout(()=>orcShowStep(1),50)"><i class="ti ti-plus"></i> Novo Orçamento</button>
   </div>
   <div class="card card-sm">
     <div class="tw"><table>
@@ -1650,7 +1650,10 @@ const toast = (m, t = 3000) => {
   el.classList.add('show')
   setTimeout(() => el.classList.remove('show'), t)
 }
-const abrirModal = id => document.getElementById(id).classList.add('open')
+const abrirModal = id => {
+  document.getElementById(id).classList.add('open')
+  if (id === 'mOrcAdd') setTimeout(() => orcShowStep(orcEditId ? orcCurStep : 1), 10)
+}
 const fecharModal = id => document.getElementById(id).classList.remove('open')
 /* Modais só fecham pelo botão X ou Cancelar — evita perda acidental de dados ao clicar fora */
 
@@ -5028,11 +5031,12 @@ function criarOrcParaCliente(cliId) {
   irParaPasso(2)
   setTimeout(() => {
     const c = cliData.find(x => x.id == cliId)
-    populateClis(); populateMecs()
+    resetModalOrc()
     document.getElementById('orc_cli').value = cliId
     if (c) document.getElementById('orc_cli_busca').value = c.nome
     preencherVeiculosOrc()
     abrirModal('mOrcAdd')
+    orcShowStep(1)
   }, 150)
 }
 
@@ -5253,11 +5257,11 @@ function editarOrc(id) {
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
   if (document.getElementById('orc_km')) document.getElementById('orc_km').value = o.km || ''
   renderTempOrc(); atualizarTotalOrc()
-  orcShowStep(1)
   /* Mudar título do modal */
   const mh = document.querySelector('#mOrcAdd .mh h3')
   if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-edit"></i></div>Editar Orçamento ${id}`
   abrirModal('mOrcAdd')
+  orcShowStep(1)
 }
 
 async function reabrirOrc(id) {
