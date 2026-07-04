@@ -1462,11 +1462,20 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL PEÇA -->
-<div class="ov" id="mPecaAdd"><div class="modal">
+<div class="ov" id="mPecaAdd"><div class="modal" style="max-width:680px">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-package"></i></div><span id="mPecaAdd-title">Cadastrar Peça</span></h3><button class="xbtn" onclick="fecharModal('mPecaAdd')"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Código</label><input id="pec_cod" type="text" placeholder="FIL-001"></div><div class="fg"><label>Nome da peça *</label><input id="pec_nome" type="text" placeholder="Filtro de óleo Mann"></div></div>
   <div class="fr g2"><div class="fg"><label>Categoria</label><select id="pec_cat"></select></div><div class="fg"><label>Marca</label><input id="pec_marca" type="text" placeholder="Mann, Bosch, NGK..."></div></div>
-  <div class="fr g2"><div class="fg"><label>Fornecedor</label><input id="pec_forn" type="text" placeholder="Nome do fornecedor"></div><div class="fg"><label>Unidade de medida</label><select id="pec_unidade"><option value="un">un — unidade</option><option value="pç">pç — peça</option><option value="cx">cx — caixa</option><option value="pct">pct — pacote</option><option value="par">par</option><option value="jg">jg — jogo</option><option value="L">L — litro</option><option value="ml">ml — mililitro</option><option value="kg">kg — quilo</option><option value="g">g — grama</option><option value="m">m — metro</option><option value="cm">cm — centímetro</option></select></div></div>
+  <div class="fr g2">
+    <div class="fg">
+      <label>Fornecedor <span style="font-weight:400;color:var(--t3);font-size:10px">— digite ou selecione</span></label>
+      <div style="position:relative">
+        <input id="pec_forn" type="text" placeholder="Nome do fornecedor" list="pec-forn-list" autocomplete="off">
+        <datalist id="pec-forn-list"></datalist>
+      </div>
+    </div>
+    <div class="fg"><label>Unidade de medida</label><select id="pec_unidade"><option value="un">un — unidade</option><option value="pç">pç — peça</option><option value="cx">cx — caixa</option><option value="pct">pct — pacote</option><option value="par">par</option><option value="jg">jg — jogo</option><option value="L">L — litro</option><option value="ml">ml — mililitro</option><option value="kg">kg — quilo</option><option value="g">g — grama</option><option value="m">m — metro</option><option value="cm">cm — centímetro</option></select></div>
+  </div>
   <div class="fr" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="fg"><label>Qtd. estoque</label><input id="pec_qtd" type="number" placeholder="0" min="0"></div><div class="fg"><label>Qtd. mínima</label><input id="pec_min" type="number" placeholder="2" min="0"></div><div class="fg"><label>Custo unit. (R$)</label><input id="pec_custo" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Preço venda (R$)</label><input id="pec_preco" type="number" placeholder="0,00" step="0.01"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mPecaAdd')">Cancelar</button><button class="btn btn-pu" onclick="salvarPeca()"><i class="ti ti-check"></i> <span id="pec-btn-label">Cadastrar</span></button></div>
 </div></div>
@@ -7351,6 +7360,9 @@ function resetModalPeca() {
   popularSelectCat('pec_cat', PEC_CAT_PADRAO, pecCatCustom, PEC_CAT_PADRAO[0])
   document.getElementById('pec_cat').onchange = () => onChangeSelectCat('pec_cat', 'pec')
   document.getElementById('pec_unidade').value = 'un'
+  /* Popular datalist de fornecedores */
+  const dl = document.getElementById('pec-forn-list')
+  if (dl) { dl.innerHTML = ''; fornData.forEach(f => { const op = document.createElement('option'); op.value = f.nome; dl.appendChild(op) }) }
   document.getElementById('mPecaAdd-title').textContent = 'Cadastrar Peça'
   document.getElementById('pec-btn-label').textContent = 'Cadastrar'
 }
@@ -7364,6 +7376,9 @@ function editarPeca(id) {
   document.getElementById('pec_nome').value = p.nome || ''
   document.getElementById('pec_marca').value = p.marca || ''
   document.getElementById('pec_forn').value = p.fornecedor || ''
+  /* Popular datalist de fornecedores */
+  const dl = document.getElementById('pec-forn-list')
+  if (dl) { dl.innerHTML = ''; fornData.forEach(f => { const op = document.createElement('option'); op.value = f.nome; dl.appendChild(op) }) }
   document.getElementById('pec_unidade').value = p.unidade || 'un'
   document.getElementById('pec_qtd').value = p.qtd
   document.getElementById('pec_min').value = p.min
@@ -7401,6 +7416,18 @@ async function salvarPeca() {
       fecharModal('mPecaAdd'); toast('"' + nome + '" cadastrada.')
     }
     renderEst(); renderEstMetrics()
+
+    /* Se digitou um fornecedor que não está cadastrado, oferecer cadastrar */
+    const fornNome = dados.fornecedor
+    if (fornNome && !fornData.some(f => (f.nome || '').toLowerCase() === fornNome.toLowerCase())) {
+      setTimeout(() => {
+        if (confirm(`O fornecedor "${fornNome}" não está cadastrado.\n\nDeseja cadastrá-lo agora?`)) {
+          resetModalForn()
+          document.getElementById('forn_nome').value = fornNome
+          abrirModal('mFornAdd')
+        }
+      }, 200)
+    }
   } catch (e) {
     toast('Erro: ' + (e.message || ''), 5000)
   }
