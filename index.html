@@ -1340,7 +1340,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL OS MANUAL -->
-<div class="ov" id="mOsAdd"><div class="modal">
+<div class="ov" id="mOsAdd"><div class="modal" style="max-width:680px">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-clipboard-list"></i></div>OS Manual (sem orçamento)</h3><button class="xbtn" onclick="fecharModal('mOsAdd');resetModalOS()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Cliente *</label><select id="os_cli" onchange="preencherVeiculosOS()"><option value="">Selecionar...</option></select></div><div class="fg"><label>Veículo *</label><select id="os_vei"><option value="">Selecione o cliente</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Serviço / Problema *</label><textarea id="os_srv" placeholder="Descreva o problema ou serviço..."></textarea></div>
@@ -1359,11 +1359,12 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL MECÂNICO -->
-<div class="ov" id="mMecAdd"><div class="modal">
+<div class="ov" id="mMecAdd"><div class="modal" style="max-width:680px">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-user-plus"></i></div><span id="mMecAdd-title">Cadastrar Mecânico</span></h3><button class="xbtn" onclick="fecharModal('mMecAdd')"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Nome completo *</label><input id="mec_nome" type="text" placeholder="João da Silva"></div><div class="fg"><label>CPF</label><input id="mec_cpf" type="text" placeholder="000.000.000-00"></div></div>
   <div class="fr g2"><div class="fg"><label>Especialidade</label><select id="mec_esp"><option>Mecânica geral</option><option>Motor / Câmbio</option><option>Elétrica automotiva</option><option>Suspensão / Freios</option><option>Funilaria / Pintura</option><option>Ar condicionado</option></select></div><div class="fg"><label>Telefone</label><input id="mec_tel" type="text" placeholder="(65) 99999-0000"></div></div>
-  <div class="fr" style="grid-template-columns:1fr 1fr 1fr"><div class="fg"><label>Salário base (R$)</label><input id="mec_sal" type="number" placeholder="2500"></div><div class="fg"><label>Comissão (%)</label><input id="mec_com" type="number" placeholder="5" min="0"></div><div class="fg"><label>Admissão</label><input id="mec_adm" type="date"></div></div>
+  <div class="fr g2"><div class="fg"><label>Salário base (R$)</label><input id="mec_sal" type="number" placeholder="2500"></div><div class="fg"><label>Comissão (%)</label><input id="mec_com" type="number" placeholder="5" min="0"></div></div>
+  <div class="fr g2"><div class="fg"><label>Admissão</label><input id="mec_adm" type="date"></div><div class="fg"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mMecAdd')">Cancelar</button><button class="btn btn-pu" onclick="salvarMec()"><i class="ti ti-check"></i> <span id="mec-btn-label">Cadastrar</span></button></div>
 </div></div>
 
@@ -1429,7 +1430,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL LANÇAR SAÍDA -->
-<div class="ov" id="mFinDesp"><div class="modal">
+<div class="ov" id="mFinDesp"><div class="modal" style="max-width:680px">
   <div class="mh"><h3><div class="mh-ic" style="background:var(--reb);color:var(--ret)"><i class="ti ti-trending-down"></i></div><span id="mFinDesp-title">Nova Saída</span></h3><button class="xbtn" onclick="fecharModal('mFinDesp');resetModalDesp()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
@@ -1476,7 +1477,8 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     </div>
     <div class="fg"><label>Unidade de medida</label><select id="pec_unidade"><option value="un">un — unidade</option><option value="pç">pç — peça</option><option value="cx">cx — caixa</option><option value="pct">pct — pacote</option><option value="par">par</option><option value="jg">jg — jogo</option><option value="L">L — litro</option><option value="ml">ml — mililitro</option><option value="kg">kg — quilo</option><option value="g">g — grama</option><option value="m">m — metro</option><option value="cm">cm — centímetro</option></select></div>
   </div>
-  <div class="fr" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="fg"><label>Qtd. estoque</label><input id="pec_qtd" type="number" placeholder="0" min="0"></div><div class="fg"><label>Qtd. mínima</label><input id="pec_min" type="number" placeholder="2" min="0"></div><div class="fg"><label>Custo unit. (R$)</label><input id="pec_custo" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Preço venda (R$)</label><input id="pec_preco" type="number" placeholder="0,00" step="0.01"></div></div>
+  <div class="fr g2"><div class="fg"><label>Qtd. estoque</label><input id="pec_qtd" type="number" placeholder="0" min="0"></div><div class="fg"><label>Qtd. mínima</label><input id="pec_min" type="number" placeholder="2" min="0"></div></div>
+  <div class="fr g2"><div class="fg"><label>Custo unit. (R$)</label><input id="pec_custo" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Preço venda (R$)</label><input id="pec_preco" type="number" placeholder="0,00" step="0.01"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mPecaAdd')">Cancelar</button><button class="btn btn-pu" onclick="salvarPeca()"><i class="ti ti-check"></i> <span id="pec-btn-label">Cadastrar</span></button></div>
 </div></div>
 
@@ -1494,11 +1496,11 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL CADASTRO DE SERVIÇO -->
-<div class="ov" id="mSrvAdd"><div class="modal">
+<div class="ov" id="mSrvAdd"><div class="modal" style="max-width:680px">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-list-check"></i></div><span id="mSrvAdd-title">Cadastrar Serviço</span></h3><button class="xbtn" onclick="fecharModal('mSrvAdd');resetModalSrvCat()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Código</label><input id="srv_cod" type="text" placeholder="SRV-001"></div><div class="fg"><label>Nome do serviço *</label><input id="srv_nome" type="text" placeholder="Troca de óleo e filtro"></div></div>
-  <div class="fr g3"><div class="fg"><label>Categoria</label><select id="srv_cat"></select></div><div class="fg"><label>Tempo médio (h)</label><input id="srv_h" type="number" placeholder="1.0" step="0.5" min="0"></div><div class="fg"><label>Valor mão de obra (R$) *</label><input id="srv_valor" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
-  <div class="fg" style="margin-bottom:14px"><label>Garantia (dias) <span style="color:var(--t3);font-weight:400">— deixe 0 ou em branco se não tem garantia</span></label><input id="srv_garantia" type="number" placeholder="90" min="0" max="3650" style="max-width:180px"></div>
+  <div class="fr g2"><div class="fg"><label>Categoria</label><select id="srv_cat"></select></div><div class="fg"><label>Tempo médio (h)</label><input id="srv_h" type="number" placeholder="1.0" step="0.5" min="0"></div></div>
+  <div class="fr g2"><div class="fg"><label>Valor mão de obra (R$) *</label><input id="srv_valor" type="number" placeholder="0,00" step="0.01" min="0"></div><div class="fg"><label>Garantia (dias) <span style="color:var(--t3);font-weight:400">— 0 se não tem</span></label><input id="srv_garantia" type="number" placeholder="90" min="0" max="3650"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mSrvAdd');resetModalSrvCat()">Cancelar</button><button class="btn btn-pu" onclick="salvarSrvCat()"><i class="ti ti-check"></i> Salvar</button></div>
 </div></div>
 
