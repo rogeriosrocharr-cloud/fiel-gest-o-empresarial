@@ -1297,7 +1297,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="slabel" style="margin:0">Serviços (mão de obra)</div>
       <button class="btn btn-sm btn-pu" onclick="abrirPickerSrv()" title="Selecionar do catálogo de serviços cadastrados"><i class="ti ti-list-check"></i> Do catálogo</button>
     </div>
-    <div class="fr g3" style="margin-bottom:6px"><div class="fg"><label>Descrição (cadastro rápido)</label><input id="orc_srv_desc" type="text" placeholder="Ex: Troca de pastilhas de freio"></div><div class="fg"><label>Tempo (h)</label><input id="orc_srv_h" type="number" placeholder="1.5" step="0.5" min="0"></div><div class="fg"><label>Valor M.O. (R$)</label><input id="orc_srv_val" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
+    <div class="fr g3" style="margin-bottom:6px"><div class="fg"><label>Descrição (cadastro rápido)</label><input id="orc_srv_desc" type="text" placeholder="Ex: Troca de pastilhas de freio"></div><div class="fg"><label>Qtd.</label><input id="orc_srv_qtd" type="number" placeholder="1" step="1" min="1" value="1"></div><div class="fg"><label>Valor unit. (R$)</label><input id="orc_srv_val" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
     <button class="btn btn-sm" style="margin-bottom:8px" onclick="addItemOrc('srv')"><i class="ti ti-plus"></i> Adicionar serviço avulso</button>
     <div id="orc-srvs"></div>
 
@@ -1533,7 +1533,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <div class="pf-i"><label>Placa</label><span id="p-orc-pla"></span></div>
     <div class="pf-i"><label>KM</label><span id="p-orc-km"></span></div>
   </div>
-  <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:70px">Tempo (h)</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
+  <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><div class="ps-t">Peças / Materiais</div><table class="ptable" id="p-orc-pecs"><thead><tr><th>Peça / Material</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Unit.</th><th style="width:90px;text-align:right">Total</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><table class="ptable"><tbody><tr><td>Subtotal serviços</td><td style="text-align:right;font-weight:600" id="p-orc-tsrv">R$ 0,00</td></tr><tr><td>Subtotal peças</td><td style="text-align:right;font-weight:600" id="p-orc-tpec">R$ 0,00</td></tr><tr><td>Desconto aplicado</td><td style="text-align:right;color:#c43030" id="p-orc-tdesc">—</td></tr></tbody></table><div class="ptot"><div class="tl">Total do orçamento</div><div class="tv" id="p-orc-tot">R$ 0,00</div></div></div>
   <div class="ps"><div class="ps-t">Observações / Condições</div><div class="pobs" id="p-orc-obs"></div></div>
@@ -5158,12 +5158,12 @@ document.addEventListener('click', e => {
 function addItemOrc(tipo) {
   if (tipo === 'srv') {
     const desc = document.getElementById('orc_srv_desc').value.trim()
-    const h = parseFloat(document.getElementById('orc_srv_h').value) || 0
-    const val = parseFloat(document.getElementById('orc_srv_val').value) || 0
+    const qtd = parseInt(document.getElementById('orc_srv_qtd').value) || 1
+    const valUnit = parseFloat(document.getElementById('orc_srv_val').value) || 0
     if (!desc) { toast('Informe a descrição do serviço'); return }
-    orcTempSrvs.push({ desc, h, val })
+    orcTempSrvs.push({ desc, qtd, valUnit, val: valUnit * qtd })
     document.getElementById('orc_srv_desc').value = ''
-    document.getElementById('orc_srv_h').value = ''
+    document.getElementById('orc_srv_qtd').value = '1'
     document.getElementById('orc_srv_val').value = ''
   } else {
     const desc = document.getElementById('orc_pec_desc').value.trim()
@@ -5185,7 +5185,7 @@ function removeOrcItem(tipo, idx) {
 function renderTempOrc() {
   document.getElementById('orc-srvs').innerHTML = orcTempSrvs.map((s, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--s3);border-radius:var(--r);margin-bottom:4px;font-size:12px">
-      <span>${s.desc} <span style="color:var(--t3)">(${s.h}h)</span></span>
+      <span>${s.desc} ${(s.qtd||1) > 1 ? `<span style="color:var(--t3)">(${s.qtd}× ${fmt(s.valUnit||s.val)})</span>` : ''}</span>
       <span style="display:flex;align-items:center;gap:8px"><b style="color:var(--grt)">${fmt(s.val)}</b>
       <button class="btn btn-xs btn-re" onclick="removeOrcItem('srv',${i})"><i class="ti ti-x"></i></button></span>
     </div>`).join('')
@@ -5386,7 +5386,7 @@ async function cancelarDespesa(id) {
 function resetModalOrc() {
   orcEditId = null
   orcTempSrvs = []; orcTempPecs = []
-  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_km','orc_srv_desc','orc_srv_h','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_km','orc_srv_desc','orc_srv_qtd','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
   document.getElementById('orc_descSrv').value = 0
   document.getElementById('orc_descPec').value = 0
@@ -6510,14 +6510,40 @@ async function salvarReceita() {
         logAtividade('rec_edit', `Entrada OS editada`)
         toast('Entrada atualizada.', 3500)
       } else {
-        const novo = await db.entradas.create(lojaAtual.id, dados)
-        recData.unshift(novo)
-        if (os) {
-          os.finId = novo.id
-          try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
+        /* Verificar se a OS já tem uma receita vinculada — se sim, atualiza em vez de criar nova */
+        const recExistente = osId ? recData.find(r => r.osId == osId) : null
+        if (recExistente) {
+          const atualizado = await db.entradas.update(recExistente.id, dados)
+          Object.assign(recExistente, atualizado)
+          logAtividade('rec_edit', `Entrada OS atualizada (desconto) · ${fmt(total)}`)
+          toast('Entrada existente atualizada com novo valor.', 3500)
+        } else {
+          const novo = await db.entradas.create(lojaAtual.id, dados)
+          recData.unshift(novo)
+          if (os) {
+            os.finId = novo.id
+            try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
+          }
+          logAtividade('rec_novo', `Entrada OS · ${fmt(total)}`)
+          toast('Entrada lançada.', 3000)
         }
-        logAtividade('rec_novo', `Entrada OS · ${fmt(total)}`)
-        toast('Entrada lançada.', 3000)
+      }
+
+      /* ── Atualizar OS e Orçamento com os valores REAIS cobrados (pós-desconto) ── */
+      if (os) {
+        const osUpdate = { vsrv: subSrv, vpec: subPec, total }
+        os.vsrv = subSrv; os.vpec = subPec; os.total = total
+        try { await db.os.update(os.id, osUpdate) } catch (_) {}
+
+        /* Se a OS veio de um orçamento, atualizar o orçamento também */
+        if (os.orcId) {
+          const orc = orcData.find(o => o.id == os.orcId)
+          if (orc) {
+            orc.tSrv = subSrv; orc.tPec = subPec; orc.total = total
+            orc.descSrv = dsrv; orc.descPec = dpec
+            try { await db.orcamentos.update(orc.id, { tSrv: subSrv, tPec: subPec, total, descSrv: dsrv, descPec: dpec }) } catch (_) {}
+          }
+        }
       }
     } else {
       /* Modo avulsa */
@@ -7732,7 +7758,7 @@ function renderPickSrv() {
 
 function adicionarSrvDoCatalogo(id) {
   const s = srvCatData.find(x => x.id == id); if (!s) return
-  orcTempSrvs.push({ desc: s.nome, h: s.h, val: s.valor, srvCatId: s.id })
+  orcTempSrvs.push({ desc: s.nome, qtd: 1, valUnit: s.valor, val: s.valor, srvCatId: s.id })
   renderTempOrc(); atualizarTotalOrc()
   toast('Serviço adicionado.')
   fecharModal('mPickSrv')
@@ -9615,7 +9641,7 @@ function printOrc(id) {
   const kmEl = document.getElementById('p-orc-km')
   if (kmEl) kmEl.textContent = o.km ? Number(o.km).toLocaleString('pt-BR') + ' km' : '—'
   document.getElementById('p-orc-srvs').querySelector('tbody').innerHTML =
-    o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.h}h</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
+    o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.qtd||1}</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
   document.getElementById('p-orc-pecs').querySelector('tbody').innerHTML =
     o.pecs.length ? o.pecs.map(p => `<tr><td>${p.desc}</td><td>${p.qtd}</td><td style="text-align:right">${fmt(p.unit)}</td><td style="text-align:right">${fmt(p.tot)}</td></tr>`).join('') : '<tr><td colspan="4" style="color:#aaa">—</td></tr>'
   const dS = o.descSrv || 0, dP = o.descPec || 0
