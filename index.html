@@ -1315,16 +1315,16 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <div class="fr g2">
       <div class="fg">
         <label>Desc. Serviços</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <div style="position:relative;flex:1"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">R$</span><input id="orc_descSrvVal" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="orcDescFromVal('srv')" style="padding-left:30px"></div>
-          <div style="position:relative;flex:1"><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('srv')"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">%</span></div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div style="position:relative;flex:1"><span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">R$</span><input id="orc_descSrvVal" type="number" placeholder="0" step="0.01" min="0" value="0" oninput="orcDescFromVal('srv')" style="padding-left:26px;font-size:12px"></div>
+          <div style="position:relative;flex:1"><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('srv')" style="padding-right:22px;font-size:12px"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">%</span></div>
         </div>
       </div>
       <div class="fg">
         <label>Desc. Peças</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <div style="position:relative;flex:1"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">R$</span><input id="orc_descPecVal" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="orcDescFromVal('pec')" style="padding-left:30px"></div>
-          <div style="position:relative;flex:1"><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('pec')"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">%</span></div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div style="position:relative;flex:1"><span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">R$</span><input id="orc_descPecVal" type="number" placeholder="0" step="0.01" min="0" value="0" oninput="orcDescFromVal('pec')" style="padding-left:26px;font-size:12px"></div>
+          <div style="position:relative;flex:1"><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('pec')" style="padding-right:22px;font-size:12px"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">%</span></div>
         </div>
       </div>
     </div>
@@ -4780,14 +4780,14 @@ function renderClientes() {
       : c.veiculos.map(v => `<div style="font-size:12px">${v.vei} <span style="font-family:monospace;color:var(--pul);font-size:11px">${v.pla}</span></div>`).join('') + `<button class="btn btn-xs" onclick="adicionarVeiculo(${cid})" style="margin-top:4px;font-size:10px;padding:2px 6px"><i class="ti ti-plus"></i></button>`
     }</td>
     <td><span class="pill p-pu">${osN} OS</span></td>
-    <td style="display:flex;gap:4px">
+    <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
       <button class="btn btn-sm" onclick="abrirHistoricoCli(${cid})" title="Histórico financeiro"><i class="ti ti-history"></i></button>
       <button class="btn btn-sm" onclick="editarCliente(${cid})" title="Editar dados"><i class="ti ti-edit"></i></button>
       <button class="btn btn-sm btn-re" onclick="excluirCliente(${cid})" title="Excluir cliente"><i class="ti ti-trash"></i></button>
       ${semVeiculo
         ? `<button class="btn btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Cadastre um veículo primeiro"><i class="ti ti-file-invoice"></i> Orçar →</button>`
         : `<button class="btn btn-sm btn-pu" onclick="criarOrcParaCliente(${cid})"><i class="ti ti-file-invoice"></i> Orçar →</button>`}
-    </td>
+    </div></td>
   </tr>`
   }).join('') : `<tr><td colspan="7"><div class="empty"><i class="ti ti-users-off"></i>Nenhum cliente encontrado</div></td></tr>`
 
@@ -5669,41 +5669,40 @@ function renderOS() {
     })()
     const garExpirou = r.garantiaAte && !garAtiva
     return `<tr>
-    <td>
+    <td style="vertical-align:middle">
       <b style="color:var(--pul)">${r.id}</b>
-      <div style="margin-top:2px">${r.orcId ? `<span class="pill p-pu" style="font-size:9px;padding:1px 6px">← ${r.orcId}</span>` : `<span class="pill p-gy" style="font-size:9px;padding:1px 6px">Manual</span>`}</div>
-      ${r.checklist ? `<div style="font-size:9px;color:var(--grt);margin-top:2px" title="Checklist preenchido em ${r.checklist.preenchidoEm}"><i class="ti ti-clipboard-check"></i> checklist</div>` : ''}
-      ${garAtiva ? `<div style="font-size:9px;color:var(--blt);margin-top:2px" title="Garantia válida até ${r.garantiaAte}"><i class="ti ti-shield-check"></i> garantia</div>` : ''}
-      ${garExpirou ? `<div style="font-size:9px;color:var(--t3);margin-top:2px" title="Garantia expirou em ${r.garantiaAte}"><i class="ti ti-shield-off"></i> sem garantia</div>` : ''}
+      ${r.orcId ? `<span class="pill p-pu" style="font-size:9px;padding:1px 5px;margin-left:3px">← ${r.orcId}</span>` : ''}
     </td>
-    <td style="color:var(--t2);font-size:12px">${r.data}</td>
-    <td>
+    <td style="color:var(--t2);font-size:12px;vertical-align:middle;white-space:nowrap">${r.data}</td>
+    <td style="vertical-align:middle">
       <b>${r.cliNome}</b>
       <div style="font-size:11px;color:var(--t3);margin-top:1px">${r.vei} <span style="font-family:monospace;color:var(--pul)">${r.pla}</span></div>
     </td>
-    <td style="font-size:12px">${r.mec}</td>
-    <td style="text-align:right">
+    <td style="font-size:12px;vertical-align:middle">${r.mec}</td>
+    <td style="text-align:right;vertical-align:middle">
       <div style="font-size:11px;color:var(--grt)">Serv: ${fmt(r.vsrv)}</div>
       <div style="font-size:11px;color:var(--blt)">Peças: ${fmt(r.vpec)}</div>
-      <div style="font-weight:700;margin-top:2px">${fmt(r.total)}</div>
+      <div style="font-weight:700;margin-top:1px">${fmt(r.total)}</div>
     </td>
-    <td>${pill(r.status)}</td>
-    <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-      <select style="font-size:11px;padding:4px 6px;border:1px solid var(--bd2);border-radius:6px;background:var(--s2);color:var(--t1);cursor:pointer;font-family:var(--f)" onchange="changeOSStatus('${r.id}',this.value)" title="Mudar status">
-        ${statusOpts.map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
-      </select>
-      ${r.status === 'Concluída' && !r.finId ? `<button class="btn btn-sm btn-gr" onclick="lancarFinanceiro('${r.id}')" title="Lançar receita"><i class="ti ti-cash"></i></button>` : ''}
-      ${r.finId ? `<span style="font-size:13px;color:var(--grt)" title="Receita lançada"><i class="ti ti-circle-check"></i></span>` : ''}
-      <details class="kebab" onclick="event.stopPropagation()">
-        <summary><i class="ti ti-dots-vertical"></i></summary>
-        <div class="kebab-menu">
-          <button onclick="abrirChecklist('${r.id}');this.closest('details').open=false"><i class="ti ti-clipboard-check"></i> Checklist de entrada${r.checklist ? ' ✓' : ''}</button>
-          <button onclick="printOS('${r.id}');this.closest('details').open=false"><i class="ti ti-printer"></i> Imprimir / PDF</button>
-          ${!r.finId && r.status !== 'Concluída' && r.status !== 'Cancelada' ? `<button onclick="editarOS('${r.id}');this.closest('details').open=false"><i class="ti ti-edit"></i> Editar OS</button>` : ''}
-          ${(r.status === 'Concluída' || r.status === 'Cancelada') && !r.finId ? `<button onclick="reabrirOS('${r.id}');this.closest('details').open=false"><i class="ti ti-lock-open"></i> Reabrir para edição</button>` : ''}
-          <button onclick="excluirOS('${r.id}');this.closest('details').open=false" style="color:var(--re)"><i class="ti ti-trash"></i> Excluir OS</button>
-        </div>
-      </details>
+    <td style="vertical-align:middle">${pill(r.status)}</td>
+    <td style="vertical-align:middle;white-space:nowrap">
+      <div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
+        <select style="font-size:11px;padding:3px 5px;border:1px solid var(--bd2);border-radius:6px;background:var(--s2);color:var(--t1);cursor:pointer;font-family:var(--f)" onchange="changeOSStatus('${r.id}',this.value)" title="Mudar status">
+          ${statusOpts.map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
+        </select>
+        ${r.status === 'Concluída' && !r.finId ? `<button class="btn btn-xs btn-gr" onclick="lancarFinanceiro('${r.id}')" title="Lançar receita"><i class="ti ti-cash"></i></button>` : ''}
+        ${r.finId ? `<span style="font-size:13px;color:var(--grt)" title="Receita lançada"><i class="ti ti-circle-check"></i></span>` : ''}
+        <details class="kebab" onclick="event.stopPropagation()">
+          <summary><i class="ti ti-dots-vertical"></i></summary>
+          <div class="kebab-menu">
+            <button onclick="abrirChecklist('${r.id}');this.closest('details').open=false"><i class="ti ti-clipboard-check"></i> Checklist${r.checklist ? ' ✓' : ''}</button>
+            <button onclick="printOS('${r.id}');this.closest('details').open=false"><i class="ti ti-printer"></i> Imprimir / PDF</button>
+            ${!r.finId && r.status !== 'Concluída' && r.status !== 'Cancelada' ? `<button onclick="editarOS('${r.id}');this.closest('details').open=false"><i class="ti ti-edit"></i> Editar OS</button>` : ''}
+            ${(r.status === 'Concluída' || r.status === 'Cancelada') && !r.finId ? `<button onclick="reabrirOS('${r.id}');this.closest('details').open=false"><i class="ti ti-lock-open"></i> Reabrir</button>` : ''}
+            <button onclick="excluirOS('${r.id}');this.closest('details').open=false" style="color:var(--re)"><i class="ti ti-trash"></i> Excluir OS</button>
+          </div>
+        </details>
+      </div>
     </td>
   </tr>`}).join('') : `<tr><td colspan="7"><div class="empty"><i class="ti ti-clipboard-off"></i>Nenhuma OS encontrada</div></td></tr>`
 
