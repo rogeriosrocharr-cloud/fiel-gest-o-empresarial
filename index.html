@@ -6580,17 +6580,35 @@ async function salvarReceita() {
 
       /* ── Atualizar OS e Orçamento com os valores REAIS cobrados (pós-desconto) ── */
       if (os) {
+        /* OS recebe os valores líquidos (após desconto) para relatórios de comissão */
         const osUpdate = { vsrv: subSrv, vpec: subPec, total }
         os.vsrv = subSrv; os.vpec = subPec; os.total = total
         try { await db.os.update(os.id, osUpdate) } catch (_) {}
 
-        /* Se a OS veio de um orçamento, atualizar o orçamento também */
+        /* Se a OS veio de um orçamento, atualizar o orçamento com os descontos corretos */
         if (os.orcId) {
           const orc = orcData.find(o => o.id == os.orcId)
           if (orc) {
-            orc.tSrv = subSrv; orc.tPec = subPec; orc.total = total
-            orc.descSrv = dsrv; orc.descPec = dpec
-            try { await db.orcamentos.update(orc.id, { tSrv: subSrv, tPec: subPec, total, descSrv: dsrv, descPec: dpec }) } catch (_) {}
+            /* Manter valores BRUTOS no orçamento e calcular % de desconto real */
+            /* vsrv/vpec da receita são os valores brutos antes do desconto */
+            const descSrvPct = vsrv > 0 ? Math.round(dsrvCap / vsrv * 10000) / 100 : 0
+            const descPecPct = vpec > 0 ? Math.round(dpecCap / vpec * 10000) / 100 : 0
+
+            orc.tSrv = vsrv; orc.tPec = vpec
+            orc.descSrv = descSrvPct; orc.descPec = descPecPct
+            orc.total = total
+            try { await db.orcamentos.update(orc.id, { tSrv: vsrv, tPec: vpec, total, descSrv: descSrvPct, descPec: descPecPct }) } catch (_) {}
+
+            /* Atualizar também os srvs/pecs no orçamento se os valores brutos mudaram */
+            if (orc.srvs && orc.srvs.length) {
+              const orcSrvTotal = orc.srvs.reduce((a,s) => a + (s.val||0), 0)
+              if (orcSrvTotal !== vsrv && vsrv > 0) {
+                /* Recalcular proporcionalmente */
+                const fator = vsrv / orcSrvTotal
+                orc.srvs.forEach(s => { s.val = Math.round((s.val||0) * fator * 100) / 100 })
+                try { await db.orcamentos.update(orc.id, { srvs: orc.srvs }) } catch (_) {}
+              }
+            }
           }
         }
       }
