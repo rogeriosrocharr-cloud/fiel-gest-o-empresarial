@@ -1311,7 +1311,23 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <div class="orc-step" data-step="3">
-    <div class="fr g2"><div class="fg"><label>Desc. Serviços (%)</label><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div><div class="fg"><label>Desc. Peças (%)</label><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div></div>
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-discount-2"></i> Descontos</div>
+    <div class="fr g2">
+      <div class="fg">
+        <label>Desc. Serviços</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div style="position:relative;flex:1"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">R$</span><input id="orc_descSrvVal" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="orcDescFromVal('srv')" style="padding-left:30px"></div>
+          <div style="position:relative;flex:1"><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('srv')"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">%</span></div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Desc. Peças</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div style="position:relative;flex:1"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">R$</span><input id="orc_descPecVal" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="orcDescFromVal('pec')" style="padding-left:30px"></div>
+          <div style="position:relative;flex:1"><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('pec')"><span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t3)">%</span></div>
+        </div>
+      </div>
+    </div>
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
       <input id="orc_mostrarDesc" type="checkbox" checked style="width:16px;height:16px;cursor:pointer">
       <label for="orc_mostrarDesc" style="font-size:12px;cursor:pointer;flex:1">
@@ -5196,6 +5212,31 @@ function renderTempOrc() {
       <button class="btn btn-xs btn-re" onclick="removeOrcItem('pec',${i})"><i class="ti ti-x"></i></button></span>
     </div>`).join('')
 }
+function orcDescFromVal(tipo) {
+  /* Usuário digitou valor R$ → calcula % automaticamente */
+  const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
+  const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
+  const total = tipo === 'srv' ? tS : tP
+  const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
+  const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
+  const val = parseFloat(valEl?.value) || 0
+  if (total > 0) pctEl.value = Math.round(val / total * 10000) / 100
+  else pctEl.value = 0
+  atualizarTotalOrc()
+}
+
+function orcDescFromPct(tipo) {
+  /* Usuário digitou % → calcula valor R$ automaticamente */
+  const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
+  const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
+  const total = tipo === 'srv' ? tS : tP
+  const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
+  const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
+  const pct = parseFloat(pctEl?.value) || 0
+  valEl.value = Math.round(total * pct / 100 * 100) / 100
+  atualizarTotalOrc()
+}
+
 function atualizarTotalOrc() {
   const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
@@ -5295,6 +5336,13 @@ function editarOrc(id) {
   orcTempPecs = o.pecs.map(p => ({ ...p }))
   document.getElementById('orc_descSrv').value = o.descSrv || 0
   document.getElementById('orc_descPec').value = o.descPec || 0
+  /* Popular campos de valor R$ do desconto */
+  const tSEdit = o.srvs.reduce((a,b) => a + (b.val||0), 0)
+  const tPEdit = o.pecs.reduce((a,b) => a + (b.tot||0), 0)
+  const dSrvValEl = document.getElementById('orc_descSrvVal')
+  const dPecValEl = document.getElementById('orc_descPecVal')
+  if (dSrvValEl) dSrvValEl.value = Math.round(tSEdit * (o.descSrv||0) / 100 * 100) / 100
+  if (dPecValEl) dPecValEl.value = Math.round(tPEdit * (o.descPec||0) / 100 * 100) / 100
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
   if (document.getElementById('orc_km')) document.getElementById('orc_km').value = o.km || ''
@@ -5390,6 +5438,8 @@ function resetModalOrc() {
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
   document.getElementById('orc_descSrv').value = 0
   document.getElementById('orc_descPec').value = 0
+  const dSrvR = document.getElementById('orc_descSrvVal'); if (dSrvR) dSrvR.value = 0
+  const dPecR = document.getElementById('orc_descPecVal'); if (dPecR) dPecR.value = 0
   const mostrar = document.getElementById('orc_mostrarDesc'); if (mostrar) mostrar.checked = true
   populateClis(); populateMecs()
   renderTempOrc(); atualizarTotalOrc()
@@ -7744,23 +7794,27 @@ function renderPickSrv() {
   const b = (document.getElementById('pick-srv-busca').value || '').toLowerCase()
   const rows = srvCatData.filter(s => !b || (s.nome + s.cod + s.cat).toLowerCase().includes(b))
   document.getElementById('pick-srv-list').innerHTML = rows.length ? rows.map(s => `
-    <div style="padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:background .15s" onmouseenter="this.style.background='var(--s2)'" onmouseleave="this.style.background=''" onclick="adicionarSrvDoCatalogo(${s.id})">
+    <div style="padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:10px">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px"><b>${s.nome}</b></div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">${s.cod} · ${s.cat} · ${s.h} h</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">${s.cod} · ${s.cat}</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(s.valor)}</div>
-        <button class="btn btn-xs btn-pu" style="margin-top:4px;pointer-events:none"><i class="ti ti-plus"></i> Adicionar</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(s.valor)}</div>
+        </div>
+        <input type="number" id="pick-srv-qtd-${s.id}" min="1" value="1" style="width:55px;padding:6px;font-size:12px;text-align:center" title="Quantidade">
+        <button class="btn btn-sm btn-pu" onclick="adicionarSrvDoCatalogo(${s.id})"><i class="ti ti-plus"></i></button>
       </div>
     </div>`).join('') : `<div class="empty" style="padding:30px"><i class="ti ti-search-off"></i>Nenhum serviço encontrado<br><button class="btn btn-sm btn-pu" style="margin-top:10px" onclick="fecharModal('mPickSrv');abrirModalSrvCat()"><i class="ti ti-plus"></i> Cadastrar novo serviço</button></div>`
 }
 
 function adicionarSrvDoCatalogo(id) {
   const s = srvCatData.find(x => x.id == id); if (!s) return
-  orcTempSrvs.push({ desc: s.nome, qtd: 1, valUnit: s.valor, val: s.valor, srvCatId: s.id })
+  const qtd = parseInt(document.getElementById(`pick-srv-qtd-${id}`)?.value) || 1
+  orcTempSrvs.push({ desc: s.nome, qtd, valUnit: s.valor, val: s.valor * qtd, srvCatId: s.id })
   renderTempOrc(); atualizarTotalOrc()
-  toast('Serviço adicionado.')
+  toast(`${s.nome}${qtd > 1 ? ' ×' + qtd : ''} adicionado.`)
   fecharModal('mPickSrv')
 }
 
