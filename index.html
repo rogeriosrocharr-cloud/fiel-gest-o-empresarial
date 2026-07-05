@@ -9715,20 +9715,27 @@ function printOrc(id) {
     o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.qtd||1}</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
   document.getElementById('p-orc-pecs').querySelector('tbody').innerHTML =
     o.pecs.length ? o.pecs.map(p => `<tr><td>${p.desc}</td><td>${p.qtd}</td><td style="text-align:right">${fmt(p.unit)}</td><td style="text-align:right">${fmt(p.tot)}</td></tr>`).join('') : '<tr><td colspan="4" style="color:#aaa">—</td></tr>'
-  const dS = o.descSrv || 0, dP = o.descPec || 0
+  /* Desconto: pode estar em % (correto) ou em R$ (legado). Detectar e converter */
+  let dS = o.descSrv || 0, dP = o.descPec || 0
+  /* Se descSrv > 100, está em R$ (bug de versões anteriores) — converter para % */
+  if (dS > 100 && o.tSrv > 0) dS = Math.round(dS / o.tSrv * 10000) / 100
+  if (dP > 100 && o.tPec > 0) dP = Math.round(dP / o.tPec * 10000) / 100
+  const descValSrv = o.tSrv * dS / 100
+  const descValPec = o.tPec * dP / 100
   const mostrarDesc = o.mostrarDesc !== false /* default true */
   if (mostrarDesc) {
     document.getElementById('p-orc-tsrv').textContent = fmt(o.tSrv)
     document.getElementById('p-orc-tpec').textContent = fmt(o.tPec)
-    const descTxt = (dS > 0 || dP > 0)
-      ? `Serviços: ${dS}% (−${fmt(o.tSrv * dS / 100)}) · Peças: ${dP}% (−${fmt(o.tPec * dP / 100)})`
-      : '—'
+    const partes = []
+    if (dS > 0) partes.push(`Serviços: ${dS}% (−${fmt(descValSrv)})`)
+    if (dP > 0) partes.push(`Peças: ${dP}% (−${fmt(descValPec)})`)
+    const descTxt = partes.length ? partes.join(' · ') : '—'
     document.getElementById('p-orc-tdesc').textContent = descTxt
     document.getElementById('p-orc-tdesc').parentElement.style.display = ''
   } else {
     /* Esconde a linha de desconto e exibe os subtotais já com desconto aplicado */
-    document.getElementById('p-orc-tsrv').textContent = fmt(o.tSrv * (1 - dS / 100))
-    document.getElementById('p-orc-tpec').textContent = fmt(o.tPec * (1 - dP / 100))
+    document.getElementById('p-orc-tsrv').textContent = fmt(o.tSrv - descValSrv)
+    document.getElementById('p-orc-tpec').textContent = fmt(o.tPec - descValPec)
     const linha = document.getElementById('p-orc-tdesc').parentElement
     if (linha) linha.style.display = 'none'
   }
