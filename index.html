@@ -2460,15 +2460,22 @@ const db = {
   /* ─── ENTRADAS (receitas) ─── */
   entradas: {
     _mapFromDB(r) {
+      /* Extrair marcadores [CTA:id] e [PGTO:data] do campo descricao */
+      let desc = r.descricao || '', contaId = null, dataPgto = null
+      const mCta = desc.match(/\s*\[CTA:([^\]]+)\]/)
+      if (mCta) { contaId = mCta[1]; desc = desc.replace(mCta[0], '') }
+      const mPgto = desc.match(/\s*\[PGTO:([^\]]+)\]/)
+      if (mPgto) { dataPgto = mPgto[1]; desc = desc.replace(mPgto[0], '') }
       return {
         id: r.id, numero: r.numero, data: r.data || '', dataVenc: r.data_venc || null,
-        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: r.descricao || '',
+        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: desc.trim(),
         cat: r.cat || '', tipo: r.tipo || 'os',
         vsrv: Number(r.v_srv) || 0, vpec: Number(r.v_pec) || 0,
         descSrv: Number(r.desc_srv) || 0, descPec: Number(r.desc_pec) || 0,
         subSrv: Number(r.sub_srv) || 0, subPec: Number(r.sub_pec) || 0,
         total: Number(r.total) || 0,
         forma: r.forma || '', status: r.status || 'Recebido',
+        contaId, dataPgto,
         reconciliada: !!r.reconciliada, ofxDesc: r.ofx_desc || ''
       }
     },
@@ -2478,7 +2485,13 @@ const db = {
       if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
       if (d.osId !== undefined) o.os_id = d.osId || null
       if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
-      if (d.desc !== undefined) o.descricao = d.desc || null
+      /* Anexar marcadores [CTA:] e [PGTO:] à descrição para persistir contaId e dataPgto */
+      if (d.desc !== undefined || d.contaId !== undefined || d.dataPgto !== undefined) {
+        let descBase = (d.desc || '').replace(/\s*\[CTA:[^\]]+\]/g, '').replace(/\s*\[PGTO:[^\]]+\]/g, '').trim()
+        if (d.contaId) descBase += ' [CTA:' + d.contaId + ']'
+        if (d.dataPgto) descBase += ' [PGTO:' + d.dataPgto + ']'
+        o.descricao = descBase || null
+      }
       ;['cat','tipo','forma','status'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.vsrv !== undefined) o.v_srv = Number(d.vsrv) || 0
       if (d.vpec !== undefined) o.v_pec = Number(d.vpec) || 0
@@ -3797,7 +3810,7 @@ async function renderUsuarios() {
       <td>${u.tipo === 'master' ? '<span class="pill" style="background:rgba(212,169,66,.15);color:#d4a942;border:1px solid rgba(212,169,66,.3);font-size:10px"><i class="ti ti-crown"></i> Master</span>' : '<span class="pill p-pu" style="font-size:10px">Colaborador</span>'}</td>
       <td>${permsResumo}</td>
       <td>${u.ativo ? '<span class="pill p-gr" style="font-size:10px">Ativo</span>' : '<span class="pill p-re" style="font-size:10px">Desativado</span>'}</td>
-      <td style="display:flex;gap:4px">
+      <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
         <button class="btn btn-sm" onclick="editarUsuario('${u.id}')" title="Editar"><i class="ti ti-edit"></i></button>
         ${!isAtual ? `<button class="btn btn-sm ${u.ativo ? 'btn-re' : 'btn-gr'}" onclick="toggleUsuario('${u.id}')" title="${u.ativo ? 'Desativar' : 'Reativar'}"><i class="ti ti-${u.ativo ? 'lock' : 'lock-open'}"></i></button>` : '<span style="font-size:10px;color:var(--t3);padding:0 6px">você</span>'}
       </td>
@@ -4693,7 +4706,7 @@ function renderClientes() {
       : c.veiculos.map(v => `<div style="font-size:12px">${v.vei} <span style="font-family:monospace;color:var(--pul);font-size:11px">${v.pla}</span></div>`).join('') + `<button class="btn btn-xs" onclick="adicionarVeiculo(${cid})" style="margin-top:4px;font-size:10px;padding:2px 6px"><i class="ti ti-plus"></i></button>`
     }</td>
     <td><span class="pill p-pu">${osN} OS</span></td>
-    <td style="display:flex;gap:4px">
+    <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
       <button class="btn btn-sm" onclick="abrirHistoricoCli(${cid})" title="Histórico financeiro"><i class="ti ti-history"></i></button>
       <button class="btn btn-sm" onclick="editarCliente(${cid})" title="Editar dados"><i class="ti ti-edit"></i></button>
       <button class="btn btn-sm btn-re" onclick="excluirCliente(${cid})" title="Excluir cliente"><i class="ti ti-trash"></i></button>
@@ -5386,7 +5399,7 @@ function renderOrc() {
     <td style="color:var(--blt);font-weight:600">${fmt(r.tPec)}</td>
     <td style="font-weight:700">${fmt(r.total)}</td>
     <td>${pill(r.status)}</td>
-    <td style="display:flex;gap:4px;flex-wrap:wrap">
+    <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
       <button class="btn btn-sm btn-print" onclick="printOrc('${r.id}')" title="PDF"><i class="ti ti-printer"></i></button>
       ${['Aguardando aprovação','Recusado'].includes(r.status) ? `<button class="btn btn-sm" onclick="editarOrc('${r.id}')" title="Editar"><i class="ti ti-edit"></i></button>` : ''}
       ${['Aprovado','OS gerada'].includes(r.status) ? `<button class="btn btn-sm" onclick="reabrirOrc('${r.id}')" title="Reabrir para edição"><i class="ti ti-lock-open"></i></button>` : ''}
@@ -5674,7 +5687,7 @@ function renderOS() {
       <div style="font-weight:700;margin-top:2px">${fmt(r.total)}</div>
     </td>
     <td>${pill(r.status)}</td>
-    <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+    <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
       <select style="font-size:11px;padding:4px 6px;border:1px solid var(--bd2);border-radius:6px;background:var(--s2);color:var(--t1);cursor:pointer;font-family:var(--f)" onchange="changeOSStatus('${r.id}',this.value)" title="Mudar status">
         ${statusOpts.map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
       </select>
@@ -5690,7 +5703,7 @@ function renderOS() {
           <button onclick="excluirOS('${r.id}');this.closest('details').open=false" style="color:var(--re)"><i class="ti ti-trash"></i> Excluir OS</button>
         </div>
       </details>
-    </td>
+    </div></td>
   </tr>`}).join('') : `<tr><td colspan="7"><div class="empty"><i class="ti ti-clipboard-off"></i>Nenhuma OS encontrada</div></td></tr>`
 
   renderProxPasso(document.getElementById('os-prox'), 3)
@@ -5852,7 +5865,7 @@ function renderMov() {
       <td style="color:var(--t2)">${it.forma || '—'}</td>
       <td>${pill(it.status)}</td>
       <td style="text-align:center">${banco}</td>
-      <td style="display:flex;gap:3px">${acoes}</td>
+      <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center">${acoes}</div></td>
     </tr>`
   }).join('')
 }
@@ -5860,6 +5873,7 @@ function renderMov() {
 /* Aba Banco: lista transações do extrato com indicação de vínculo */
 /* ── CONTAS BANCÁRIAS ──────────────────────────────────────── */
 function populateContasSelects() {
+  contasData = db.contas.list()  /* garantir dados atualizados */
   const selects = ['rec_conta', 'desp_conta', 'mov-conta', 'orc_fech_conta']
   selects.forEach(id => {
     const el = document.getElementById(id)
@@ -6514,7 +6528,7 @@ function abrirHistoricoCli(cliId) {
           <thead style="position:sticky;top:0;background:var(--s2)"><tr>
             <th style="padding:6px 8px">OS</th><th style="padding:6px 8px">Data</th>
             <th style="padding:6px 8px">Veículo</th><th style="padding:6px 8px">Mecânico</th>
-            <th style="padding:6px 8px;text-align:right">Serviços</th><th style="padding:6px 8px;text-align:right">Peças</th>
+            <th style="padding:6px 8px;text-align:right">Serviço</th>
             <th style="padding:6px 8px;text-align:right">Total</th><th style="padding:6px 8px">Status</th>
             <th style="padding:6px 8px"></th>
           </tr></thead>
@@ -6550,7 +6564,7 @@ function abrirHistoricoCli(cliId) {
         <table style="font-size:11px">
           <thead style="position:sticky;top:0;background:var(--s2)"><tr>
             <th style="padding:6px 8px">Data</th><th style="padding:6px 8px">Referência</th>
-            <th style="padding:6px 8px;text-align:right">Serviços</th><th style="padding:6px 8px;text-align:right">Peças</th>
+            <th style="padding:6px 8px;text-align:right">Serviço</th>
             <th style="padding:6px 8px;text-align:right">Total</th><th style="padding:6px 8px">Forma</th>
             <th style="padding:6px 8px">Status</th><th style="padding:6px 8px"></th>
           </tr></thead>
@@ -6962,7 +6976,7 @@ function renderEst() {
       <td style="font-weight:700;color:${r.qtd === 0 ? 'var(--ret)' : cr ? 'var(--amt)' : 'var(--t1)'}">${r.qtd} <span style="font-size:10px;color:var(--t3);font-weight:400">${unid}</span></td>
       <td style="color:var(--t3)">${r.min}</td><td>${fmt(r.custo)}</td>
       <td style="color:var(--grt)">${fmt(r.preco)}</td><td>${pill(cr ? 'Crítico' : 'OK')}</td>
-      <td style="display:flex;gap:4px">
+      <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
         <button class="btn btn-sm" onclick="abrirAjusteEstoque(${r.id})" title="Ajustar estoque"><i class="ti ti-arrows-up-down"></i></button>
         <button class="btn btn-sm" onclick="editarPeca(${r.id})" title="Editar peça"><i class="ti ti-edit"></i></button>
         <button class="btn btn-sm btn-re" onclick="excluirPeca(${r.id})" title="Excluir"><i class="ti ti-trash"></i></button>
@@ -7096,7 +7110,7 @@ function renderSrvCat() {
     <td><span class="pill p-pu" style="font-size:10px">${s.cat}</span></td>
     <td style="font-family:monospace;color:var(--t2)">${s.h} h</td>
     <td style="font-weight:600;color:var(--grt)">${fmt(s.valor)}</td>
-    <td style="display:flex;gap:4px">
+    <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
       <button class="btn btn-sm" onclick="editarSrvCat(${s.id})" title="Editar"><i class="ti ti-edit"></i></button>
       <button class="btn btn-sm btn-re" onclick="excluirSrvCat(${s.id})" title="Excluir"><i class="ti ti-trash"></i></button>
     </td>
@@ -7874,12 +7888,12 @@ function relMec(periodo, ini, fim) {
       <div class="metric" style="padding:8px;border-left:2px solid var(--am)"><div class="ml" style="font-size:9px">Comissão</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
       <div class="metric" style="padding:8px;border-left:2px solid var(--pu)"><div class="ml" style="font-size:9px">Líquido</div><div class="mv" style="font-size:13px;font-weight:700">${fmt(fatSrv-comissao)}</div></div>
     </div>
-    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado considera apenas valor de Serviços (Peças: ${fmt(fatPec)} não entram nesse total nem na comissão) · apenas OSs concluídas dentro do filtro</div>
+    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado considera apenas valor de Serviços · apenas OSs concluídas dentro do filtro</div>
 
     <!-- Tabela detalhada de todas as OSs filtradas -->
     <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-list-details"></i> OSs no filtro (${oss.length})</div>
     ${oss.length ? `<table style="font-size:11px">
-      <thead><tr><th style="padding:6px 7px">OS</th><th style="padding:6px 7px">Data</th><th style="padding:6px 7px">Status</th><th style="padding:6px 7px">Cliente</th><th style="padding:6px 7px">Placa</th><th style="padding:6px 7px;text-align:right">Serviço</th><th style="padding:6px 7px;text-align:right">Peças</th><th style="padding:6px 7px;text-align:right">Total</th></tr></thead>
+      <thead><tr><th style="padding:6px 7px">OS</th><th style="padding:6px 7px">Data</th><th style="padding:6px 7px">Status</th><th style="padding:6px 7px">Cliente</th><th style="padding:6px 7px">Veículo</th><th style="padding:6px 7px">Placa</th><th style="padding:6px 7px;text-align:right">Serviço</th></tr></thead>
       <tbody>
         ${oss.map(o => {
           const st = o.status
@@ -7889,17 +7903,14 @@ function relMec(periodo, ini, fim) {
             <td style="padding:5px 7px;color:var(--t2)">${o.dataConclusao || o.data}</td>
             <td style="padding:5px 7px"><span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600;color:${cor};background:${cor}18">${st}</span></td>
             <td style="padding:5px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.cliNome || '—'}</td>
+            <td style="padding:5px 7px;color:var(--t2)">${o.vei || '—'}</td>
             <td style="padding:5px 7px;font-family:monospace;color:var(--pul);font-size:10px">${o.pla || '—'}</td>
-            <td style="padding:5px 7px;text-align:right;color:var(--t2)">${fmt(o.vsrv || 0)}</td>
-            <td style="padding:5px 7px;text-align:right;color:var(--t2)">${fmt(o.vpec || 0)}</td>
-            <td style="padding:5px 7px;text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
+            <td style="padding:5px 7px;text-align:right;font-weight:600;color:var(--grt)">${fmt(o.vsrv || 0)}</td>
           </tr>`
         }).join('')}
         <tr style="border-top:2px solid var(--bd)">
-          <td colspan="5" style="padding:6px 7px;text-align:right;font-weight:700">SUBTOTAIS</td>
-          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--t1)">${fmt(oss.reduce((a,o) => a + (o.vsrv||0), 0))}</td>
-          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--t1)">${fmt(oss.reduce((a,o) => a + (o.vpec||0), 0))}</td>
-          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.total||0), 0))}</td>
+          <td colspan="6" style="padding:6px 7px;text-align:right;font-weight:700">SUBTOTAL</td>
+          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.vsrv||0), 0))}</td>
         </tr>
       </tbody>
     </table>` : `<div class="empty" style="padding:16px;font-size:12px">Nenhuma OS encontrada com os filtros atuais.</div>`}
@@ -8559,7 +8570,7 @@ function relLembretes() {
             <td style="font-weight:600;color:${corAlerta};white-space:nowrap">${meses} mes${meses === 1 ? '' : 'es'}</td>
             <td><span class="pill p-pu" style="font-size:10px">${it.nOs}</span></td>
             <td style="font-size:11px">${tel || '—'}</td>
-            <td style="white-space:nowrap;display:flex;gap:4px">${telWa
+            <td style="white-space:nowrap;vertical-align:middle"><div style="display:inline-flex;gap:4px;align-items:center">${telWa
               ? `<a href="https://wa.me/${telWa}?text=${msgReat}" target="_blank" class="btn btn-xs" style="background:#25d366;color:#fff;text-decoration:none" title="Enviar WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>`
               : ''}
               <button class="btn btn-xs" onclick="abrirHistoricoCli(${it.c.id})" title="Ver histórico"><i class="ti ti-history"></i></button>
