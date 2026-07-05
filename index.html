@@ -1294,7 +1294,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="slabel" style="margin:0">Serviços (mão de obra)</div>
       <button class="btn btn-sm btn-pu" onclick="abrirPickerSrv()" title="Selecionar do catálogo de serviços cadastrados"><i class="ti ti-list-check"></i> Do catálogo</button>
     </div>
-    <div class="fr g3" style="margin-bottom:6px"><div class="fg"><label>Descrição (cadastro rápido)</label><input id="orc_srv_desc" type="text" placeholder="Ex: Troca de pastilhas de freio"></div><div class="fg"><label>Tempo (h)</label><input id="orc_srv_h" type="number" placeholder="1.5" step="0.5" min="0"></div><div class="fg"><label>Valor M.O. (R$)</label><input id="orc_srv_val" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
+    <div class="fr g3" style="margin-bottom:6px"><div class="fg"><label>Descrição (cadastro rápido)</label><input id="orc_srv_desc" type="text" placeholder="Ex: Troca de pastilhas de freio"></div><div class="fg"><label>Qtd.</label><input id="orc_srv_qtd" type="number" placeholder="1" step="1" min="1" value="1"></div><div class="fg"><label>Valor unit. (R$)</label><input id="orc_srv_val" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
     <button class="btn btn-sm" style="margin-bottom:8px" onclick="addItemOrc('srv')"><i class="ti ti-plus"></i> Adicionar serviço avulso</button>
     <div id="orc-srvs"></div>
 
@@ -1308,7 +1308,23 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <div class="orc-step" data-step="3">
-    <div class="fr g2"><div class="fg"><label>Desc. Serviços (%)</label><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div><div class="fg"><label>Desc. Peças (%)</label><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div></div>
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-discount-2"></i> Descontos</div>
+    <div class="fr g2">
+      <div class="fg">
+        <label>Desc. Serviços</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div style="position:relative;flex:1"><span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">R$</span><input id="orc_descSrvVal" type="number" placeholder="0" step="0.01" min="0" value="0" oninput="orcDescFromVal('srv')" style="padding-left:26px;font-size:12px"></div>
+          <div style="position:relative;flex:1"><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('srv')" style="padding-right:22px;font-size:12px"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">%</span></div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Desc. Peças</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div style="position:relative;flex:1"><span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">R$</span><input id="orc_descPecVal" type="number" placeholder="0" step="0.01" min="0" value="0" oninput="orcDescFromVal('pec')" style="padding-left:26px;font-size:12px"></div>
+          <div style="position:relative;flex:1"><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('pec')" style="padding-right:22px;font-size:12px"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">%</span></div>
+        </div>
+      </div>
+    </div>
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
       <input id="orc_mostrarDesc" type="checkbox" checked style="width:16px;height:16px;cursor:pointer">
       <label for="orc_mostrarDesc" style="font-size:12px;cursor:pointer;flex:1">
@@ -1487,7 +1503,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <div class="pf-i"><label>Veículo</label><span id="p-orc-vei"></span></div>
     <div class="pf-i"><label>Placa</label><span id="p-orc-pla"></span></div>
   </div>
-  <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:70px">Tempo (h)</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
+  <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><div class="ps-t">Peças / Materiais</div><table class="ptable" id="p-orc-pecs"><thead><tr><th>Peça / Material</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Unit.</th><th style="width:90px;text-align:right">Total</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><table class="ptable"><tbody><tr><td>Subtotal serviços</td><td style="text-align:right;font-weight:600" id="p-orc-tsrv">R$ 0,00</td></tr><tr><td>Subtotal peças</td><td style="text-align:right;font-weight:600" id="p-orc-tpec">R$ 0,00</td></tr><tr><td>Desconto aplicado</td><td style="text-align:right;color:#c43030" id="p-orc-tdesc">—</td></tr></tbody></table><div class="ptot"><div class="tl">Total do orçamento</div><div class="tv" id="p-orc-tot">R$ 0,00</div></div></div>
   <div class="ps"><div class="ps-t">Observações / Condições</div><div class="pobs" id="p-orc-obs"></div></div>
@@ -5070,12 +5086,12 @@ document.addEventListener('click', e => {
 function addItemOrc(tipo) {
   if (tipo === 'srv') {
     const desc = document.getElementById('orc_srv_desc').value.trim()
-    const h = parseFloat(document.getElementById('orc_srv_h').value) || 0
-    const val = parseFloat(document.getElementById('orc_srv_val').value) || 0
+    const qtd = parseInt(document.getElementById('orc_srv_qtd').value) || 1
+    const valUnit = parseFloat(document.getElementById('orc_srv_val').value) || 0
     if (!desc) { toast('Informe a descrição do serviço'); return }
-    orcTempSrvs.push({ desc, h, val })
+    orcTempSrvs.push({ desc, qtd, valUnit, val: valUnit * qtd })
     document.getElementById('orc_srv_desc').value = ''
-    document.getElementById('orc_srv_h').value = ''
+    document.getElementById('orc_srv_qtd').value = '1'
     document.getElementById('orc_srv_val').value = ''
   } else {
     const desc = document.getElementById('orc_pec_desc').value.trim()
@@ -5097,7 +5113,7 @@ function removeOrcItem(tipo, idx) {
 function renderTempOrc() {
   document.getElementById('orc-srvs').innerHTML = orcTempSrvs.map((s, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--s3);border-radius:var(--r);margin-bottom:4px;font-size:12px">
-      <span>${s.desc} <span style="color:var(--t3)">(${s.h}h)</span></span>
+      <span>${s.desc} ${(s.qtd||1) > 1 ? `<span style="color:var(--t3)">(${s.qtd}× ${fmt(s.valUnit||s.val)})</span>` : ''}</span>
       <span style="display:flex;align-items:center;gap:8px"><b style="color:var(--grt)">${fmt(s.val)}</b>
       <button class="btn btn-xs btn-re" onclick="removeOrcItem('srv',${i})"><i class="ti ti-x"></i></button></span>
     </div>`).join('')
@@ -5108,6 +5124,29 @@ function renderTempOrc() {
       <button class="btn btn-xs btn-re" onclick="removeOrcItem('pec',${i})"><i class="ti ti-x"></i></button></span>
     </div>`).join('')
 }
+function orcDescFromVal(tipo) {
+  const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
+  const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
+  const total = tipo === 'srv' ? tS : tP
+  const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
+  const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
+  const val = parseFloat(valEl?.value) || 0
+  if (total > 0) pctEl.value = Math.round(val / total * 10000) / 100
+  else pctEl.value = 0
+  atualizarTotalOrc()
+}
+
+function orcDescFromPct(tipo) {
+  const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
+  const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
+  const total = tipo === 'srv' ? tS : tP
+  const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
+  const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
+  const pct = parseFloat(pctEl?.value) || 0
+  valEl.value = Math.round(total * pct / 100 * 100) / 100
+  atualizarTotalOrc()
+}
+
 function atualizarTotalOrc() {
   const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
@@ -5193,8 +5232,8 @@ function orcShowStep(n) {
 /* ── EDIÇÃO DE ORÇAMENTO ────────────────────────── */
 function editarOrc(id) {
   const o = orcData.find(x => x.id == id); if (!o) return
-  /* Orçamentos com OS gerada precisam ser reabertos primeiro */
-  if (o.status === 'OS gerada') { toast('⚠️ Use "Reabrir" para editar — isso desfaz a OS associada.', 4000); return }
+  /* Orçamentos com OS gerada precisam ser reabertos — EXCETO em modo fechamento */
+  if (o.status === 'OS gerada' && !_orcFechOsId) { toast('⚠️ Use "Reabrir" para editar — isso desfaz a OS associada.', 4000); return }
   orcEditId = id
   populateClis(); populateMecs()
   /* Preenche o modal */
@@ -5206,6 +5245,12 @@ function editarOrc(id) {
   orcTempPecs = o.pecs.map(p => ({ ...p }))
   document.getElementById('orc_descSrv').value = o.descSrv || 0
   document.getElementById('orc_descPec').value = o.descPec || 0
+  const tSEdit = o.srvs.reduce((a,b) => a + (b.val||0), 0)
+  const tPEdit = o.pecs.reduce((a,b) => a + (b.tot||0), 0)
+  const dSrvValEl = document.getElementById('orc_descSrvVal')
+  const dPecValEl = document.getElementById('orc_descPecVal')
+  if (dSrvValEl) dSrvValEl.value = Math.round(tSEdit * (o.descSrv||0) / 100 * 100) / 100
+  if (dPecValEl) dPecValEl.value = Math.round(tPEdit * (o.descPec||0) / 100 * 100) / 100
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
   renderTempOrc(); atualizarTotalOrc()
@@ -5297,10 +5342,12 @@ function resetModalOrc() {
   orcEditId = null
   _orcFechOsId = null
   orcTempSrvs = []; orcTempPecs = []
-  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_srv_desc','orc_srv_h','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_srv_desc','orc_srv_qtd','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
   document.getElementById('orc_descSrv').value = 0
   document.getElementById('orc_descPec').value = 0
+  const dSrvR = document.getElementById('orc_descSrvVal'); if (dSrvR) dSrvR.value = 0
+  const dPecR = document.getElementById('orc_descPecVal'); if (dPecR) dPecR.value = 0
   const mostrar = document.getElementById('orc_mostrarDesc'); if (mostrar) mostrar.checked = true
   populateClis(); populateMecs()
   renderTempOrc(); atualizarTotalOrc()
@@ -5813,7 +5860,7 @@ function renderMov() {
 /* Aba Banco: lista transações do extrato com indicação de vínculo */
 /* ── CONTAS BANCÁRIAS ──────────────────────────────────────── */
 function populateContasSelects() {
-  const selects = ['rec_conta', 'desp_conta', 'mov-conta']
+  const selects = ['rec_conta', 'desp_conta', 'mov-conta', 'orc_fech_conta']
   selects.forEach(id => {
     const el = document.getElementById(id)
     if (!el) return
@@ -5821,7 +5868,7 @@ function populateContasSelects() {
     const isFilter = id === 'mov-conta'
     el.innerHTML = isFilter
       ? '<option value="">Todas as contas</option>'
-      : '<option value="">— Sem conta específica —</option>'
+      : '<option value="">— Selecione a conta —</option>'
     contasData.forEach(c => {
       const op = document.createElement('option')
       op.value = c.id
@@ -6163,6 +6210,7 @@ function onChangeSelectCat(selectId, tipo) {
 function resetModalRec() {
   recEditId = null
   _recAvulsaOsId = null
+  populateContasSelects()
   ;['rec_av_desc','rec_av_valor','rec_av_cli','rec_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   document.getElementById('rec_av_data').value = hoje
   /* Popula select de categoria com padrão + customizadas + "+ Criar nova" */
@@ -7282,7 +7330,7 @@ function renderPickSrv() {
 
 function adicionarSrvDoCatalogo(id) {
   const s = srvCatData.find(x => x.id == id); if (!s) return
-  orcTempSrvs.push({ desc: s.nome, h: s.h, val: s.valor, srvCatId: s.id })
+  orcTempSrvs.push({ desc: s.nome, qtd: 1, valUnit: s.valor, val: s.valor, srvCatId: s.id })
   renderTempOrc(); atualizarTotalOrc()
   toast('Serviço adicionado.')
   fecharModal('mPickSrv')
@@ -9166,7 +9214,7 @@ function printOrc(id) {
   document.getElementById('p-orc-vei').textContent = o.vei
   document.getElementById('p-orc-pla').textContent = o.pla
   document.getElementById('p-orc-srvs').querySelector('tbody').innerHTML =
-    o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.h}h</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
+    o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.qtd||1}</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
   document.getElementById('p-orc-pecs').querySelector('tbody').innerHTML =
     o.pecs.length ? o.pecs.map(p => `<tr><td>${p.desc}</td><td>${p.qtd}</td><td style="text-align:right">${fmt(p.unit)}</td><td style="text-align:right">${fmt(p.tot)}</td></tr>`).join('') : '<tr><td colspan="4" style="color:#aaa">—</td></tr>'
   const dS = o.descSrv || 0, dP = o.descPec || 0
