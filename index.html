@@ -1678,7 +1678,12 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
    Fluxo TRAVADO: 1 Clientes → 2 Orçamentos → 3 OS → 4 Financeiro
    =================================================== */
 
-const hoje = new Date().toISOString().split('T')[0]
+/* Helper: data local no formato YYYY-MM-DD (evita bug de UTC após 20h em MT) */
+function hojeISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+const hoje = hojeISO()
 const fmtD = () => new Date().toLocaleDateString('pt-BR')
 const fmt = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -6336,7 +6341,7 @@ function toggleRecDataPgto() {
   const temVenc = !!document.getElementById('rec_venc')?.value
   wrap.style.display = isRecebido && (temVenc || recEditId) ? '' : 'none'
   if (isRecebido && !document.getElementById('rec_datapgto')?.value) {
-    document.getElementById('rec_datapgto').value = new Date().toISOString().split('T')[0]
+    document.getElementById('rec_datapgto').value = hojeISO()
   }
 }
 
@@ -6351,7 +6356,7 @@ function toggleRecParc() {
     const ini = document.getElementById('rec_parc_ini')
     if (ini && !ini.value) {
       const d = new Date(); d.setDate(d.getDate() + 30)
-      ini.value = d.toISOString().split('T')[0]
+      ini.value = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(d))
     }
     calcRecParc()
   }
@@ -6414,7 +6419,7 @@ function toggleDespParc() {
     const ini = document.getElementById('desp_parc_ini')
     if (ini && !ini.value) {
       const d = new Date(); d.setDate(d.getDate() + 30)
-      ini.value = d.toISOString().split('T')[0]
+      ini.value = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(d))
     }
     calcDespParc()
   }
@@ -7886,26 +7891,26 @@ function aplicarPresetDRE(preset) {
   let de = '', ate = ''
   switch (preset) {
     case 'mes-atual':
-      de = new Date(h.getFullYear(), h.getMonth(), 1).toISOString().split('T')[0]
-      ate = new Date(h.getFullYear(), h.getMonth() + 1, 0).toISOString().split('T')[0]
+      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth(), 1)))
+      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth() + 1, 0)))
       break
     case 'mes-passado': {
       const inicio = new Date(h.getFullYear(), h.getMonth() - 1, 1)
       const fim = new Date(h.getFullYear(), h.getMonth(), 0)
-      de = inicio.toISOString().split('T')[0]
-      ate = fim.toISOString().split('T')[0]
+      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(inicio))
+      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(fim))
       break
     }
     case 'trimestre': {
       const inicio = new Date(h.getFullYear(), h.getMonth() - 2, 1)
       const fim = new Date(h.getFullYear(), h.getMonth() + 1, 0)
-      de = inicio.toISOString().split('T')[0]
-      ate = fim.toISOString().split('T')[0]
+      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(inicio))
+      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(fim))
       break
     }
     case 'ano':
-      de = new Date(h.getFullYear(), 0, 1).toISOString().split('T')[0]
-      ate = new Date(h.getFullYear(), 11, 31).toISOString().split('T')[0]
+      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), 0, 1)))
+      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), 11, 31)))
       break
     case 'tudo':
     default:
@@ -7926,8 +7931,8 @@ function relDRE() {
   /* Inicializa preset padrão se primeira vez */
   if (!_dreDe && !_dreAte && _drePreset === 'mes-atual') {
     const h = new Date()
-    _dreDe = new Date(h.getFullYear(), h.getMonth(), 1).toISOString().split('T')[0]
-    _dreAte = new Date(h.getFullYear(), h.getMonth() + 1, 0).toISOString().split('T')[0]
+    _dreDe = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth(), 1)))
+    _dreAte = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth() + 1, 0)))
   }
   const de = _dreDe, ate = _dreAte
   const recsFilt = recData.filter(r => dateInRange(r.data, de, ate))
