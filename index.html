@@ -1341,6 +1341,20 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--t3)">  − Desc. peças:</span><span id="orc-t-dpec" style="color:var(--ret)">R$ 0,00</span></div>
       <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)"><span>Total geral:</span><span id="orc-t-tot" style="color:var(--pul)">R$ 0,00</span></div>
     </div>
+
+    <!-- Bloco de fechamento/pagamento (aparece só quando lançando receita via OS) -->
+    <div id="orc-fechamento-wrap" style="display:none;margin-top:14px;padding:14px;background:linear-gradient(135deg,var(--grb),var(--s2));border:2px solid var(--gr);border-radius:var(--r)">
+      <div style="font-size:12px;font-weight:700;color:var(--grt);margin-bottom:10px"><i class="ti ti-cash"></i> Fechamento financeiro</div>
+      <div class="fr g3">
+        <div class="fg"><label>Forma de pagamento</label><select id="orc_fech_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div>
+        <div class="fg"><label>Conta que recebeu</label><select id="orc_fech_conta"><option value="">— Selecione —</option></select></div>
+        <div class="fg"><label>Status</label><select id="orc_fech_status"><option>Recebido</option><option>A receber</option></select></div>
+      </div>
+      <div class="fr g2">
+        <div class="fg"><label>Data do recebimento</label><input id="orc_fech_data" type="date"></div>
+        <div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="orc_fech_venc" type="date"></div>
+      </div>
+    </div>
   </div>
 
   <div class="mf" style="justify-content:space-between">
@@ -1350,7 +1364,8 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     </div>
     <div style="display:flex;gap:10px;align-items:center">
       <button class="btn" onclick="fecharModal('mOrcAdd');resetModalOrc()">Cancelar</button>
-      <button class="btn btn-pu" onclick="salvarOrc()"><i class="ti ti-check"></i> Salvar Orçamento</button>
+      <button class="btn btn-pu" id="orc-btn-salvar" onclick="salvarOrc()"><i class="ti ti-check"></i> Salvar Orçamento</button>
+      <button class="btn btn-gr" id="orc-btn-fechar" onclick="confirmarFechamento()" style="display:none"><i class="ti ti-cash"></i> Confirmar Fechamento</button>
     </div>
   </div>
 </div></div>
@@ -1388,28 +1403,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 <div class="ov" id="mFinRec"><div class="modal" style="max-width:660px">
   <div class="mh"><h3><div class="mh-ic" style="background:var(--grb);color:var(--grt)"><i class="ti ti-trending-up"></i></div><span id="mFinRec-title">Nova Entrada</span></h3><button class="xbtn" onclick="fecharModal('mFinRec');resetModalRec()"><i class="ti ti-x"></i></button></div>
 
-  <!-- Tabs: tipo de entrada -->
-  <div style="display:flex;gap:2px;border-bottom:1px solid var(--bd);margin-bottom:14px">
-    <button type="button" class="subtab active" id="rec-tab-os" onclick="alternarTipoRec('os')" style="padding:8px 16px;font-size:12px"><i class="ti ti-clipboard-list"></i> Recebimento de OS</button>
-    <button type="button" class="subtab" id="rec-tab-avulsa" onclick="alternarTipoRec('avulsa')" style="padding:8px 16px;font-size:12px"><i class="ti ti-cash"></i> Outra receita</button>
-  </div>
-
-  <!-- Modo: OS -->
-  <div id="rec-modo-os">
-    <div class="fr g2"><div class="fg"><label>OS de referência *</label><select id="rec_os" onchange="preencherRecOS()"><option value="">Selecionar OS concluída...</option></select></div><div class="fg"><label>Data *</label><input id="rec_data" type="date"></div></div>
-    <div class="slabel" style="margin-top:6px;margin-bottom:8px">Serviços (mão de obra)</div>
-    <div class="fr" style="grid-template-columns:1fr 110px 1fr;margin-bottom:6px"><div class="fg"><label>Valor bruto (R$)</label><input id="rec_vsrv" type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Desc. (R$)</label><input id="rec_dsrv" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Subtotal</label><input id="rec_subSrv" type="text" readonly style="background:var(--s3);color:var(--grt);font-weight:600"></div></div>
-    <div class="slabel" style="margin-top:14px;margin-bottom:8px">Peças / Materiais</div>
-    <div class="fr" style="grid-template-columns:1fr 110px 1fr;margin-bottom:6px"><div class="fg"><label>Valor bruto (R$)</label><input id="rec_vpec" type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Desc. (R$)</label><input id="rec_dpec" type="number" placeholder="0,00" step="0.01" min="0" value="0" oninput="atualizarTotRec()"></div><div class="fg"><label>Subtotal</label><input id="rec_subPec" type="text" readonly style="background:var(--s3);color:var(--blt);font-weight:600"></div></div>
-    <div style="background:var(--s2);border-radius:var(--r);padding:12px;border:1px solid var(--bd);margin-top:10px;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--t3)">Valor bruto (serviços + peças):</span><span id="rec-bruto" style="color:var(--t2)">R$ 0,00</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--t3)">Total descontos:</span><span id="rec-totDesc" style="color:var(--ret)">− R$ 0,00</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)"><span>Preço final de fechamento:</span><span id="rec-tot" style="color:var(--pul)">R$ 0,00</span></div>
-    </div>
-  </div>
-
-  <!-- Modo: Avulsa (outras receitas) -->
-  <div id="rec-modo-avulsa" style="display:none">
+  <div id="rec-modo-avulsa">
     <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="rec_av_desc" type="text" placeholder="Ex: Locação de elevador para terceiro"></div><div class="fg"><label>Data *</label><input id="rec_av_data" type="date"></div></div>
     <div class="fr g2"><div class="fg"><label>Categoria *</label><select id="rec_av_cat">
       <option>Locação de equipamentos</option>
@@ -5438,6 +5432,7 @@ async function cancelarDespesa(id) {
 /* Reset do modal ao fechar — volta para modo criação */
 function resetModalOrc() {
   orcEditId = null
+  _orcFechOsId = null
   orcTempSrvs = []; orcTempPecs = []
   ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_km','orc_srv_desc','orc_srv_qtd','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
@@ -5449,6 +5444,12 @@ function resetModalOrc() {
   populateClis(); populateMecs()
   renderTempOrc(); atualizarTotalOrc()
   orcShowStep(1)
+  document.getElementById('mPecaAdd-title') && (document.getElementById('mPecaAdd-title').textContent = 'Cadastrar Peça')
+  /* Reset modo fechamento */
+  const fw = document.getElementById('orc-fechamento-wrap'); if (fw) fw.style.display = 'none'
+  const bs = document.getElementById('orc-btn-salvar'); if (bs) bs.style.display = ''
+  const bf = document.getElementById('orc-btn-fechar'); if (bf) bf.style.display = 'none'
+  document.getElementById('mOrcAdd-title') && (document.getElementById('mOrcAdd-title').textContent = 'Novo Orçamento')
   const mh = document.querySelector('#mOrcAdd .mh h3')
   if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-file-invoice"></i></div>Novo Orçamento`
 }
@@ -5639,18 +5640,121 @@ async function changeOSStatus(id, s) {
   renderOS(); renderKanban(); updateBadge(); saveState()
 }
 
+let _orcFechOsId = null  /* guarda o ID da OS quando em modo fechamento */
+
 function lancarFinanceiro(osId) {
-  const o = osData.find(x => x.id == osId); if (!o) { toast('OS não encontrada'); return }
-  /* Não navega — abre o modal direto onde você está */
-  populateOSSelects()
-  /* Espera o populate criar as options */
-  requestAnimationFrame(() => {
-    document.getElementById('rec_os').value = osId
-    /* Preenche valores e descontos a partir da OS / orçamento original */
-    preencherRecOS()
-    if (!document.getElementById('rec_data').value) document.getElementById('rec_data').value = hoje
-    abrirModal('mFinRec')
-  })
+  const os = osData.find(x => x.id == osId); if (!os) { toast('OS não encontrada'); return }
+
+  /* Se OS veio de orçamento, abre o orçamento em modo fechamento */
+  if (os.orcId) {
+    const orc = orcData.find(o => o.id == os.orcId)
+    if (orc) {
+      _orcFechOsId = osId
+      editarOrc(orc.id)
+      /* Ativa modo fechamento: mostra bloco de pagamento, troca botão */
+      requestAnimationFrame(() => {
+        orcShowStep(3)
+        const wrap = document.getElementById('orc-fechamento-wrap')
+        if (wrap) wrap.style.display = ''
+        const btnSalvar = document.getElementById('orc-btn-salvar')
+        if (btnSalvar) btnSalvar.style.display = 'none'
+        const btnFechar = document.getElementById('orc-btn-fechar')
+        if (btnFechar) btnFechar.style.display = ''
+        /* Popular selects de conta e data */
+        populateContasSelects()
+        const selContas = document.getElementById('orc_fech_conta')
+        if (selContas) {
+          selContas.innerHTML = '<option value="">— Selecione —</option>'
+          contasData.forEach(c => { const op = document.createElement('option'); op.value = c.id; op.textContent = c.nome; selContas.appendChild(op) })
+        }
+        document.getElementById('orc_fech_data').value = hojeISO()
+        /* Alterar título */
+        const mh = document.querySelector('#mOrcAdd .mh h3')
+        if (mh) mh.innerHTML = `<div class="mh-ic" style="background:var(--grb);color:var(--grt)"><i class="ti ti-cash"></i></div>Fechamento — OS ${osId} · ${os.cliNome}`
+      })
+      return
+    }
+  }
+
+  /* OS manual (sem orçamento): abre o modal avulso pré-preenchido */
+  resetModalRec()
+  document.getElementById('rec_av_desc').value = `OS-${osId} · ${os.cliNome || '—'}`
+  document.getElementById('rec_av_valor').value = os.total || 0
+  document.getElementById('rec_av_data').value = hojeISO()
+  document.getElementById('rec_av_cli').value = os.cliNome || ''
+  _recAvulsaOsId = osId  /* guardar referência da OS */
+  abrirModal('mFinRec')
+}
+
+let _recAvulsaOsId = null  /* para vincular receita avulsa a OS manual */
+
+async function confirmarFechamento() {
+  if (!_orcFechOsId) { toast('Erro: OS não identificada.'); return }
+  const os = osData.find(x => x.id == _orcFechOsId); if (!os) return
+  const orc = os.orcId ? orcData.find(o => o.id == os.orcId) : null; if (!orc) return
+
+  /* Primeiro salva o orçamento (com descontos atualizados) */
+  await salvarOrc()
+
+  /* Recarregar o orçamento atualizado */
+  const orcAtualizado = orcData.find(o => o.id == orc.id)
+  const tS = orcAtualizado.tSrv || 0
+  const tP = orcAtualizado.tPec || 0
+  const dS = orcAtualizado.descSrv || 0
+  const dP = orcAtualizado.descPec || 0
+  const subSrv = tS * (1 - dS / 100)
+  const subPec = tP * (1 - dP / 100)
+  const total = subSrv + subPec
+
+  /* Dados da receita */
+  const forma = document.getElementById('orc_fech_forma')?.value || 'PIX'
+  const contaId = document.getElementById('orc_fech_conta')?.value || null
+  const status = document.getElementById('orc_fech_status')?.value || 'Recebido'
+  const dataFech = document.getElementById('orc_fech_data')?.value || hojeISO()
+  const dataFmt = new Date(dataFech + 'T12:00').toLocaleDateString('pt-BR')
+  const dataVenc = document.getElementById('orc_fech_venc')?.value
+  const dataVencFmt = dataVenc ? new Date(dataVenc + 'T12:00').toLocaleDateString('pt-BR') : null
+
+  const dados = {
+    data: dataFmt, dataVenc: dataVencFmt,
+    osId: _orcFechOsId, cliNome: os.cliNome || '',
+    vsrv: tS, vpec: tP,
+    descSrv: tS * dS / 100, descPec: tP * dP / 100,
+    subSrv, subPec, total,
+    cat: tS > 0 && tP > 0 ? 'Serviços + Peças (OS)' : (tP > 0 ? 'Peças (OS)' : 'Serviços (OS)'),
+    forma, status, contaId,
+    dataPgto: status === 'Recebido' ? dataFmt : null,
+    tipo: 'os', desc: ''
+  }
+
+  try {
+    /* Verificar se a OS já tem receita — atualizar em vez de criar nova */
+    const recExistente = recData.find(r => r.osId == _orcFechOsId)
+    if (recExistente) {
+      const atualizado = await db.entradas.update(recExistente.id, dados)
+      Object.assign(recExistente, atualizado)
+      toast('Receita atualizada com os novos valores.', 3500)
+    } else {
+      const novo = await db.entradas.create(lojaAtual.id, dados)
+      recData.unshift(novo)
+      os.finId = novo.id
+      try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
+      toast('Receita lançada com sucesso!', 3500)
+    }
+
+    /* Atualizar OS com valores líquidos */
+    os.vsrv = subSrv; os.vpec = subPec; os.total = total
+    try { await db.os.update(os.id, { vsrv: subSrv, vpec: subPec, total }) } catch (_) {}
+
+    logAtividade('rec_novo', `Fechamento OS-${_orcFechOsId} · ${fmt(total)}`)
+  } catch (err) {
+    toast('Erro ao lançar receita: ' + err.message, 5000)
+    return
+  }
+
+  _orcFechOsId = null
+  fecharModal('mOrcAdd'); resetModalOrc()
+  renderKanban(); renderOS(); renderMov(); renderFinMetrics(); renderBancoExtrato()
 }
 
 function renderOS() {
@@ -6466,6 +6570,7 @@ function gerarDatasParcelas(dataIni, qtd, intervalo) {
 
 function resetModalRec() {
   recEditId = null
+  _recAvulsaOsId = null
   _recTipoModo = 'os'
   alternarTipoRec('os')
   ;['rec_vsrv','rec_vpec','rec_dsrv','rec_dpec','rec_subSrv','rec_subPec','rec_av_desc','rec_av_valor','rec_av_cli','rec_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = e.id.includes('_d') ? '0' : '' })
@@ -6529,132 +6634,47 @@ async function salvarReceita() {
   const dataVencFmt = dataVencISO ? new Date(dataVencISO + 'T12:00').toLocaleDateString('pt-BR') : null
 
   try {
-    if (_recTipoModo === 'os') {
-      const vsrv = parseFloat(document.getElementById('rec_vsrv').value) || 0
-      const vpec = parseFloat(document.getElementById('rec_vpec').value) || 0
-      const dsrv = parseFloat(document.getElementById('rec_dsrv').value) || 0  /* R$ */
-      const dpec = parseFloat(document.getElementById('rec_dpec').value) || 0  /* R$ */
-      const data = document.getElementById('rec_data').value
-      if (!data || (vsrv + vpec) === 0) { toast('Preencha data e valores', 4000); return }
-      const dsrvCap = Math.min(dsrv, vsrv)
-      const dpecCap = Math.min(dpec, vpec)
-      const subSrv = vsrv - dsrvCap
-      const subPec = vpec - dpecCap
-      const total = subSrv + subPec
-      const osId = document.getElementById('rec_os').value
-      const os = osData.find(o => o.id == osId)
-      const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
+    /* Receita avulsa (a receita de OS agora é feita via confirmarFechamento no orçamento) */
+    const desc = document.getElementById('rec_av_desc').value.trim()
+    const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
+    const data = document.getElementById('rec_av_data').value
+    if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 4000); return }
+    const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
+    const cat = document.getElementById('rec_av_cat').value
+    const cli = document.getElementById('rec_av_cli').value.trim()
 
-      const dados = {
-        data: dataFmt, dataVenc: dataVencFmt, osId: osId || null,
-        cliNome: os ? os.cliNome : '', vsrv, vpec, descSrv: dsrv, descPec: dpec,
-        subSrv, subPec, total,
-        cat: vsrv > 0 && vpec > 0 ? 'Serviços + Peças (OS)' : (vpec > 0 ? 'Peças (OS)' : 'Serviços (OS)'),
-        forma: document.getElementById('rec_forma').value,
-        status: document.getElementById('rec_status').value,
-        contaId: document.getElementById('rec_conta')?.value || null,
-        dataPgto: document.getElementById('rec_status').value === 'Recebido' && document.getElementById('rec_datapgto')?.value ? new Date(document.getElementById('rec_datapgto').value + 'T12:00').toLocaleDateString('pt-BR') : null,
-        tipo: 'os'
-      }
+    const dados = {
+      data: dataFmt, dataVenc: dataVencFmt, osId: _recAvulsaOsId || null, cliNome: cli || desc, desc, cat,
+      vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
+      forma: document.getElementById('rec_forma').value,
+      status: document.getElementById('rec_status').value,
+      contaId: document.getElementById('rec_conta')?.value || null,
+      dataPgto: document.getElementById('rec_status').value === 'Recebido' && document.getElementById('rec_datapgto')?.value ? new Date(document.getElementById('rec_datapgto').value + 'T12:00').toLocaleDateString('pt-BR') : null,
+      tipo: _recAvulsaOsId ? 'os' : 'avulsa'
+    }
 
-      if (recEditId) {
-        const r = recData.find(x => x.id == recEditId); if (!r) return
-        const atualizado = await db.entradas.update(recEditId, dados)
-        Object.assign(r, atualizado)
-        logAtividade('rec_edit', `Entrada OS editada`)
-        toast('Entrada atualizada.', 3500)
-      } else {
-        /* Verificar se a OS já tem uma receita vinculada — se sim, atualiza em vez de criar nova */
-        const recExistente = osId ? recData.find(r => r.osId == osId) : null
-        if (recExistente) {
-          const atualizado = await db.entradas.update(recExistente.id, dados)
-          Object.assign(recExistente, atualizado)
-          logAtividade('rec_edit', `Entrada OS atualizada (desconto) · ${fmt(total)}`)
-          toast('Entrada existente atualizada com novo valor.', 3500)
-        } else {
-          const novo = await db.entradas.create(lojaAtual.id, dados)
-          recData.unshift(novo)
-          if (os) {
-            os.finId = novo.id
-            try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
-          }
-          logAtividade('rec_novo', `Entrada OS · ${fmt(total)}`)
-          toast('Entrada lançada.', 3000)
-        }
-      }
-
-      /* ── Atualizar OS e Orçamento com os valores REAIS cobrados (pós-desconto) ── */
-      if (os) {
-        /* OS recebe os valores líquidos (após desconto) para relatórios de comissão */
-        const osUpdate = { vsrv: subSrv, vpec: subPec, total }
-        os.vsrv = subSrv; os.vpec = subPec; os.total = total
-        try { await db.os.update(os.id, osUpdate) } catch (_) {}
-
-        /* Se a OS veio de um orçamento, atualizar o orçamento com os descontos corretos */
-        if (os.orcId) {
-          const orc = orcData.find(o => o.id == os.orcId)
-          if (orc) {
-            /* Manter valores BRUTOS no orçamento e calcular % de desconto real */
-            /* vsrv/vpec da receita são os valores brutos antes do desconto */
-            const descSrvPct = vsrv > 0 ? Math.round(dsrvCap / vsrv * 10000) / 100 : 0
-            const descPecPct = vpec > 0 ? Math.round(dpecCap / vpec * 10000) / 100 : 0
-
-            orc.tSrv = vsrv; orc.tPec = vpec
-            orc.descSrv = descSrvPct; orc.descPec = descPecPct
-            orc.total = total
-            try { await db.orcamentos.update(orc.id, { tSrv: vsrv, tPec: vpec, total, descSrv: descSrvPct, descPec: descPecPct }) } catch (_) {}
-
-            /* Atualizar também os srvs/pecs no orçamento se os valores brutos mudaram */
-            if (orc.srvs && orc.srvs.length) {
-              const orcSrvTotal = orc.srvs.reduce((a,s) => a + (s.val||0), 0)
-              if (orcSrvTotal !== vsrv && vsrv > 0) {
-                /* Recalcular proporcionalmente */
-                const fator = vsrv / orcSrvTotal
-                orc.srvs.forEach(s => { s.val = Math.round((s.val||0) * fator * 100) / 100 })
-                try { await db.orcamentos.update(orc.id, { srvs: orc.srvs }) } catch (_) {}
-              }
-            }
-          }
-        }
-      }
+    if (recEditId) {
+      const r = recData.find(x => x.id == recEditId); if (!r) return
+      const atualizado = await db.entradas.update(recEditId, dados)
+      Object.assign(r, atualizado)
+      logAtividade('rec_edit', `Receita editada`)
+      toast('Entrada atualizada.', 3500)
     } else {
-      /* Modo avulsa */
-      const desc = document.getElementById('rec_av_desc').value.trim()
-      const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
-      const data = document.getElementById('rec_av_data').value
-      if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 4000); return }
-      const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
-      const cat = document.getElementById('rec_av_cat').value
-      const cli = document.getElementById('rec_av_cli').value.trim()
-
-      const dados = {
-        data: dataFmt, dataVenc: dataVencFmt, osId: null, cliNome: cli || desc, desc, cat,
-        vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
-        forma: document.getElementById('rec_forma').value,
-        status: document.getElementById('rec_status').value,
-        contaId: document.getElementById('rec_conta')?.value || null,
-        dataPgto: document.getElementById('rec_status').value === 'Recebido' && document.getElementById('rec_datapgto')?.value ? new Date(document.getElementById('rec_datapgto').value + 'T12:00').toLocaleDateString('pt-BR') : null,
-        tipo: 'avulsa'
+      const novo = await db.entradas.create(lojaAtual.id, dados)
+      recData.unshift(novo)
+      /* Se veio de OS manual, vincular */
+      if (_recAvulsaOsId) {
+        const os = osData.find(o => o.id == _recAvulsaOsId)
+        if (os) { os.finId = novo.id; try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {} }
       }
+      logAtividade('rec_novo', `Receita: ${desc} · ${fmt(valor)}`)
+      toast('Receita lançada.', 3000)
+    }
 
-      if (recEditId) {
-        const r = recData.find(x => x.id == recEditId); if (!r) return
-        const atualizado = await db.entradas.update(recEditId, dados)
-        Object.assign(r, atualizado)
-        logAtividade('rec_edit', `Receita avulsa editada`)
-        toast('Entrada atualizada.', 3500)
-      } else {
-        const novo = await db.entradas.create(lojaAtual.id, dados)
-        recData.unshift(novo)
-        logAtividade('rec_novo', `Receita avulsa: ${desc} · ${fmt(valor)}`)
-        toast('Receita avulsa lançada.', 3000)
-      }
-
-      /* Salvar categoria customizada se for nova */
-      if (cat && !REC_CAT_PADRAO.includes(cat) && !recCatCustom.includes(cat)) {
-        recCatCustom.push(cat)
-        try { await db.categorias.add(lojaAtual.id, 'rec', cat) } catch (_) {}
-      }
+    /* Salvar categoria customizada se for nova */
+    if (cat && !REC_CAT_PADRAO.includes(cat) && !recCatCustom.includes(cat)) {
+      recCatCustom.push(cat)
+      try { await db.categorias.add(lojaAtual.id, 'rec', cat) } catch (_) {}
     }
 
     /* ── Gerar parcelas adicionais se for parcelamento ── */
@@ -6825,34 +6845,29 @@ async function salvarDespesa() {
   }
 }
 
-/* Editar receita existente — abre modal preenchido no modo correto */
+/* Editar receita existente — OS abre orçamento, avulsa abre modal simples */
 function editarReceita(recId) {
   const r = recData.find(x => x.id == recId); if (!r) return
+
+  /* Se é receita de OS, redirecionar para o orçamento em modo fechamento */
+  if (r.osId && r.tipo === 'os') {
+    lancarFinanceiro(r.osId)
+    return
+  }
+
+  /* Receita avulsa — abre modal simples */
   recEditId = recId
   document.getElementById('mFinRec-title').textContent = 'Editar Entrada'
   document.getElementById('rec-btn-label').textContent = 'Salvar Alterações'
   const dataIso = (r.data || '').split('/').reverse().join('-')
 
-  if (r.tipo === 'avulsa' || (!r.osId && r.tipo !== 'os')) {
-    alternarTipoRec('avulsa')
-    document.getElementById('rec_av_desc').value = r.desc || ''
-    document.getElementById('rec_av_data').value = dataIso
-    /* Popula select com categoria atual (mesmo se for customizada antiga) */
-    popularSelectCat('rec_av_cat', REC_CAT_PADRAO, recCatCustom, r.cat || 'Outras receitas')
-    document.getElementById('rec_av_cat').onchange = () => onChangeSelectCat('rec_av_cat', 'rec')
-    document.getElementById('rec_av_valor').value = r.total || 0
-    document.getElementById('rec_av_cli').value = r.cliNome || ''
-  } else {
-    alternarTipoRec('os')
-    populateOSSelects()
-    document.getElementById('rec_os').value = r.osId || ''
-    document.getElementById('rec_data').value = dataIso
-    document.getElementById('rec_vsrv').value = r.vsrv || 0
-    document.getElementById('rec_vpec').value = r.vpec || 0
-    document.getElementById('rec_dsrv').value = r.descSrv || 0
-    document.getElementById('rec_dpec').value = r.descPec || 0
-    atualizarTotRec()
-  }
+  document.getElementById('rec_av_desc').value = r.desc || ''
+  document.getElementById('rec_av_data').value = dataIso
+  popularSelectCat('rec_av_cat', REC_CAT_PADRAO, recCatCustom, r.cat || 'Outras receitas')
+  document.getElementById('rec_av_cat').onchange = () => onChangeSelectCat('rec_av_cat', 'rec')
+  document.getElementById('rec_av_valor').value = r.total || 0
+  document.getElementById('rec_av_cli').value = r.cliNome || ''
+
   document.getElementById('rec_forma').value = r.forma || 'PIX'
   document.getElementById('rec_status').value = r.status || 'Recebido'
   document.getElementById('rec_venc').value = r.dataVenc ? (r.dataVenc.split('/').reverse().join('-')) : ''
