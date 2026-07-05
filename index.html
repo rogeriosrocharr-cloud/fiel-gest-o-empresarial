@@ -506,7 +506,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 .psign{margin-top:4mm;display:grid;grid-template-columns:1fr 1fr;gap:8mm}
 .psign-l{border-top:1px solid #ccc;padding-top:1.5mm;font-size:8.5px;color:#888;text-align:center}
 .pfoot{margin-top:3mm;padding-top:2mm;border-top:1px solid #e0d8f8;display:flex;justify-content:space-between;font-size:8.5px;color:#aaa}
-@media print{.app,.pclose{display:none!important}.pov{display:none!important}.pov.open{position:static!important;background:none!important;padding:0!important;display:block!important}.pdoc{width:100%!important;box-shadow:none!important;padding:8mm 10mm!important;box-sizing:border-box!important}@page{margin:0;size:A4}}
+@media print{.app,.pclose{display:none!important}.pov{position:static!important;background:none!important;padding:0!important;display:block!important}.pdoc{width:100%!important;box-shadow:none!important;padding:8mm 10mm!important;box-sizing:border-box!important}@page{margin:0;size:A4}}
 #toast{position:fixed;bottom:22px;right:22px;background:var(--s2);border:1px solid var(--pu2);color:var(--t1);padding:11px 16px;border-radius:var(--rl);font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(92,20,220,.3)}
 #toast i{color:var(--pul)}#toast.show{opacity:1;transform:translateY(0)}
 </style>
@@ -836,7 +836,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <input id="orc-de" type="date" title="Data inicial" onchange="renderOrc()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
       <input id="orc-ate" type="date" title="Data final" onchange="renderOrc()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
     </div>
-    <button class="btn btn-pu" onclick="resetModalOrc();populateClis();populateMecs();abrirModal('mOrcAdd');setTimeout(()=>orcShowStep(1),50)"><i class="ti ti-plus"></i> Novo Orçamento</button>
+    <button class="btn btn-pu" onclick="resetModalOrc();populateClis();populateMecs();abrirModal('mOrcAdd')"><i class="ti ti-plus"></i> Novo Orçamento</button>
   </div>
   <div class="card card-sm">
     <div class="tw"><table>
@@ -927,9 +927,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <!-- Ações -->
     <div class="fb" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div class="slabel" style="margin:0">Conciliação bancária</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <label style="font-size:11px;color:var(--t3);white-space:nowrap">Conta:</label>
-        <select id="conc-conta-filtro" onchange="renderBancoExtrato()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todas</option></select>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-pu btn-sm" onclick="autoConciliar()"><i class="ti ti-wand"></i> Sugerir matches</button>
         <button class="btn btn-sm" onclick="abrirModal('mContas');renderContasList()"><i class="ti ti-building-bank"></i> Gerenciar contas</button>
         <button class="btn btn-sm" onclick="abrirModalOFX()"><i class="ti ti-file-import"></i> Importar extrato</button>
@@ -939,14 +937,14 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <!-- Visão lado a lado: lançamentos do sistema vs extrato -->
     <div id="banco-conciliacao-wrap">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <!-- Coluna esquerda: lançamentos do sistema (entradas + saídas) -->
+        <!-- Coluna esquerda: entradas do sistema não conciliadas -->
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--t1)"><i class="ti ti-arrows-up-down"></i> Lançamentos do sistema <span id="rec-nconc-count" style="color:var(--t3);font-weight:500"></span></div>
+          <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--grb);border-radius:6px;color:var(--grt)"><i class="ti ti-arrow-down-left"></i> Entradas do sistema <span id="rec-nconc-count"></span></div>
           <div id="banco-rec-lista" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
         </div>
-        <!-- Coluna direita: transações do extrato -->
+        <!-- Coluna direita: transações do extrato não conciliadas -->
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--pub);border-radius:6px;color:var(--pul)"><i class="ti ti-file-spreadsheet"></i> Extrato bancário <span id="banc-nconc-count" style="color:var(--t3);font-weight:500"></span></div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:6px 8px;background:var(--pub);border-radius:6px;color:var(--pul)"><i class="ti ti-file-spreadsheet"></i> Extrato bancário <span id="banc-nconc-count"></span></div>
           <div id="banco-banc-lista" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
         </div>
       </div>
@@ -1286,7 +1284,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="fg"><label>Veículo *</label><select id="orc_vei"><option value="">Selecione o cliente primeiro</option></select></div>
     </div>
     <div class="fr g2" style="margin-top:10px">
-      <div class="fg"><label>KM inicial</label><input id="orc_km" type="number" min="0" step="1" placeholder="Ex: 52300"></div>
       <div class="fg"><label>Observações / Condições</label><input id="orc_obs" type="text" placeholder="Prazo, garantia..."></div>
     </div>
     <div style="background:var(--s2);border-radius:var(--r);padding:10px;border:1px solid var(--bd);font-size:12px;color:var(--t3)"><i class="ti ti-info-circle"></i> Selecione o cliente e o veículo a serem orçados. Depois avance para "Serviços e Peças".</div>
@@ -1297,7 +1294,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="slabel" style="margin:0">Serviços (mão de obra)</div>
       <button class="btn btn-sm btn-pu" onclick="abrirPickerSrv()" title="Selecionar do catálogo de serviços cadastrados"><i class="ti ti-list-check"></i> Do catálogo</button>
     </div>
-    <div class="fr g3" style="margin-bottom:6px"><div class="fg"><label>Descrição (cadastro rápido)</label><input id="orc_srv_desc" type="text" placeholder="Ex: Troca de pastilhas de freio"></div><div class="fg"><label>Qtd.</label><input id="orc_srv_qtd" type="number" placeholder="1" step="1" min="1" value="1"></div><div class="fg"><label>Valor unit. (R$)</label><input id="orc_srv_val" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
+    <div class="fr g3" style="margin-bottom:6px"><div class="fg"><label>Descrição (cadastro rápido)</label><input id="orc_srv_desc" type="text" placeholder="Ex: Troca de pastilhas de freio"></div><div class="fg"><label>Tempo (h)</label><input id="orc_srv_h" type="number" placeholder="1.5" step="0.5" min="0"></div><div class="fg"><label>Valor M.O. (R$)</label><input id="orc_srv_val" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
     <button class="btn btn-sm" style="margin-bottom:8px" onclick="addItemOrc('srv')"><i class="ti ti-plus"></i> Adicionar serviço avulso</button>
     <div id="orc-srvs"></div>
 
@@ -1311,23 +1308,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <div class="orc-step" data-step="3">
-    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-discount-2"></i> Descontos</div>
-    <div class="fr g2">
-      <div class="fg">
-        <label>Desc. Serviços</label>
-        <div style="display:flex;gap:4px;align-items:center">
-          <div style="position:relative;flex:1"><span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">R$</span><input id="orc_descSrvVal" type="number" placeholder="0" step="0.01" min="0" value="0" oninput="orcDescFromVal('srv')" style="padding-left:26px;font-size:12px"></div>
-          <div style="position:relative;flex:1"><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('srv')" style="padding-right:22px;font-size:12px"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">%</span></div>
-        </div>
-      </div>
-      <div class="fg">
-        <label>Desc. Peças</label>
-        <div style="display:flex;gap:4px;align-items:center">
-          <div style="position:relative;flex:1"><span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">R$</span><input id="orc_descPecVal" type="number" placeholder="0" step="0.01" min="0" value="0" oninput="orcDescFromVal('pec')" style="padding-left:26px;font-size:12px"></div>
-          <div style="position:relative;flex:1"><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" step="0.1" oninput="orcDescFromPct('pec')" style="padding-right:22px;font-size:12px"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--t3)">%</span></div>
-        </div>
-      </div>
-    </div>
+    <div class="fr g2"><div class="fg"><label>Desc. Serviços (%)</label><input id="orc_descSrv" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div><div class="fg"><label>Desc. Peças (%)</label><input id="orc_descPec" type="number" placeholder="0" min="0" max="100" value="0" oninput="atualizarTotalOrc()"></div></div>
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
       <input id="orc_mostrarDesc" type="checkbox" checked style="width:16px;height:16px;cursor:pointer">
       <label for="orc_mostrarDesc" style="font-size:12px;cursor:pointer;flex:1">
@@ -1371,7 +1352,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL OS MANUAL -->
-<div class="ov" id="mOsAdd"><div class="modal" style="max-width:680px">
+<div class="ov" id="mOsAdd"><div class="modal">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-clipboard-list"></i></div>OS Manual (sem orçamento)</h3><button class="xbtn" onclick="fecharModal('mOsAdd');resetModalOS()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Cliente *</label><select id="os_cli" onchange="preencherVeiculosOS()"><option value="">Selecionar...</option></select></div><div class="fg"><label>Veículo *</label><select id="os_vei"><option value="">Selecione o cliente</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Serviço / Problema *</label><textarea id="os_srv" placeholder="Descreva o problema ou serviço..."></textarea></div>
@@ -1390,18 +1371,18 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL MECÂNICO -->
-<div class="ov" id="mMecAdd"><div class="modal" style="max-width:680px">
+<div class="ov" id="mMecAdd"><div class="modal">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-user-plus"></i></div><span id="mMecAdd-title">Cadastrar Mecânico</span></h3><button class="xbtn" onclick="fecharModal('mMecAdd')"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Nome completo *</label><input id="mec_nome" type="text" placeholder="João da Silva"></div><div class="fg"><label>CPF</label><input id="mec_cpf" type="text" placeholder="000.000.000-00"></div></div>
   <div class="fr g2"><div class="fg"><label>Especialidade</label><select id="mec_esp"><option>Mecânica geral</option><option>Motor / Câmbio</option><option>Elétrica automotiva</option><option>Suspensão / Freios</option><option>Funilaria / Pintura</option><option>Ar condicionado</option></select></div><div class="fg"><label>Telefone</label><input id="mec_tel" type="text" placeholder="(65) 99999-0000"></div></div>
-  <div class="fr g2"><div class="fg"><label>Salário base (R$)</label><input id="mec_sal" type="number" placeholder="2500"></div><div class="fg"><label>Comissão (%)</label><input id="mec_com" type="number" placeholder="5" min="0"></div></div>
-  <div class="fr g2"><div class="fg"><label>Admissão</label><input id="mec_adm" type="date"></div><div class="fg"></div></div>
+  <div class="fr" style="grid-template-columns:1fr 1fr 1fr"><div class="fg"><label>Salário base (R$)</label><input id="mec_sal" type="number" placeholder="2500"></div><div class="fg"><label>Comissão (%)</label><input id="mec_com" type="number" placeholder="5" min="0"></div><div class="fg"><label>Admissão</label><input id="mec_adm" type="date"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mMecAdd')">Cancelar</button><button class="btn btn-pu" onclick="salvarMec()"><i class="ti ti-check"></i> <span id="mec-btn-label">Cadastrar</span></button></div>
 </div></div>
 
 <!-- MODAL LANÇAR RECEITA -->
 <div class="ov" id="mFinRec"><div class="modal" style="max-width:660px">
   <div class="mh"><h3><div class="mh-ic" style="background:var(--grb);color:var(--grt)"><i class="ti ti-trending-up"></i></div><span id="mFinRec-title">Nova Entrada</span></h3><button class="xbtn" onclick="fecharModal('mFinRec');resetModalRec()"><i class="ti ti-x"></i></button></div>
+
 
   <div id="rec-modo-avulsa">
     <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="rec_av_desc" type="text" placeholder="Ex: Locação de elevador para terceiro"></div><div class="fg"><label>Data *</label><input id="rec_av_data" type="date"></div></div>
@@ -1418,45 +1399,19 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <!-- Comum aos dois modos -->
-  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="toggleRecParc()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status" onchange="toggleRecDataPgto()"><option>Recebido</option><option>A receber</option></select></div></div>
+  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
-  <div id="rec_datapgto_wrap" style="display:none;margin-bottom:14px"><div class="fg"><label><i class="ti ti-calendar-check" style="color:var(--grt)"></i> Data que recebeu <span style="color:var(--t3);font-weight:400">(quando o dinheiro entrou de fato)</span></label><input id="rec_datapgto" type="date" style="max-width:200px"></div></div>
-
-  <!-- Parcelamento (aparece só para Crédito da casa e Cartão crédito) -->
-  <div id="rec_parc_wrap" style="display:none;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;color:var(--pul);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
-    <div class="fr g2" style="margin-bottom:8px">
-      <div class="fg"><label>Valor de entrada (R$) <span style="color:var(--t3);font-weight:400">(0 = sem entrada)</span></label><input id="rec_parc_entrada" type="number" step="0.01" value="0" min="0" oninput="calcRecParc()"></div>
-      <div class="fg"><label>Nº de parcelas</label><select id="rec_parc_qtd" onchange="calcRecParc()"><option value="1">1x (à vista)</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="12">12x</option></select></div>
-    </div>
-    <div class="fr g2">
-      <div class="fg"><label>1ª parcela vence em</label><input id="rec_parc_ini" type="date"></div>
-      <div class="fg"><label>Intervalo entre parcelas</label><select id="rec_parc_intervalo"><option value="30">Mensal (30 dias)</option><option value="15">Quinzenal</option><option value="7">Semanal</option></select></div>
-    </div>
-    <div id="rec_parc_preview" style="margin-top:10px;font-size:11px;color:var(--t2)"></div>
-  </div>
 
   <div class="mf"><button class="btn" onclick="fecharModal('mFinRec');resetModalRec()">Cancelar</button><button class="btn btn-gr" onclick="salvarReceita()"><i class="ti ti-check"></i> <span id="rec-btn-label">Lançar Entrada</span></button></div>
 </div></div>
 
 <!-- MODAL LANÇAR SAÍDA -->
-<div class="ov" id="mFinDesp"><div class="modal" style="max-width:680px">
+<div class="ov" id="mFinDesp"><div class="modal">
   <div class="mh"><h3><div class="mh-ic" style="background:var(--reb);color:var(--ret)"><i class="ti ti-trending-down"></i></div><span id="mFinDesp-title">Nova Saída</span></h3><button class="xbtn" onclick="fecharModal('mFinDesp');resetModalDesp()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
-  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01" oninput="calcDespParc()"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma" onchange="toggleDespParc()"><option>PIX</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Cartão</option></select></div></div>
+  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma"><option>PIX</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Cartão</option></select></div></div>
   <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
-
-  <!-- Parcelamento de despesa (aparece para Boleto e Cartão) -->
-  <div id="desp_parc_wrap" style="display:none;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;color:var(--ret);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
-    <div class="fr g3">
-      <div class="fg"><label>Nº de parcelas</label><select id="desp_parc_qtd" onchange="calcDespParc()"><option value="1">1x (à vista)</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="12">12x</option></select></div>
-      <div class="fg"><label>1ª parcela vence em</label><input id="desp_parc_ini" type="date"></div>
-      <div class="fg"><label>Intervalo</label><select id="desp_parc_intervalo"><option value="30">Mensal (30 dias)</option><option value="15">Quinzenal</option><option value="7">Semanal</option></select></div>
-    </div>
-    <div id="desp_parc_preview" style="margin-top:10px;font-size:11px;color:var(--t2)"></div>
-  </div>
   <div class="mf"><button class="btn" onclick="fecharModal('mFinDesp');resetModalDesp()">Cancelar</button><button class="btn btn-re" onclick="salvarDespesa()"><i class="ti ti-check"></i> <span id="desp-btn-label">Lançar Saída</span></button></div>
 </div></div>
 
@@ -1473,22 +1428,12 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL PEÇA -->
-<div class="ov" id="mPecaAdd"><div class="modal" style="max-width:680px">
+<div class="ov" id="mPecaAdd"><div class="modal">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-package"></i></div><span id="mPecaAdd-title">Cadastrar Peça</span></h3><button class="xbtn" onclick="fecharModal('mPecaAdd')"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Código</label><input id="pec_cod" type="text" placeholder="FIL-001"></div><div class="fg"><label>Nome da peça *</label><input id="pec_nome" type="text" placeholder="Filtro de óleo Mann"></div></div>
   <div class="fr g2"><div class="fg"><label>Categoria</label><select id="pec_cat"></select></div><div class="fg"><label>Marca</label><input id="pec_marca" type="text" placeholder="Mann, Bosch, NGK..."></div></div>
-  <div class="fr g2">
-    <div class="fg">
-      <label>Fornecedor <span style="font-weight:400;color:var(--t3);font-size:10px">— digite ou selecione</span></label>
-      <div style="position:relative">
-        <input id="pec_forn" type="text" placeholder="Nome do fornecedor" list="pec-forn-list" autocomplete="off">
-        <datalist id="pec-forn-list"></datalist>
-      </div>
-    </div>
-    <div class="fg"><label>Unidade de medida</label><select id="pec_unidade"><option value="un">un — unidade</option><option value="pç">pç — peça</option><option value="cx">cx — caixa</option><option value="pct">pct — pacote</option><option value="par">par</option><option value="jg">jg — jogo</option><option value="L">L — litro</option><option value="ml">ml — mililitro</option><option value="kg">kg — quilo</option><option value="g">g — grama</option><option value="m">m — metro</option><option value="cm">cm — centímetro</option></select></div>
-  </div>
-  <div class="fr g2"><div class="fg"><label>Qtd. estoque</label><input id="pec_qtd" type="number" placeholder="0" min="0"></div><div class="fg"><label>Qtd. mínima</label><input id="pec_min" type="number" placeholder="2" min="0"></div></div>
-  <div class="fr g2"><div class="fg"><label>Custo unit. (R$)</label><input id="pec_custo" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Preço venda (R$)</label><input id="pec_preco" type="number" placeholder="0,00" step="0.01"></div></div>
+  <div class="fr g2"><div class="fg"><label>Fornecedor</label><input id="pec_forn" type="text" placeholder="Nome do fornecedor"></div><div class="fg"><label>Unidade de medida</label><select id="pec_unidade"><option value="un">un — unidade</option><option value="pç">pç — peça</option><option value="cx">cx — caixa</option><option value="pct">pct — pacote</option><option value="par">par</option><option value="jg">jg — jogo</option><option value="L">L — litro</option><option value="ml">ml — mililitro</option><option value="kg">kg — quilo</option><option value="g">g — grama</option><option value="m">m — metro</option><option value="cm">cm — centímetro</option></select></div></div>
+  <div class="fr" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="fg"><label>Qtd. estoque</label><input id="pec_qtd" type="number" placeholder="0" min="0"></div><div class="fg"><label>Qtd. mínima</label><input id="pec_min" type="number" placeholder="2" min="0"></div><div class="fg"><label>Custo unit. (R$)</label><input id="pec_custo" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Preço venda (R$)</label><input id="pec_preco" type="number" placeholder="0,00" step="0.01"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mPecaAdd')">Cancelar</button><button class="btn btn-pu" onclick="salvarPeca()"><i class="ti ti-check"></i> <span id="pec-btn-label">Cadastrar</span></button></div>
 </div></div>
 
@@ -1506,11 +1451,11 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 </div></div>
 
 <!-- MODAL CADASTRO DE SERVIÇO -->
-<div class="ov" id="mSrvAdd"><div class="modal" style="max-width:680px">
+<div class="ov" id="mSrvAdd"><div class="modal">
   <div class="mh"><h3><div class="mh-ic"><i class="ti ti-list-check"></i></div><span id="mSrvAdd-title">Cadastrar Serviço</span></h3><button class="xbtn" onclick="fecharModal('mSrvAdd');resetModalSrvCat()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Código</label><input id="srv_cod" type="text" placeholder="SRV-001"></div><div class="fg"><label>Nome do serviço *</label><input id="srv_nome" type="text" placeholder="Troca de óleo e filtro"></div></div>
-  <div class="fr g2"><div class="fg"><label>Categoria</label><select id="srv_cat"></select></div><div class="fg"><label>Tempo médio (h)</label><input id="srv_h" type="number" placeholder="1.0" step="0.5" min="0"></div></div>
-  <div class="fr g2"><div class="fg"><label>Valor mão de obra (R$) *</label><input id="srv_valor" type="number" placeholder="0,00" step="0.01" min="0"></div><div class="fg"><label>Garantia (dias) <span style="color:var(--t3);font-weight:400">— 0 se não tem</span></label><input id="srv_garantia" type="number" placeholder="90" min="0" max="3650"></div></div>
+  <div class="fr g3"><div class="fg"><label>Categoria</label><select id="srv_cat"></select></div><div class="fg"><label>Tempo médio (h)</label><input id="srv_h" type="number" placeholder="1.0" step="0.5" min="0"></div><div class="fg"><label>Valor mão de obra (R$) *</label><input id="srv_valor" type="number" placeholder="0,00" step="0.01" min="0"></div></div>
+  <div class="fg" style="margin-bottom:14px"><label>Garantia (dias) <span style="color:var(--t3);font-weight:400">— deixe 0 ou em branco se não tem garantia</span></label><input id="srv_garantia" type="number" placeholder="90" min="0" max="3650" style="max-width:180px"></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mSrvAdd');resetModalSrvCat()">Cancelar</button><button class="btn btn-pu" onclick="salvarSrvCat()"><i class="ti ti-check"></i> Salvar</button></div>
 </div></div>
 
@@ -1541,13 +1486,12 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <div class="pf-i"><label>Tel</label><span id="p-orc-tel"></span></div>
     <div class="pf-i"><label>Veículo</label><span id="p-orc-vei"></span></div>
     <div class="pf-i"><label>Placa</label><span id="p-orc-pla"></span></div>
-    <div class="pf-i"><label>KM</label><span id="p-orc-km"></span></div>
   </div>
-  <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
+  <div class="ps"><div class="ps-t">Serviços (mão de obra)</div><table class="ptable" id="p-orc-srvs"><thead><tr><th>Descrição</th><th style="width:70px">Tempo (h)</th><th style="width:90px;text-align:right">Valor</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><div class="ps-t">Peças / Materiais</div><table class="ptable" id="p-orc-pecs"><thead><tr><th>Peça / Material</th><th style="width:50px">Qtd.</th><th style="width:90px;text-align:right">Unit.</th><th style="width:90px;text-align:right">Total</th></tr></thead><tbody></tbody></table></div>
   <div class="ps"><table class="ptable"><tbody><tr><td>Subtotal serviços</td><td style="text-align:right;font-weight:600" id="p-orc-tsrv">R$ 0,00</td></tr><tr><td>Subtotal peças</td><td style="text-align:right;font-weight:600" id="p-orc-tpec">R$ 0,00</td></tr><tr><td>Desconto aplicado</td><td style="text-align:right;color:#c43030" id="p-orc-tdesc">—</td></tr></tbody></table><div class="ptot"><div class="tl">Total do orçamento</div><div class="tv" id="p-orc-tot">R$ 0,00</div></div></div>
   <div class="ps"><div class="ps-t">Observações / Condições</div><div class="pobs" id="p-orc-obs"></div></div>
-  <div class="psign"><div class="psign-l">Assinatura do cliente — Aprovação</div><div class="psign-l">Responsável pela empresa</div></div>
+  <div class="psign"><div class="psign-l">Assinatura do cliente — Aprovação</div><div class="psign-l">FIEL Gestão de Empresas</div></div>
   <div class="pfoot"><span>FIEL — Rondonópolis, MT</span><span id="p-orc-gen"></span></div>
 </div></div>
 
@@ -1672,12 +1616,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
    Fluxo TRAVADO: 1 Clientes → 2 Orçamentos → 3 OS → 4 Financeiro
    =================================================== */
 
-/* Helper: data local no formato YYYY-MM-DD (evita bug de UTC após 20h em MT) */
-function hojeISO() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-}
-const hoje = hojeISO()
+const hoje = new Date().toISOString().split('T')[0]
 const fmtD = () => new Date().toLocaleDateString('pt-BR')
 const fmt = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -1702,12 +1641,9 @@ const toast = (m, t = 3000) => {
   el.classList.add('show')
   setTimeout(() => el.classList.remove('show'), t)
 }
-const abrirModal = id => {
-  document.getElementById(id).classList.add('open')
-  if (id === 'mOrcAdd') setTimeout(() => orcShowStep(orcEditId ? orcCurStep : 1), 10)
-}
+const abrirModal = id => document.getElementById(id).classList.add('open')
 const fecharModal = id => document.getElementById(id).classList.remove('open')
-/* Modais só fecham pelo botão X ou Cancelar — evita perda acidental de dados ao clicar fora */
+document.querySelectorAll('.ov,.pov').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') }))
 
 const pillMap = {
   'Aguardando aprovação': 'p-am', 'Aprovado': 'p-gr', 'Recusado': 'p-re', 'OS gerada': 'p-pu',
@@ -2507,36 +2443,16 @@ const db = {
 
   /* ─── ENTRADAS (receitas) ─── */
   entradas: {
-    /* Helpers para anexar/extrair contaId no campo descricao via marcador [CTA:id]
-       (a tabela banco do Supabase ainda não tem coluna conta_id) */
-    _extrairMarcadores(desc) {
-      if (!desc) return { desc: '', contaId: null, dataPgto: null }
-      let contaId = null, dataPgto = null
-      let limpa = desc
-      const mCta = limpa.match(/\s*\[CTA:([^\]]+)\]/)
-      if (mCta) { contaId = mCta[1]; limpa = limpa.replace(mCta[0], '') }
-      const mPgto = limpa.match(/\s*\[PGTO:([^\]]+)\]/)
-      if (mPgto) { dataPgto = mPgto[1]; limpa = limpa.replace(mPgto[0], '') }
-      return { desc: limpa.trim(), contaId, dataPgto }
-    },
-    _anexarMarcadores(desc, contaId, dataPgto) {
-      let limpa = (desc || '').replace(/\s*\[CTA:[^\]]+\]/g, '').replace(/\s*\[PGTO:[^\]]+\]/g, '').trim()
-      if (contaId) limpa += ' [CTA:' + contaId + ']'
-      if (dataPgto) limpa += ' [PGTO:' + dataPgto + ']'
-      return limpa
-    },
     _mapFromDB(r) {
-      const { desc: descLimpa, contaId, dataPgto } = this._extrairMarcadores(r.descricao || '')
       return {
         id: r.id, numero: r.numero, data: r.data || '', dataVenc: r.data_venc || null,
-        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: descLimpa,
+        osId: r.os_id || null, cliNome: r.cli_nome || '', desc: r.descricao || '',
         cat: r.cat || '', tipo: r.tipo || 'os',
         vsrv: Number(r.v_srv) || 0, vpec: Number(r.v_pec) || 0,
         descSrv: Number(r.desc_srv) || 0, descPec: Number(r.desc_pec) || 0,
         subSrv: Number(r.sub_srv) || 0, subPec: Number(r.sub_pec) || 0,
         total: Number(r.total) || 0,
         forma: r.forma || '', status: r.status || 'Recebido',
-        contaId, dataPgto,
         reconciliada: !!r.reconciliada, ofxDesc: r.ofx_desc || ''
       }
     },
@@ -2546,10 +2462,7 @@ const db = {
       if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
       if (d.osId !== undefined) o.os_id = d.osId || null
       if (d.cliNome !== undefined) o.cli_nome = d.cliNome || null
-      if (d.desc !== undefined || d.contaId !== undefined || d.dataPgto !== undefined) {
-        const descBase = d.desc !== undefined ? (d.desc || '') : ''
-        o.descricao = this._anexarMarcadores(descBase, d.contaId || null, d.dataPgto || null) || null
-      }
+      if (d.desc !== undefined) o.descricao = d.desc || null
       ;['cat','tipo','forma','status'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.vsrv !== undefined) o.v_srv = Number(d.vsrv) || 0
       if (d.vpec !== undefined) o.v_pec = Number(d.vpec) || 0
@@ -2592,35 +2505,20 @@ const db = {
 
   /* ─── SAÍDAS (despesas) ─── */
   saidas: {
-    _extrairConta(desc) {
-      if (!desc) return { desc: '', contaId: null }
-      const m = desc.match(/\s*\[CTA:([^\]]+)\]\s*$/)
-      if (!m) return { desc, contaId: null }
-      return { desc: desc.replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim(), contaId: m[1] }
-    },
-    _anexarConta(desc, contaId) {
-      const limpa = (desc || '').replace(/\s*\[CTA:[^\]]+\]\s*$/, '').trim()
-      return contaId ? (limpa + ' [CTA:' + contaId + ']') : limpa
-    },
     _mapFromDB(d) {
-      const { desc: descLimpa, contaId } = this._extrairConta(d.descricao || '')
       return {
         id: d.id, numero: d.numero, data: d.data || '', dataVenc: d.data_venc || null,
-        desc: descLimpa, cat: d.cat || '',
+        desc: d.descricao || '', cat: d.cat || '',
         fornecedor: d.fornecedor || '', fornId: d.fornecedor_id || null,
         valor: Number(d.valor) || 0, forma: d.forma || '',
-        status: d.status || 'Pago',
-        contaId: contaId
+        status: d.status || 'Pago'
       }
     },
     _mapToDB(d) {
       const o = {}
       if (d.data !== undefined) o.data = d.data || null
       if (d.dataVenc !== undefined) o.data_venc = d.dataVenc || null
-      if (d.desc !== undefined || d.contaId !== undefined) {
-        const descBase = d.desc !== undefined ? (d.desc || '') : ''
-        o.descricao = this._anexarConta(descBase, d.contaId || null) || null
-      }
+      if (d.desc !== undefined) o.descricao = d.desc || null
       ;['cat','forma','status','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.fornId !== undefined) o.fornecedor_id = d.fornId || null
       if (d.valor !== undefined) o.valor = Number(d.valor) || 0
@@ -4779,14 +4677,14 @@ function renderClientes() {
       : c.veiculos.map(v => `<div style="font-size:12px">${v.vei} <span style="font-family:monospace;color:var(--pul);font-size:11px">${v.pla}</span></div>`).join('') + `<button class="btn btn-xs" onclick="adicionarVeiculo(${cid})" style="margin-top:4px;font-size:10px;padding:2px 6px"><i class="ti ti-plus"></i></button>`
     }</td>
     <td><span class="pill p-pu">${osN} OS</span></td>
-    <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
+    <td style="display:flex;gap:4px">
       <button class="btn btn-sm" onclick="abrirHistoricoCli(${cid})" title="Histórico financeiro"><i class="ti ti-history"></i></button>
       <button class="btn btn-sm" onclick="editarCliente(${cid})" title="Editar dados"><i class="ti ti-edit"></i></button>
       <button class="btn btn-sm btn-re" onclick="excluirCliente(${cid})" title="Excluir cliente"><i class="ti ti-trash"></i></button>
       ${semVeiculo
         ? `<button class="btn btn-sm" disabled style="opacity:.5;cursor:not-allowed" title="Cadastre um veículo primeiro"><i class="ti ti-file-invoice"></i> Orçar →</button>`
         : `<button class="btn btn-sm btn-pu" onclick="criarOrcParaCliente(${cid})"><i class="ti ti-file-invoice"></i> Orçar →</button>`}
-    </div></td>
+    </td>
   </tr>`
   }).join('') : `<tr><td colspan="7"><div class="empty"><i class="ti ti-users-off"></i>Nenhum cliente encontrado</div></td></tr>`
 
@@ -5088,12 +4986,11 @@ function criarOrcParaCliente(cliId) {
   irParaPasso(2)
   setTimeout(() => {
     const c = cliData.find(x => x.id == cliId)
-    resetModalOrc()
+    populateClis(); populateMecs()
     document.getElementById('orc_cli').value = cliId
     if (c) document.getElementById('orc_cli_busca').value = c.nome
     preencherVeiculosOrc()
     abrirModal('mOrcAdd')
-    orcShowStep(1)
   }, 150)
 }
 
@@ -5173,12 +5070,12 @@ document.addEventListener('click', e => {
 function addItemOrc(tipo) {
   if (tipo === 'srv') {
     const desc = document.getElementById('orc_srv_desc').value.trim()
-    const qtd = parseInt(document.getElementById('orc_srv_qtd').value) || 1
-    const valUnit = parseFloat(document.getElementById('orc_srv_val').value) || 0
+    const h = parseFloat(document.getElementById('orc_srv_h').value) || 0
+    const val = parseFloat(document.getElementById('orc_srv_val').value) || 0
     if (!desc) { toast('Informe a descrição do serviço'); return }
-    orcTempSrvs.push({ desc, qtd, valUnit, val: valUnit * qtd })
+    orcTempSrvs.push({ desc, h, val })
     document.getElementById('orc_srv_desc').value = ''
-    document.getElementById('orc_srv_qtd').value = '1'
+    document.getElementById('orc_srv_h').value = ''
     document.getElementById('orc_srv_val').value = ''
   } else {
     const desc = document.getElementById('orc_pec_desc').value.trim()
@@ -5200,7 +5097,7 @@ function removeOrcItem(tipo, idx) {
 function renderTempOrc() {
   document.getElementById('orc-srvs').innerHTML = orcTempSrvs.map((s, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--s3);border-radius:var(--r);margin-bottom:4px;font-size:12px">
-      <span>${s.desc} ${(s.qtd||1) > 1 ? `<span style="color:var(--t3)">(${s.qtd}× ${fmt(s.valUnit||s.val)})</span>` : ''}</span>
+      <span>${s.desc} <span style="color:var(--t3)">(${s.h}h)</span></span>
       <span style="display:flex;align-items:center;gap:8px"><b style="color:var(--grt)">${fmt(s.val)}</b>
       <button class="btn btn-xs btn-re" onclick="removeOrcItem('srv',${i})"><i class="ti ti-x"></i></button></span>
     </div>`).join('')
@@ -5211,31 +5108,6 @@ function renderTempOrc() {
       <button class="btn btn-xs btn-re" onclick="removeOrcItem('pec',${i})"><i class="ti ti-x"></i></button></span>
     </div>`).join('')
 }
-function orcDescFromVal(tipo) {
-  /* Usuário digitou valor R$ → calcula % automaticamente */
-  const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
-  const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
-  const total = tipo === 'srv' ? tS : tP
-  const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
-  const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
-  const val = parseFloat(valEl?.value) || 0
-  if (total > 0) pctEl.value = Math.round(val / total * 10000) / 100
-  else pctEl.value = 0
-  atualizarTotalOrc()
-}
-
-function orcDescFromPct(tipo) {
-  /* Usuário digitou % → calcula valor R$ automaticamente */
-  const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
-  const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
-  const total = tipo === 'srv' ? tS : tP
-  const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
-  const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
-  const pct = parseFloat(pctEl?.value) || 0
-  valEl.value = Math.round(total * pct / 100 * 100) / 100
-  atualizarTotalOrc()
-}
-
 function atualizarTotalOrc() {
   const tS = orcTempSrvs.reduce((a, b) => a + b.val, 0)
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
@@ -5266,7 +5138,6 @@ async function salvarOrc() {
 
   const dadosOrc = {
     cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla,
-    km: parseInt(document.getElementById('orc_km')?.value) || 0,
     srvs: [...orcTempSrvs], pecs: [...orcTempPecs],
     tSrv: tS, tPec: tP, descSrv: dS, descPec: dP, total,
     mostrarDesc: document.getElementById('orc_mostrarDesc').checked,
@@ -5335,22 +5206,14 @@ function editarOrc(id) {
   orcTempPecs = o.pecs.map(p => ({ ...p }))
   document.getElementById('orc_descSrv').value = o.descSrv || 0
   document.getElementById('orc_descPec').value = o.descPec || 0
-  /* Popular campos de valor R$ do desconto */
-  const tSEdit = o.srvs.reduce((a,b) => a + (b.val||0), 0)
-  const tPEdit = o.pecs.reduce((a,b) => a + (b.tot||0), 0)
-  const dSrvValEl = document.getElementById('orc_descSrvVal')
-  const dPecValEl = document.getElementById('orc_descPecVal')
-  if (dSrvValEl) dSrvValEl.value = Math.round(tSEdit * (o.descSrv||0) / 100 * 100) / 100
-  if (dPecValEl) dPecValEl.value = Math.round(tPEdit * (o.descPec||0) / 100 * 100) / 100
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
-  if (document.getElementById('orc_km')) document.getElementById('orc_km').value = o.km || ''
   renderTempOrc(); atualizarTotalOrc()
+  orcShowStep(1)
   /* Mudar título do modal */
   const mh = document.querySelector('#mOrcAdd .mh h3')
   if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-edit"></i></div>Editar Orçamento ${id}`
   abrirModal('mOrcAdd')
-  orcShowStep(1)
 }
 
 async function reabrirOrc(id) {
@@ -5434,22 +5297,18 @@ function resetModalOrc() {
   orcEditId = null
   _orcFechOsId = null
   orcTempSrvs = []; orcTempPecs = []
-  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_km','orc_srv_desc','orc_srv_qtd','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_srv_desc','orc_srv_h','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
   document.getElementById('orc_descSrv').value = 0
   document.getElementById('orc_descPec').value = 0
-  const dSrvR = document.getElementById('orc_descSrvVal'); if (dSrvR) dSrvR.value = 0
-  const dPecR = document.getElementById('orc_descPecVal'); if (dPecR) dPecR.value = 0
   const mostrar = document.getElementById('orc_mostrarDesc'); if (mostrar) mostrar.checked = true
   populateClis(); populateMecs()
   renderTempOrc(); atualizarTotalOrc()
   orcShowStep(1)
-  document.getElementById('mPecaAdd-title') && (document.getElementById('mPecaAdd-title').textContent = 'Cadastrar Peça')
   /* Reset modo fechamento */
   const fw = document.getElementById('orc-fechamento-wrap'); if (fw) fw.style.display = 'none'
   const bs = document.getElementById('orc-btn-salvar'); if (bs) bs.style.display = ''
   const bf = document.getElementById('orc-btn-fechar'); if (bf) bf.style.display = 'none'
-  document.getElementById('mOrcAdd-title') && (document.getElementById('mOrcAdd-title').textContent = 'Novo Orçamento')
   const mh = document.querySelector('#mOrcAdd .mh h3')
   if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-file-invoice"></i></div>Novo Orçamento`
 }
@@ -5586,8 +5445,6 @@ async function confirmarGerarOS() {
 function populateOSSelects() {
   populateContasSelects()
   populateClis(); populateMecs()
-  const recOs = document.getElementById('rec_os')
-  if (recOs) recOs.innerHTML = '<option value="">Selecionar OS concluída...</option>' +
     osData.filter(o => o.status === 'Concluída' && !o.finId).map(o => `<option value="${o.id}">${o.id} — ${o.cliNome} (${fmt(o.total)})</option>`).join('')
 }
 
@@ -5640,35 +5497,24 @@ async function changeOSStatus(id, s) {
   renderOS(); renderKanban(); updateBadge(); saveState()
 }
 
-let _orcFechOsId = null  /* guarda o ID da OS quando em modo fechamento */
+let _orcFechOsId = null
 
 function lancarFinanceiro(osId) {
   const os = osData.find(x => x.id == osId); if (!os) { toast('OS não encontrada'); return }
 
-  /* Se OS veio de orçamento, abre o orçamento em modo fechamento */
   if (os.orcId) {
     const orc = orcData.find(o => o.id == os.orcId)
     if (orc) {
       _orcFechOsId = osId
       editarOrc(orc.id)
-      /* Ativa modo fechamento: mostra bloco de pagamento, troca botão */
       requestAnimationFrame(() => {
         orcShowStep(3)
-        const wrap = document.getElementById('orc-fechamento-wrap')
-        if (wrap) wrap.style.display = ''
-        const btnSalvar = document.getElementById('orc-btn-salvar')
-        if (btnSalvar) btnSalvar.style.display = 'none'
-        const btnFechar = document.getElementById('orc-btn-fechar')
-        if (btnFechar) btnFechar.style.display = ''
-        /* Popular selects de conta e data */
-        populateContasSelects()
-        const selContas = document.getElementById('orc_fech_conta')
-        if (selContas) {
-          selContas.innerHTML = '<option value="">— Selecione —</option>'
-          contasData.forEach(c => { const op = document.createElement('option'); op.value = c.id; op.textContent = c.nome; selContas.appendChild(op) })
-        }
+        const wrap = document.getElementById('orc-fechamento-wrap'); if (wrap) wrap.style.display = ''
+        const btnS = document.getElementById('orc-btn-salvar'); if (btnS) btnS.style.display = 'none'
+        const btnF = document.getElementById('orc-btn-fechar'); if (btnF) btnF.style.display = ''
+        const selC = document.getElementById('orc_fech_conta')
+        if (selC) { selC.innerHTML = '<option value="">— Selecione —</option>'; contasData.forEach(c => { const op = document.createElement('option'); op.value = c.id; op.textContent = c.nome; selC.appendChild(op) }) }
         document.getElementById('orc_fech_data').value = hojeISO()
-        /* Alterar título */
         const mh = document.querySelector('#mOrcAdd .mh h3')
         if (mh) mh.innerHTML = `<div class="mh-ic" style="background:var(--grb);color:var(--grt)"><i class="ti ti-cash"></i></div>Fechamento — OS ${osId} · ${os.cliNome}`
       })
@@ -5676,37 +5522,31 @@ function lancarFinanceiro(osId) {
     }
   }
 
-  /* OS manual (sem orçamento): abre o modal avulso pré-preenchido */
+  /* OS manual (sem orçamento) */
   resetModalRec()
-  document.getElementById('rec_av_desc').value = `OS-${osId} · ${os.cliNome || '—'}`
+  document.getElementById('rec_av_desc').value = `OS-${osId} · ${os.cliNome || ''}`
   document.getElementById('rec_av_valor').value = os.total || 0
   document.getElementById('rec_av_data').value = hojeISO()
   document.getElementById('rec_av_cli').value = os.cliNome || ''
-  _recAvulsaOsId = osId  /* guardar referência da OS */
+  _recAvulsaOsId = osId
   abrirModal('mFinRec')
 }
 
-let _recAvulsaOsId = null  /* para vincular receita avulsa a OS manual */
+let _recAvulsaOsId = null
 
 async function confirmarFechamento() {
   if (!_orcFechOsId) { toast('Erro: OS não identificada.'); return }
   const os = osData.find(x => x.id == _orcFechOsId); if (!os) return
   const orc = os.orcId ? orcData.find(o => o.id == os.orcId) : null; if (!orc) return
 
-  /* Primeiro salva o orçamento (com descontos atualizados) */
   await salvarOrc()
 
-  /* Recarregar o orçamento atualizado */
-  const orcAtualizado = orcData.find(o => o.id == orc.id)
-  const tS = orcAtualizado.tSrv || 0
-  const tP = orcAtualizado.tPec || 0
-  const dS = orcAtualizado.descSrv || 0
-  const dP = orcAtualizado.descPec || 0
-  const subSrv = tS * (1 - dS / 100)
-  const subPec = tP * (1 - dP / 100)
+  const orcA = orcData.find(o => o.id == orc.id)
+  const tS = orcA.tSrv || 0, tP = orcA.tPec || 0
+  const dS = orcA.descSrv || 0, dP = orcA.descPec || 0
+  const subSrv = tS * (1 - dS / 100), subPec = tP * (1 - dP / 100)
   const total = subSrv + subPec
 
-  /* Dados da receita */
   const forma = document.getElementById('orc_fech_forma')?.value || 'PIX'
   const contaId = document.getElementById('orc_fech_conta')?.value || null
   const status = document.getElementById('orc_fech_status')?.value || 'Recebido'
@@ -5716,41 +5556,31 @@ async function confirmarFechamento() {
   const dataVencFmt = dataVenc ? new Date(dataVenc + 'T12:00').toLocaleDateString('pt-BR') : null
 
   const dados = {
-    data: dataFmt, dataVenc: dataVencFmt,
-    osId: _orcFechOsId, cliNome: os.cliNome || '',
-    vsrv: tS, vpec: tP,
-    descSrv: tS * dS / 100, descPec: tP * dP / 100,
+    data: dataFmt, dataVenc: dataVencFmt, osId: _orcFechOsId, cliNome: os.cliNome || '',
+    vsrv: tS, vpec: tP, descSrv: tS * dS / 100, descPec: tP * dP / 100,
     subSrv, subPec, total,
     cat: tS > 0 && tP > 0 ? 'Serviços + Peças (OS)' : (tP > 0 ? 'Peças (OS)' : 'Serviços (OS)'),
-    forma, status, contaId,
-    dataPgto: status === 'Recebido' ? dataFmt : null,
+    forma, status, contaId, dataPgto: status === 'Recebido' ? dataFmt : null,
     tipo: 'os', desc: ''
   }
 
   try {
-    /* Verificar se a OS já tem receita — atualizar em vez de criar nova */
     const recExistente = recData.find(r => r.osId == _orcFechOsId)
     if (recExistente) {
       const atualizado = await db.entradas.update(recExistente.id, dados)
       Object.assign(recExistente, atualizado)
-      toast('Receita atualizada com os novos valores.', 3500)
+      toast('Receita atualizada.', 3500)
     } else {
       const novo = await db.entradas.create(lojaAtual.id, dados)
       recData.unshift(novo)
       os.finId = novo.id
       try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
-      toast('Receita lançada com sucesso!', 3500)
+      toast('Receita lançada!', 3500)
     }
-
-    /* Atualizar OS com valores líquidos */
     os.vsrv = subSrv; os.vpec = subPec; os.total = total
     try { await db.os.update(os.id, { vsrv: subSrv, vpec: subPec, total }) } catch (_) {}
-
     logAtividade('rec_novo', `Fechamento OS-${_orcFechOsId} · ${fmt(total)}`)
-  } catch (err) {
-    toast('Erro ao lançar receita: ' + err.message, 5000)
-    return
-  }
+  } catch (err) { toast('Erro: ' + err.message, 5000); return }
 
   _orcFechOsId = null
   fecharModal('mOrcAdd'); resetModalOrc()
@@ -5778,40 +5608,41 @@ function renderOS() {
     })()
     const garExpirou = r.garantiaAte && !garAtiva
     return `<tr>
-    <td style="vertical-align:middle">
+    <td>
       <b style="color:var(--pul)">${r.id}</b>
-      ${r.orcId ? `<span class="pill p-pu" style="font-size:9px;padding:1px 5px;margin-left:3px">← ${r.orcId}</span>` : ''}
+      <div style="margin-top:2px">${r.orcId ? `<span class="pill p-pu" style="font-size:9px;padding:1px 6px">← ${r.orcId}</span>` : `<span class="pill p-gy" style="font-size:9px;padding:1px 6px">Manual</span>`}</div>
+      ${r.checklist ? `<div style="font-size:9px;color:var(--grt);margin-top:2px" title="Checklist preenchido em ${r.checklist.preenchidoEm}"><i class="ti ti-clipboard-check"></i> checklist</div>` : ''}
+      ${garAtiva ? `<div style="font-size:9px;color:var(--blt);margin-top:2px" title="Garantia válida até ${r.garantiaAte}"><i class="ti ti-shield-check"></i> garantia</div>` : ''}
+      ${garExpirou ? `<div style="font-size:9px;color:var(--t3);margin-top:2px" title="Garantia expirou em ${r.garantiaAte}"><i class="ti ti-shield-off"></i> sem garantia</div>` : ''}
     </td>
-    <td style="color:var(--t2);font-size:12px;vertical-align:middle;white-space:nowrap">${r.data}</td>
-    <td style="vertical-align:middle">
+    <td style="color:var(--t2);font-size:12px">${r.data}</td>
+    <td>
       <b>${r.cliNome}</b>
       <div style="font-size:11px;color:var(--t3);margin-top:1px">${r.vei} <span style="font-family:monospace;color:var(--pul)">${r.pla}</span></div>
     </td>
-    <td style="font-size:12px;vertical-align:middle">${r.mec}</td>
-    <td style="text-align:right;vertical-align:middle">
+    <td style="font-size:12px">${r.mec}</td>
+    <td style="text-align:right">
       <div style="font-size:11px;color:var(--grt)">Serv: ${fmt(r.vsrv)}</div>
       <div style="font-size:11px;color:var(--blt)">Peças: ${fmt(r.vpec)}</div>
-      <div style="font-weight:700;margin-top:1px">${fmt(r.total)}</div>
+      <div style="font-weight:700;margin-top:2px">${fmt(r.total)}</div>
     </td>
-    <td style="vertical-align:middle">${pill(r.status)}</td>
-    <td style="vertical-align:middle;white-space:nowrap">
-      <div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">
-        <select style="font-size:11px;padding:3px 5px;border:1px solid var(--bd2);border-radius:6px;background:var(--s2);color:var(--t1);cursor:pointer;font-family:var(--f)" onchange="changeOSStatus('${r.id}',this.value)" title="Mudar status">
-          ${statusOpts.map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
-        </select>
-        ${r.status === 'Concluída' && !r.finId ? `<button class="btn btn-xs btn-gr" onclick="lancarFinanceiro('${r.id}')" title="Lançar receita"><i class="ti ti-cash"></i></button>` : ''}
-        ${r.finId ? `<span style="font-size:13px;color:var(--grt)" title="Receita lançada"><i class="ti ti-circle-check"></i></span>` : ''}
-        <details class="kebab" onclick="event.stopPropagation()">
-          <summary><i class="ti ti-dots-vertical"></i></summary>
-          <div class="kebab-menu">
-            <button onclick="abrirChecklist('${r.id}');this.closest('details').open=false"><i class="ti ti-clipboard-check"></i> Checklist${r.checklist ? ' ✓' : ''}</button>
-            <button onclick="printOS('${r.id}');this.closest('details').open=false"><i class="ti ti-printer"></i> Imprimir / PDF</button>
-            ${!r.finId && r.status !== 'Concluída' && r.status !== 'Cancelada' ? `<button onclick="editarOS('${r.id}');this.closest('details').open=false"><i class="ti ti-edit"></i> Editar OS</button>` : ''}
-            ${(r.status === 'Concluída' || r.status === 'Cancelada') && !r.finId ? `<button onclick="reabrirOS('${r.id}');this.closest('details').open=false"><i class="ti ti-lock-open"></i> Reabrir</button>` : ''}
-            <button onclick="excluirOS('${r.id}');this.closest('details').open=false" style="color:var(--re)"><i class="ti ti-trash"></i> Excluir OS</button>
-          </div>
-        </details>
-      </div>
+    <td>${pill(r.status)}</td>
+    <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+      <select style="font-size:11px;padding:4px 6px;border:1px solid var(--bd2);border-radius:6px;background:var(--s2);color:var(--t1);cursor:pointer;font-family:var(--f)" onchange="changeOSStatus('${r.id}',this.value)" title="Mudar status">
+        ${statusOpts.map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
+      </select>
+      ${r.status === 'Concluída' && !r.finId ? `<button class="btn btn-sm btn-gr" onclick="lancarFinanceiro('${r.id}')" title="Lançar receita"><i class="ti ti-cash"></i></button>` : ''}
+      ${r.finId ? `<span style="font-size:13px;color:var(--grt)" title="Receita lançada"><i class="ti ti-circle-check"></i></span>` : ''}
+      <details class="kebab" onclick="event.stopPropagation()">
+        <summary><i class="ti ti-dots-vertical"></i></summary>
+        <div class="kebab-menu">
+          <button onclick="abrirChecklist('${r.id}');this.closest('details').open=false"><i class="ti ti-clipboard-check"></i> Checklist de entrada${r.checklist ? ' ✓' : ''}</button>
+          <button onclick="printOS('${r.id}');this.closest('details').open=false"><i class="ti ti-printer"></i> Imprimir / PDF</button>
+          ${!r.finId && r.status !== 'Concluída' && r.status !== 'Cancelada' ? `<button onclick="editarOS('${r.id}');this.closest('details').open=false"><i class="ti ti-edit"></i> Editar OS</button>` : ''}
+          ${(r.status === 'Concluída' || r.status === 'Cancelada') && !r.finId ? `<button onclick="reabrirOS('${r.id}');this.closest('details').open=false"><i class="ti ti-lock-open"></i> Reabrir para edição</button>` : ''}
+          <button onclick="excluirOS('${r.id}');this.closest('details').open=false" style="color:var(--re)"><i class="ti ti-trash"></i> Excluir OS</button>
+        </div>
+      </details>
     </td>
   </tr>`}).join('') : `<tr><td colspan="7"><div class="empty"><i class="ti ti-clipboard-off"></i>Nenhuma OS encontrada</div></td></tr>`
 
@@ -5913,28 +5744,14 @@ function renderMov() {
 
   let itens = []
   if (tipo !== 'saida') {
-    itens = itens.concat(recData.filter(r => {
-      const isPend = r.status === 'A receber'
-      const dataRef = isPend && r.dataVenc ? r.dataVenc : r.data
-      return dateInRange(dataRef, de, ate) && passaStatus(r) && passaConta(r)
-    }).map(r => ({ ...r, _tipo: 'entrada' })))
+    itens = itens.concat(recData.filter(r => dateInRange(r.data, de, ate) && passaStatus(r) && passaConta(r)).map(r => ({ ...r, _tipo: 'entrada' })))
   }
   if (tipo !== 'entrada') {
-    itens = itens.concat(despData.filter(d => {
-      const isPend = d.status === 'A pagar' || d.status === 'Atrasado'
-      const dataRef = isPend && d.dataVenc ? d.dataVenc : d.data
-      return dateInRange(dataRef, de, ate) && passaStatus(d) && passaConta(d)
-    }).map(d => ({ ...d, _tipo: 'saida' })))
+    itens = itens.concat(despData.filter(d => dateInRange(d.data, de, ate) && passaStatus(d) && passaConta(d)).map(d => ({ ...d, _tipo: 'saida' })))
   }
-  /* Data de exibição: pendentes = vencimento, pagos/recebidos = data do pagamento */
-  itens.forEach(it => {
-    const ent = it._tipo === 'entrada'
-    const isPend = ent ? it.status === 'A receber' : (it.status === 'A pagar' || it.status === 'Atrasado')
-    it._dataExib = isPend && it.dataVenc ? it.dataVenc : (it.dataPgto || it.data)
-  })
   itens.sort((a, b) => {
-    const ad = (a._dataExib || '').split('/').reverse().join('-')
-    const bd = (b._dataExib || '').split('/').reverse().join('-')
+    const ad = (a.data || '').split('/').reverse().join('-')
+    const bd = (b.data || '').split('/').reverse().join('-')
     if (bd !== ad) return bd.localeCompare(ad)
     return (b.id || 0) - (a.id || 0)
   })
@@ -5980,15 +5797,15 @@ function renderMov() {
       : `<button class="btn btn-xs" onclick="editarDespesa(${it.id})" title="Editar saída"><i class="ti ti-edit"></i></button><button class="btn btn-xs btn-re" onclick="cancelarDespesa(${it.id})" title="Cancelar saída"><i class="ti ti-x"></i></button>`
     return `<tr class="mov-row-${it._tipo}">
       <td style="padding:0"></td>
-      <td style="color:var(--t2);white-space:nowrap;vertical-align:middle">${it._dataExib}${isPend && it.dataVenc ? '<div style="font-size:9px;color:var(--amt)"><i class="ti ti-calendar-due"></i> venc.</div>' : (it.dataPgto && it.dataPgto !== it.data ? '<div style="font-size:9px;color:var(--grt)"><i class="ti ti-check"></i> pgto</div>' : '')}</td>
-      <td style="vertical-align:middle">${descComVenc}</td>
-      <td style="vertical-align:middle">${cat}</td>
-      <td style="vertical-align:middle">${contaCell}</td>
-      <td style="text-align:right;font-weight:700;color:${ent ? 'var(--grt)' : 'var(--ret)'};white-space:nowrap;vertical-align:middle">${ent ? '+' : '−'} ${fmt(valor)}</td>
-      <td style="color:var(--t2);vertical-align:middle">${it.forma || '—'}</td>
-      <td style="vertical-align:middle">${pill(it.status)}</td>
-      <td style="text-align:center;vertical-align:middle">${banco}</td>
-      <td style="vertical-align:middle;white-space:nowrap"><div style="display:inline-flex;gap:3px;align-items:center;flex-wrap:nowrap">${acoes}</div></td>
+      <td style="color:var(--t2);white-space:nowrap">${it.data}</td>
+      <td>${descComVenc}</td>
+      <td>${cat}</td>
+      <td>${contaCell}</td>
+      <td style="text-align:right;font-weight:700;color:${ent ? 'var(--grt)' : 'var(--ret)'};white-space:nowrap">${ent ? '+' : '−'} ${fmt(valor)}</td>
+      <td style="color:var(--t2)">${it.forma || '—'}</td>
+      <td>${pill(it.status)}</td>
+      <td style="text-align:center">${banco}</td>
+      <td style="display:flex;gap:3px">${acoes}</td>
     </tr>`
   }).join('')
 }
@@ -5996,14 +5813,14 @@ function renderMov() {
 /* Aba Banco: lista transações do extrato com indicação de vínculo */
 /* ── CONTAS BANCÁRIAS ──────────────────────────────────────── */
 function populateContasSelects() {
-  const selects = ['rec_conta', 'desp_conta', 'mov-conta', 'conc-conta-filtro']
+  const selects = ['rec_conta', 'desp_conta', 'mov-conta']
   selects.forEach(id => {
     const el = document.getElementById(id)
     if (!el) return
     const val = el.value
-    const isFilter = id === 'mov-conta' || id === 'conc-conta-filtro'
+    const isFilter = id === 'mov-conta'
     el.innerHTML = isFilter
-      ? (id === 'conc-conta-filtro' ? '<option value="">Todas</option>' : '<option value="">Todas as contas</option>')
+      ? '<option value="">Todas as contas</option>'
       : '<option value="">— Sem conta específica —</option>'
     contasData.forEach(c => {
       const op = document.createElement('option')
@@ -6105,58 +5922,33 @@ function renderBancoExtrato() {
 
   const metrics = document.getElementById('banco-metrics')
 
-  /* Conciliação: lado a lado — entradas + saídas do sistema vs extrato */
-  const contaFiltroConc = document.getElementById('conc-conta-filtro')?.value || ''
-  const passaConta = it => !contaFiltroConc || String(it.contaId || '') === String(contaFiltroConc)
-
-  /* Entradas (recebidas) não conciliadas */
-  const recNConc = recData
-    .filter(r => r.status === 'Recebido' && !r.reconciliada && passaConta(r))
-    .map(r => ({ ...r, _tipo: 'entrada' }))
-
-  /* Saídas (pagas) não conciliadas */
-  const despNConc = despData
-    .filter(d => d.status === 'Pago' && !d.reconciliada && passaConta(d))
-    .map(d => ({ ...d, _tipo: 'saida', total: d.valor, cliNome: d.fornecedor || d.desc || '' }))
-
-  /* Combinar e ordenar por data desc */
-  const lancSistema = [...recNConc, ...despNConc].sort((a,b) => {
-    const ad = (a.data||'').split('/').reverse().join('-')
-    const bd = (b.data||'').split('/').reverse().join('-')
-    return bd.localeCompare(ad)
-  })
-
-  const bancNConc = bancData.filter(b => !recData.some(r => r.ofxId === b.id) && !despData.some(d => d.ofxId === b.id))
+  /* Conciliação: lado a lado */
+  const recNConc = recData.filter(r => r.status === 'Recebido' && !r.reconciliada)
+  const bancNConc = bancData.filter(b => !recData.some(r => r.ofxId === b.id) && (b.tipo === 'C' || b.valor > 0))
 
   const countRec = document.getElementById('rec-nconc-count')
   const countBanc = document.getElementById('banc-nconc-count')
-  if (countRec) countRec.textContent = `(${lancSistema.length})`
+  if (countRec) countRec.textContent = `(${recNConc.length})`
   if (countBanc) countBanc.textContent = `(${bancNConc.length})`
 
-  /* Lista lançamentos do sistema não conciliados (entradas + saídas) */
+  /* Lista entradas não conciliadas */
   const recLista = document.getElementById('banco-rec-lista')
   if (recLista) {
-    recLista.innerHTML = lancSistema.length
-      ? lancSistema.map(it => {
-          const conta = contasData.find(c => c.id == it.contaId)
-          const ent = it._tipo === 'entrada'
-          const corValor = ent ? 'var(--grt)' : 'var(--ret)'
-          const corBorda = ent ? 'var(--grt)' : 'var(--ret)'
-          const sinal = ent ? '+' : '−'
-          const titulo = ent ? (it.cliNome || it.desc || 'Avulsa') : (it.desc || it.fornecedor || 'Despesa')
-          const checkFn = ent ? `marcarConciliadoManual(${it.id})` : `marcarConciliadoManualDesp(${it.id})`
-          return `<div style="padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;border-left:3px solid ${corBorda}">
+    recLista.innerHTML = recNConc.length
+      ? recNConc.map(r => {
+          const conta = contasData.find(c => c.id == r.contaId)
+          return `<div style="padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;border-left:3px solid var(--grt)">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:11px;font-weight:700;color:${corValor}">${sinal} ${fmt(it.total||0)}</div>
-                <div style="font-size:10px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.data} · ${titulo}</div>
-                ${conta ? `<div style="font-size:9px;color:${conta.cor||'var(--t3)'}"><i class="ti ti-building-bank"></i> ${conta.nome}</div>` : '<div style="font-size:9px;color:var(--am)"><i class="ti ti-alert-circle"></i> Sem conta vinculada</div>'}
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--grt)">${fmt(r.total||0)}</div>
+                <div style="font-size:10px;color:var(--t2)">${r.data} · ${r.cliNome||r.desc||'Avulsa'}</div>
+                ${conta ? `<div style="font-size:9px;color:var(--t3)"><i class="ti ti-building-bank"></i> ${conta.nome}</div>` : ''}
               </div>
-              <button class="btn btn-xs btn-gr" onclick="${checkFn}" title="Marcar como conferido"><i class="ti ti-check"></i></button>
+              <button class="btn btn-xs btn-gr" onclick="marcarConciliadoManual(${r.id})" title="Marcar como conferido"><i class="ti ti-check"></i></button>
             </div>
           </div>`
         }).join('')
-      : `<div style="padding:20px;text-align:center;color:var(--grt);font-size:12px"><i class="ti ti-circle-check" style="font-size:24px;display:block;margin-bottom:6px"></i>Tudo conferido${contaFiltroConc?' nesta conta':''}!</div>`
+      : `<div style="padding:20px;text-align:center;color:var(--grt);font-size:12px"><i class="ti ti-circle-check" style="font-size:24px;display:block;margin-bottom:6px"></i>Todas as entradas estão conferidas!</div>`
   }
 
   /* Lista extrato não conciliado */
@@ -6186,25 +5978,13 @@ function renderBancoExtrato() {
   /* Resumo de diferença */
   const diffEl = document.getElementById('banco-diff-resumo')
   if (diffEl && bancData.length) {
-    const totalEntBanco = bancData.filter(b => b.tipo === 'C' || b.valor > 0).reduce((a,b) => a+Math.abs(b.valor),0)
-    const totalSaiBanco = bancData.filter(b => b.tipo === 'D' || b.valor < 0).reduce((a,b) => a+Math.abs(b.valor),0)
-    const totalRecSistema = recData.filter(r => r.status === 'Recebido' && passaConta(r)).reduce((a,r) => a+(r.total||0),0)
-    const totalDespSistema = despData.filter(d => d.status === 'Pago' && passaConta(d)).reduce((a,d) => a+(d.valor||0),0)
-    const diffEnt = totalEntBanco - totalRecSistema
-    const diffSai = totalSaiBanco - totalDespSistema
-    diffEl.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div style="padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
-        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:6px;font-weight:600">↓ Entradas</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--t2)">No extrato:</span><b style="color:var(--blt)">${fmt(totalEntBanco)}</b></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px"><span style="color:var(--t2)">No sistema:</span><b style="color:var(--grt)">${fmt(totalRecSistema)}</b></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)"><span style="font-weight:700">Diferença:</span><b style="color:${Math.abs(diffEnt)<0.01?'var(--grt)':'var(--ret)'}">${diffEnt>=0?'+':''}${fmt(diffEnt)}</b></div>
-      </div>
-      <div style="padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
-        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:6px;font-weight:600">↑ Saídas</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--t2)">No extrato:</span><b style="color:var(--blt)">${fmt(totalSaiBanco)}</b></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px"><span style="color:var(--t2)">No sistema:</span><b style="color:var(--ret)">${fmt(totalDespSistema)}</b></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)"><span style="font-weight:700">Diferença:</span><b style="color:${Math.abs(diffSai)<0.01?'var(--grt)':'var(--ret)'}">${diffSai>=0?'+':''}${fmt(diffSai)}</b></div>
-      </div>
+    const totalBanco = bancData.filter(b => b.tipo === 'C' || b.valor > 0).reduce((a,b) => a+Math.abs(b.valor),0)
+    const totalSistema = recData.filter(r => r.status === 'Recebido').reduce((a,r) => a+(r.total||0),0)
+    const diff = totalBanco - totalSistema
+    diffEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)">
+      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Entradas no extrato</div><div style="font-size:15px;font-weight:700;color:var(--blt)">${fmt(totalBanco)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Receitas no sistema</div><div style="font-size:15px;font-weight:700;color:var(--grt)">${fmt(totalSistema)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--t3);text-transform:uppercase">Diferença</div><div style="font-size:15px;font-weight:700;color:${Math.abs(diff)<0.01?'var(--grt)':'var(--ret)'}">${diff>=0?'+':''}${fmt(diff)}</div><div style="font-size:9px;color:var(--t3)">${Math.abs(diff)<0.01?'✓ Tudo bate':'⚠ Verificar'}</div></div>
     </div>`
   } else if (diffEl) diffEl.innerHTML = ''
 
@@ -6226,15 +6006,6 @@ function marcarConciliadoManual(recId) {
   r.reconciliada = true
   try { db.entradas.update && db.entradas.update(r.id, { reconciliada: true }) } catch {}
   toast('Entrada marcada como conferida.', 3000)
-  renderBancoExtrato(); renderMov()
-}
-
-function marcarConciliadoManualDesp(despId) {
-  const d = despData.find(x => x.id == despId); if (!d) return
-  d.reconciliada = true
-  /* Saídas não têm coluna reconciliada no banco, mantemos só em memória + saveState */
-  try { typeof saveState === 'function' && saveState() } catch {}
-  toast('Saída marcada como conferida.', 3000)
   renderBancoExtrato(); renderMov()
 }
 
@@ -6278,48 +6049,9 @@ function vincularBancoManual(banId) {
   renderBancoExtrato(); renderMov(); saveState()
 }
 
-function atualizarTotRec() {
-  const vs = parseFloat(document.getElementById('rec_vsrv').value) || 0
-  const ds = parseFloat(document.getElementById('rec_dsrv').value) || 0  /* desconto em R$ */
-  const vp = parseFloat(document.getElementById('rec_vpec').value) || 0
-  const dp = parseFloat(document.getElementById('rec_dpec').value) || 0  /* desconto em R$ */
-  /* Garante que o desconto não passe do valor bruto da seção */
-  const dsCap = Math.min(ds, vs)
-  const dpCap = Math.min(dp, vp)
-  const subS = vs - dsCap
-  const subP = vp - dpCap
-  const total = subS + subP
-  const bruto = vs + vp
-  const totDesc = dsCap + dpCap
-  const elSubS = document.getElementById('rec_subSrv'); if (elSubS) elSubS.value = fmt(subS)
-  const elSubP = document.getElementById('rec_subPec'); if (elSubP) elSubP.value = fmt(subP)
-  const elBruto = document.getElementById('rec-bruto'); if (elBruto) elBruto.textContent = fmt(bruto)
-  const elTotDesc = document.getElementById('rec-totDesc'); if (elTotDesc) elTotDesc.textContent = '− ' + fmt(totDesc)
-  const elTot = document.getElementById('rec-tot'); if (elTot) elTot.textContent = fmt(total)
-}
-;['rec_vsrv', 'rec_vpec', 'rec_dsrv', 'rec_dpec'].forEach(id => document.getElementById(id)?.addEventListener('input', atualizarTotRec))
 
-function preencherRecOS() {
-  const osId = document.getElementById('rec_os').value
-  const o = osData.find(x => x.id == osId)
-  if (!o) return
-  document.getElementById('rec_vsrv').value = o.vsrv
-  document.getElementById('rec_vpec').value = o.vpec
-  /* Busca descontos do orçamento original (se houver). O orçamento armazena em % — converte para R$. */
-  let dSpct = 0, dPpct = 0
-  if (o.descSrv != null) dSpct = o.descSrv
-  if (o.descPec != null) dPpct = o.descPec
-  if (o.orcId && (dSpct === 0 && dPpct === 0)) {
-    const orc = orcData.find(x => x.id == o.orcId)
-    if (orc) { dSpct = orc.descSrv || 0; dPpct = orc.descPec || 0 }
-  }
-  document.getElementById('rec_dsrv').value = (o.vsrv * dSpct / 100).toFixed(2)
-  document.getElementById('rec_dpec').value = (o.vpec * dPpct / 100).toFixed(2)
-  atualizarTotRec()
-}
 
 /* Lançamentos de entrada — 2 modos: OS (com vsrv/vpec) ou Avulsa (descrição+categoria) */
-let _recTipoModo = 'os'   /* 'os' | 'avulsa' */
 let recEditId = null      /* id da receita em edição */
 let despEditId = null     /* id da despesa em edição */
 
@@ -6427,172 +6159,19 @@ function onChangeSelectCat(selectId, tipo) {
   toast(`Categoria "${nova}" criada.`, 3000)
 }
 
-function alternarTipoRec(tipo) {
-  _recTipoModo = tipo
-  document.getElementById('rec-tab-os').classList.toggle('active', tipo === 'os')
-  document.getElementById('rec-tab-avulsa').classList.toggle('active', tipo === 'avulsa')
-  document.getElementById('rec-modo-os').style.display = tipo === 'os' ? '' : 'none'
-  document.getElementById('rec-modo-avulsa').style.display = tipo === 'avulsa' ? '' : 'none'
-}
-
-/* ── PARCELAMENTO ─────────────────────────────────────────── */
-function toggleRecDataPgto() {
-  const status = document.getElementById('rec_status')?.value
-  const wrap = document.getElementById('rec_datapgto_wrap')
-  if (!wrap) return
-  /* Mostra campo de data de pagamento quando muda para Recebido em edição (parcela que era "A receber") */
-  const isRecebido = status === 'Recebido'
-  const temVenc = !!document.getElementById('rec_venc')?.value
-  wrap.style.display = isRecebido && (temVenc || recEditId) ? '' : 'none'
-  if (isRecebido && !document.getElementById('rec_datapgto')?.value) {
-    document.getElementById('rec_datapgto').value = hojeISO()
-  }
-}
-
-function toggleRecParc() {
-  const forma = document.getElementById('rec_forma').value
-  const wrap = document.getElementById('rec_parc_wrap')
-  if (!wrap) return
-  const mostra = forma === 'Crédito da casa' || forma === 'Cartão crédito'
-  wrap.style.display = mostra ? '' : 'none'
-  if (mostra) {
-    /* Auto-fill 1ª parcela: 30 dias a partir de hoje */
-    const ini = document.getElementById('rec_parc_ini')
-    if (ini && !ini.value) {
-      const d = new Date(); d.setDate(d.getDate() + 30)
-      ini.value = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(d))
-    }
-    calcRecParc()
-  }
-}
-
-function calcRecParc() {
-  const preview = document.getElementById('rec_parc_preview'); if (!preview) return
-  const forma = document.getElementById('rec_forma').value
-  if (forma !== 'Crédito da casa' && forma !== 'Cartão crédito') { preview.innerHTML = ''; return }
-
-  /* Pega o total da receita (modo OS ou avulso) */
-  const modoOS = document.getElementById('rec_modo_os')?.checked !== false
-  let total = 0
-  if (modoOS) {
-    /* No modo OS o total é calculado automaticamente */
-    const vsrv = parseFloat(document.getElementById('rec_vsrv')?.value) || 0
-    const vpec = parseFloat(document.getElementById('rec_vpec')?.value) || 0
-    const dsrv = parseFloat(document.getElementById('rec_dsrv')?.value) || 0
-    const dpec = parseFloat(document.getElementById('rec_dpec')?.value) || 0
-    total = (vsrv * (1 - dsrv/100)) + (vpec * (1 - dpec/100))
-  } else {
-    total = parseFloat(document.getElementById('rec_av_valor')?.value) || 0
-  }
-
-  const entrada = parseFloat(document.getElementById('rec_parc_entrada')?.value) || 0
-  const nParc = parseInt(document.getElementById('rec_parc_qtd')?.value) || 1
-  const iniDate = document.getElementById('rec_parc_ini')?.value
-  const intervalo = parseInt(document.getElementById('rec_parc_intervalo')?.value) || 30
-
-  if (total <= 0) { preview.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--am)"></i> Preencha o valor total primeiro.'; return }
-  if (entrada >= total) { preview.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--am)"></i> Entrada não pode ser maior que o total.'; return }
-
-  const restante = total - entrada
-  const valorParc = Math.round(restante / nParc * 100) / 100
-
-  let html = ''
-  if (entrada > 0) html += `<div style="margin-bottom:6px"><b style="color:var(--grt)">Entrada:</b> ${fmt(entrada)} (recebida na data do lançamento)</div>`
-  html += `<div style="margin-bottom:4px"><b>${nParc}x</b> de <b style="color:var(--amt)">${fmt(valorParc)}</b> = ${fmt(valorParc * nParc)}</div>`
-
-  if (iniDate) {
-    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'
-    for (let i = 0; i < nParc; i++) {
-      const d = new Date(iniDate + 'T12:00')
-      d.setDate(d.getDate() + (intervalo * i))
-      const label = d.toLocaleDateString('pt-BR')
-      html += `<span style="padding:2px 7px;background:var(--s3);border-radius:6px;font-size:10px">${i+1}ª ${label}</span>`
-    }
-    html += '</div>'
-  }
-  preview.innerHTML = html
-}
-
-function toggleDespParc() {
-  const forma = document.getElementById('desp_forma').value
-  const wrap = document.getElementById('desp_parc_wrap')
-  if (!wrap) return
-  const mostra = forma === 'Boleto' || forma === 'Cartão'
-  wrap.style.display = mostra ? '' : 'none'
-  if (mostra) {
-    const ini = document.getElementById('desp_parc_ini')
-    if (ini && !ini.value) {
-      const d = new Date(); d.setDate(d.getDate() + 30)
-      ini.value = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(d))
-    }
-    calcDespParc()
-  }
-}
-
-function calcDespParc() {
-  const preview = document.getElementById('desp_parc_preview'); if (!preview) return
-  const forma = document.getElementById('desp_forma').value
-  if (forma !== 'Boleto' && forma !== 'Cartão') { preview.innerHTML = ''; return }
-
-  const total = parseFloat(document.getElementById('desp_valor')?.value) || 0
-  const nParc = parseInt(document.getElementById('desp_parc_qtd')?.value) || 1
-  const iniDate = document.getElementById('desp_parc_ini')?.value
-  const intervalo = parseInt(document.getElementById('desp_parc_intervalo')?.value) || 30
-
-  if (total <= 0) { preview.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--am)"></i> Preencha o valor total primeiro.'; return }
-
-  const valorParc = Math.round(total / nParc * 100) / 100
-
-  let html = `<div style="margin-bottom:4px"><b>${nParc}x</b> de <b style="color:var(--ret)">${fmt(valorParc)}</b> = ${fmt(valorParc * nParc)}</div>`
-
-  if (iniDate) {
-    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'
-    for (let i = 0; i < nParc; i++) {
-      const d = new Date(iniDate + 'T12:00')
-      d.setDate(d.getDate() + (intervalo * i))
-      html += `<span style="padding:2px 7px;background:var(--s3);border-radius:6px;font-size:10px">${i+1}ª ${d.toLocaleDateString('pt-BR')}</span>`
-    }
-    html += '</div>'
-  }
-  preview.innerHTML = html
-}
-
-/* Helper: gerar datas de parcelas */
-function gerarDatasParcelas(dataIni, qtd, intervalo) {
-  const datas = []
-  for (let i = 0; i < qtd; i++) {
-    const d = new Date(dataIni + 'T12:00')
-    d.setDate(d.getDate() + (intervalo * i))
-    datas.push(d.toLocaleDateString('pt-BR'))
-  }
-  return datas
-}
 
 function resetModalRec() {
   recEditId = null
   _recAvulsaOsId = null
-  _recTipoModo = 'os'
-  alternarTipoRec('os')
-  ;['rec_vsrv','rec_vpec','rec_dsrv','rec_dpec','rec_subSrv','rec_subPec','rec_av_desc','rec_av_valor','rec_av_cli','rec_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = e.id.includes('_d') ? '0' : '' })
-  document.getElementById('rec_os').value = ''
-  document.getElementById('rec_data').value = hoje
+  ;['rec_av_desc','rec_av_valor','rec_av_cli','rec_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   document.getElementById('rec_av_data').value = hoje
   /* Popula select de categoria com padrão + customizadas + "+ Criar nova" */
   popularSelectCat('rec_av_cat', REC_CAT_PADRAO, recCatCustom, REC_CAT_PADRAO[0])
   document.getElementById('rec_av_cat').onchange = () => onChangeSelectCat('rec_av_cat', 'rec')
   document.getElementById('rec_forma').value = 'PIX'
   document.getElementById('rec_status').value = 'Recebido'
-  /* Reset parcelamento */
-  const rpw = document.getElementById('rec_parc_wrap'); if (rpw) rpw.style.display = 'none'
-  ;['rec_parc_entrada'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '0' })
-  const rpq = document.getElementById('rec_parc_qtd'); if (rpq) rpq.value = '1'
-  const rpp = document.getElementById('rec_parc_preview'); if (rpp) rpp.innerHTML = ''
-  const rpi = document.getElementById('rec_parc_ini'); if (rpi) rpi.value = ''
-  const rdp = document.getElementById('rec_datapgto'); if (rdp) rdp.value = ''
-  const rdpw = document.getElementById('rec_datapgto_wrap'); if (rdpw) rdpw.style.display = 'none'
   document.getElementById('mFinRec-title').textContent = 'Nova Entrada'
   document.getElementById('rec-btn-label').textContent = 'Lançar Entrada'
-  atualizarTotRec()
 }
 
 function resetModalDesp() {
@@ -6604,11 +6183,6 @@ function resetModalDesp() {
   popularFornecedoresList()
   document.getElementById('desp_forma').value = 'PIX'
   document.getElementById('desp_status').value = 'Pago'
-  /* Reset parcelamento */
-  const dpw = document.getElementById('desp_parc_wrap'); if (dpw) dpw.style.display = 'none'
-  const dpq = document.getElementById('desp_parc_qtd'); if (dpq) dpq.value = '1'
-  const dpp = document.getElementById('desp_parc_preview'); if (dpp) dpp.innerHTML = ''
-  const dpi = document.getElementById('desp_parc_ini'); if (dpi) dpi.value = ''
   document.getElementById('mFinDesp-title').textContent = 'Nova Saída'
   document.getElementById('desp-btn-label').textContent = 'Lançar Saída'
 }
@@ -6634,110 +6208,43 @@ async function salvarReceita() {
   const dataVencFmt = dataVencISO ? new Date(dataVencISO + 'T12:00').toLocaleDateString('pt-BR') : null
 
   try {
-    /* Receita avulsa (a receita de OS agora é feita via confirmarFechamento no orçamento) */
-    const desc = document.getElementById('rec_av_desc').value.trim()
-    const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
-    const data = document.getElementById('rec_av_data').value
-    if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 4000); return }
-    const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
-    const cat = document.getElementById('rec_av_cat').value
-    const cli = document.getElementById('rec_av_cli').value.trim()
+    {
+      const desc = document.getElementById('rec_av_desc').value.trim()
+      const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
+      const data = document.getElementById('rec_av_data').value
+      if (!desc || !valor || !data) { toast('Preencha descrição, valor e data', 4000); return }
+      const dataFmt = new Date(data + 'T12:00').toLocaleDateString('pt-BR')
+      const cat = document.getElementById('rec_av_cat').value
+      const cli = document.getElementById('rec_av_cli').value.trim()
 
-    const dados = {
-      data: dataFmt, dataVenc: dataVencFmt, osId: _recAvulsaOsId || null, cliNome: cli || desc, desc, cat,
-      vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
-      forma: document.getElementById('rec_forma').value,
-      status: document.getElementById('rec_status').value,
-      contaId: document.getElementById('rec_conta')?.value || null,
-      dataPgto: document.getElementById('rec_status').value === 'Recebido' && document.getElementById('rec_datapgto')?.value ? new Date(document.getElementById('rec_datapgto').value + 'T12:00').toLocaleDateString('pt-BR') : null,
-      tipo: _recAvulsaOsId ? 'os' : 'avulsa'
-    }
-
-    if (recEditId) {
-      const r = recData.find(x => x.id == recEditId); if (!r) return
-      const atualizado = await db.entradas.update(recEditId, dados)
-      Object.assign(r, atualizado)
-      logAtividade('rec_edit', `Receita editada`)
-      toast('Entrada atualizada.', 3500)
-    } else {
-      const novo = await db.entradas.create(lojaAtual.id, dados)
-      recData.unshift(novo)
-      /* Se veio de OS manual, vincular */
-      if (_recAvulsaOsId) {
-        const os = osData.find(o => o.id == _recAvulsaOsId)
-        if (os) { os.finId = novo.id; try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {} }
+      const dados = {
+        data: dataFmt, dataVenc: dataVencFmt, osId: null, cliNome: cli || desc, desc, cat,
+        vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
+        forma: document.getElementById('rec_forma').value,
+        status: document.getElementById('rec_status').value,
+        contaId: document.getElementById('rec_conta')?.value || null,
+        tipo: 'avulsa'
       }
-      logAtividade('rec_novo', `Receita: ${desc} · ${fmt(valor)}`)
-      toast('Receita lançada.', 3000)
-    }
 
-    /* Salvar categoria customizada se for nova */
-    if (cat && !REC_CAT_PADRAO.includes(cat) && !recCatCustom.includes(cat)) {
-      recCatCustom.push(cat)
-      try { await db.categorias.add(lojaAtual.id, 'rec', cat) } catch (_) {}
-    }
+      if (recEditId) {
+        const r = recData.find(x => x.id == recEditId); if (!r) return
+        const atualizado = await db.entradas.update(recEditId, dados)
+        Object.assign(r, atualizado)
+        logAtividade('rec_edit', `Receita avulsa editada`)
+        toast('Entrada atualizada.', 3500)
+      } else {
+        const novo = await db.entradas.create(lojaAtual.id, dados)
+        recData.unshift(novo)
+        logAtividade('rec_novo', `Receita avulsa: ${desc} · ${fmt(valor)}`)
+        toast('Receita avulsa lançada.', 3000)
+      }
 
-    /* ── Gerar parcelas adicionais se for parcelamento ── */
-    const forma = document.getElementById('rec_forma').value
-    const parcWrap = document.getElementById('rec_parc_wrap')
-    if (!recEditId && parcWrap && parcWrap.style.display !== 'none' && (forma === 'Crédito da casa' || forma === 'Cartão crédito')) {
-      const nParc = parseInt(document.getElementById('rec_parc_qtd')?.value) || 1
-      const entrada = parseFloat(document.getElementById('rec_parc_entrada')?.value) || 0
-      const iniDate = document.getElementById('rec_parc_ini')?.value
-      const intervalo = parseInt(document.getElementById('rec_parc_intervalo')?.value) || 30
-
-      if (nParc > 1 && iniDate) {
-        /* O lançamento principal já foi criado acima com o valor total.
-           Agora preciso: ajustar o principal como entrada (se tiver) + criar parcelas */
-        const ultimoRec = recData[0] /* o que acabou de ser criado */
-        const totalOriginal = ultimoRec.total
-
-        if (entrada > 0) {
-          /* Ajustar o lançamento principal para ser a entrada (valor = entrada, status = Recebido) */
-          ultimoRec.total = entrada
-          ultimoRec.desc = (ultimoRec.desc || ultimoRec.cliNome || '') + ' (ENTRADA)'
-          ultimoRec.status = 'Recebido'
-          try { await db.entradas.update(ultimoRec.id, { total: entrada, desc: ultimoRec.desc, status: 'Recebido' }) } catch {}
-        } else {
-          /* Sem entrada: ajustar o principal para 1ª parcela */
-          const valorParc = Math.round(totalOriginal / nParc * 100) / 100
-          ultimoRec.total = valorParc
-          ultimoRec.desc = (ultimoRec.desc || ultimoRec.cliNome || '') + ' (1/' + nParc + ')'
-          ultimoRec.status = 'A receber'
-          ultimoRec.dataVenc = new Date(iniDate + 'T12:00').toLocaleDateString('pt-BR')
-          try { await db.entradas.update(ultimoRec.id, { total: valorParc, desc: ultimoRec.desc, status: 'A receber', dataVenc: ultimoRec.dataVenc }) } catch {}
-        }
-
-        /* Criar as parcelas restantes */
-        const restante = entrada > 0 ? totalOriginal - entrada : totalOriginal
-        const valorParc = Math.round(restante / nParc * 100) / 100
-        const parcInicio = entrada > 0 ? 0 : 1 /* se tem entrada, começa da 1ª parcela; se não, pula a 1ª (já criada) */
-
-        for (let i = parcInicio; i < nParc; i++) {
-          const d = new Date(iniDate + 'T12:00')
-          d.setDate(d.getDate() + (intervalo * i))
-          const dataVencParc = d.toLocaleDateString('pt-BR')
-          const parcDados = {
-            data: ultimoRec.data, dataVenc: dataVencParc,
-            osId: ultimoRec.osId || null,
-            cliNome: ultimoRec.cliNome || '',
-            desc: (ultimoRec.cliNome || ultimoRec.desc || '').replace(/\s*\(.*\)\s*$/, '') + ` (${i+1}/${nParc})`,
-            cat: ultimoRec.cat || 'Parcelamento',
-            vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0,
-            total: valorParc,
-            forma, status: 'A receber',
-            contaId: ultimoRec.contaId || null,
-            tipo: ultimoRec.tipo || 'avulsa'
-          }
-          try {
-            const novo = await db.entradas.create(lojaAtual.id, parcDados)
-            recData.unshift(novo)
-          } catch (err) { console.error('Erro parcela', i, err) }
-        }
-        toast(`✓ ${entrada > 0 ? 'Entrada + ' : ''}${nParc} parcelas geradas.`, 4000)
+      /* Salvar categoria customizada se for nova */
+      if (cat && !REC_CAT_PADRAO.includes(cat) && !recCatCustom.includes(cat)) {
+        recCatCustom.push(cat)
+        try { await db.categorias.add(lojaAtual.id, 'rec', cat) } catch (_) {}
       }
     }
-
     fecharModal('mFinRec'); resetModalRec()
     renderFinMetrics(); renderMov(); renderBancoExtrato(); updateBadge(); renderDash(); renderKanban(); renderOS()
   } catch (e) {
@@ -6787,47 +6294,6 @@ async function salvarDespesa() {
       try { await db.categorias.add(lojaAtual.id, 'desp', cat) } catch (_) {}
     }
 
-    /* ── Gerar parcelas adicionais se for parcelamento de despesa ── */
-    const formaDesp = document.getElementById('desp_forma').value
-    const parcWrapD = document.getElementById('desp_parc_wrap')
-    if (!despEditId && parcWrapD && parcWrapD.style.display !== 'none' && (formaDesp === 'Boleto' || formaDesp === 'Cartão')) {
-      const nParc = parseInt(document.getElementById('desp_parc_qtd')?.value) || 1
-      const iniDate = document.getElementById('desp_parc_ini')?.value
-      const intervalo = parseInt(document.getElementById('desp_parc_intervalo')?.value) || 30
-
-      if (nParc > 1 && iniDate) {
-        const ultimoDesp = despData[0]
-        const valorParc = Math.round(valor / nParc * 100) / 100
-
-        /* Ajustar o primeiro lançamento para ser a 1ª parcela */
-        ultimoDesp.valor = valorParc
-        ultimoDesp.desc = desc + ' (1/' + nParc + ')'
-        ultimoDesp.status = 'A pagar'
-        ultimoDesp.dataVenc = new Date(iniDate + 'T12:00').toLocaleDateString('pt-BR')
-        try { await db.saidas.update(ultimoDesp.id, { valor: valorParc, desc: ultimoDesp.desc, status: 'A pagar', dataVenc: ultimoDesp.dataVenc }) } catch {}
-
-        /* Criar as parcelas restantes */
-        for (let i = 1; i < nParc; i++) {
-          const d = new Date(iniDate + 'T12:00')
-          d.setDate(d.getDate() + (intervalo * i))
-          const dataVencParc = d.toLocaleDateString('pt-BR')
-          const parcDados = {
-            data: dataFmt, dataVenc: dataVencParc,
-            desc: desc + ` (${i+1}/${nParc})`,
-            fornecedor, fornId, cat,
-            valor: valorParc,
-            forma: formaDesp, status: 'A pagar',
-            contaId: ultimoDesp.contaId || null
-          }
-          try {
-            const novo = await db.saidas.create(lojaAtual.id, parcDados)
-            despData.unshift(novo)
-          } catch (err) { console.error('Erro parcela desp', i, err) }
-        }
-        toast(`✓ ${nParc} parcelas de despesa geradas.`, 4000)
-      }
-    }
-
     fecharModal('mFinDesp'); resetModalDesp()
     if (fornecedor && !fornMatch) {
       setTimeout(() => {
@@ -6845,35 +6311,24 @@ async function salvarDespesa() {
   }
 }
 
-/* Editar receita existente — OS abre orçamento, avulsa abre modal simples */
+/* Editar receita — OS vai pro orçamento, avulsa fica no modal */
 function editarReceita(recId) {
   const r = recData.find(x => x.id == recId); if (!r) return
+  if (r.osId && r.tipo === 'os') { lancarFinanceiro(r.osId); return }
 
-  /* Se é receita de OS, redirecionar para o orçamento em modo fechamento */
-  if (r.osId && r.tipo === 'os') {
-    lancarFinanceiro(r.osId)
-    return
-  }
-
-  /* Receita avulsa — abre modal simples */
   recEditId = recId
   document.getElementById('mFinRec-title').textContent = 'Editar Entrada'
   document.getElementById('rec-btn-label').textContent = 'Salvar Alterações'
-  const dataIso = (r.data || '').split('/').reverse().join('-')
-
   document.getElementById('rec_av_desc').value = r.desc || ''
-  document.getElementById('rec_av_data').value = dataIso
+  document.getElementById('rec_av_data').value = (r.data || '').split('/').reverse().join('-')
   popularSelectCat('rec_av_cat', REC_CAT_PADRAO, recCatCustom, r.cat || 'Outras receitas')
   document.getElementById('rec_av_cat').onchange = () => onChangeSelectCat('rec_av_cat', 'rec')
   document.getElementById('rec_av_valor').value = r.total || 0
   document.getElementById('rec_av_cli').value = r.cliNome || ''
-
   document.getElementById('rec_forma').value = r.forma || 'PIX'
   document.getElementById('rec_status').value = r.status || 'Recebido'
   document.getElementById('rec_venc').value = r.dataVenc ? (r.dataVenc.split('/').reverse().join('-')) : ''
   if (document.getElementById('rec_conta')) document.getElementById('rec_conta').value = r.contaId || ''
-  if (document.getElementById('rec_datapgto')) document.getElementById('rec_datapgto').value = r.dataPgto ? brToIso(r.dataPgto) : ''
-  toggleRecDataPgto()
   abrirModal('mFinRec')
 }
 
@@ -7475,9 +6930,6 @@ function resetModalPeca() {
   popularSelectCat('pec_cat', PEC_CAT_PADRAO, pecCatCustom, PEC_CAT_PADRAO[0])
   document.getElementById('pec_cat').onchange = () => onChangeSelectCat('pec_cat', 'pec')
   document.getElementById('pec_unidade').value = 'un'
-  /* Popular datalist de fornecedores */
-  const dl = document.getElementById('pec-forn-list')
-  if (dl) { dl.innerHTML = ''; fornData.forEach(f => { const op = document.createElement('option'); op.value = f.nome; dl.appendChild(op) }) }
   document.getElementById('mPecaAdd-title').textContent = 'Cadastrar Peça'
   document.getElementById('pec-btn-label').textContent = 'Cadastrar'
 }
@@ -7491,9 +6943,6 @@ function editarPeca(id) {
   document.getElementById('pec_nome').value = p.nome || ''
   document.getElementById('pec_marca').value = p.marca || ''
   document.getElementById('pec_forn').value = p.fornecedor || ''
-  /* Popular datalist de fornecedores */
-  const dl = document.getElementById('pec-forn-list')
-  if (dl) { dl.innerHTML = ''; fornData.forEach(f => { const op = document.createElement('option'); op.value = f.nome; dl.appendChild(op) }) }
   document.getElementById('pec_unidade').value = p.unidade || 'un'
   document.getElementById('pec_qtd').value = p.qtd
   document.getElementById('pec_min').value = p.min
@@ -7531,18 +6980,6 @@ async function salvarPeca() {
       fecharModal('mPecaAdd'); toast('"' + nome + '" cadastrada.')
     }
     renderEst(); renderEstMetrics()
-
-    /* Se digitou um fornecedor que não está cadastrado, oferecer cadastrar */
-    const fornNome = dados.fornecedor
-    if (fornNome && !fornData.some(f => (f.nome || '').toLowerCase() === fornNome.toLowerCase())) {
-      setTimeout(() => {
-        if (confirm(`O fornecedor "${fornNome}" não está cadastrado.\n\nDeseja cadastrá-lo agora?`)) {
-          resetModalForn()
-          document.getElementById('forn_nome').value = fornNome
-          abrirModal('mFornAdd')
-        }
-      }, 200)
-    }
   } catch (e) {
     toast('Erro: ' + (e.message || ''), 5000)
   }
@@ -7831,27 +7268,23 @@ function renderPickSrv() {
   const b = (document.getElementById('pick-srv-busca').value || '').toLowerCase()
   const rows = srvCatData.filter(s => !b || (s.nome + s.cod + s.cat).toLowerCase().includes(b))
   document.getElementById('pick-srv-list').innerHTML = rows.length ? rows.map(s => `
-    <div style="padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <div style="padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:background .15s" onmouseenter="this.style.background='var(--s2)'" onmouseleave="this.style.background=''" onclick="adicionarSrvDoCatalogo(${s.id})">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px"><b>${s.nome}</b></div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">${s.cod} · ${s.cat}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">${s.cod} · ${s.cat} · ${s.h} h</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="text-align:right">
-          <div style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(s.valor)}</div>
-        </div>
-        <input type="number" id="pick-srv-qtd-${s.id}" min="1" value="1" style="width:55px;padding:6px;font-size:12px;text-align:center" title="Quantidade">
-        <button class="btn btn-sm btn-pu" onclick="adicionarSrvDoCatalogo(${s.id})"><i class="ti ti-plus"></i></button>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:700;color:var(--grt)">${fmt(s.valor)}</div>
+        <button class="btn btn-xs btn-pu" style="margin-top:4px;pointer-events:none"><i class="ti ti-plus"></i> Adicionar</button>
       </div>
     </div>`).join('') : `<div class="empty" style="padding:30px"><i class="ti ti-search-off"></i>Nenhum serviço encontrado<br><button class="btn btn-sm btn-pu" style="margin-top:10px" onclick="fecharModal('mPickSrv');abrirModalSrvCat()"><i class="ti ti-plus"></i> Cadastrar novo serviço</button></div>`
 }
 
 function adicionarSrvDoCatalogo(id) {
   const s = srvCatData.find(x => x.id == id); if (!s) return
-  const qtd = parseInt(document.getElementById(`pick-srv-qtd-${id}`)?.value) || 1
-  orcTempSrvs.push({ desc: s.nome, qtd, valUnit: s.valor, val: s.valor * qtd, srvCatId: s.id })
+  orcTempSrvs.push({ desc: s.nome, h: s.h, val: s.valor, srvCatId: s.id })
   renderTempOrc(); atualizarTotalOrc()
-  toast(`${s.nome}${qtd > 1 ? ' ×' + qtd : ''} adicionado.`)
+  toast('Serviço adicionado.')
   fecharModal('mPickSrv')
 }
 
@@ -7906,26 +7339,26 @@ function aplicarPresetDRE(preset) {
   let de = '', ate = ''
   switch (preset) {
     case 'mes-atual':
-      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth(), 1)))
-      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth() + 1, 0)))
+      de = new Date(h.getFullYear(), h.getMonth(), 1).toISOString().split('T')[0]
+      ate = new Date(h.getFullYear(), h.getMonth() + 1, 0).toISOString().split('T')[0]
       break
     case 'mes-passado': {
       const inicio = new Date(h.getFullYear(), h.getMonth() - 1, 1)
       const fim = new Date(h.getFullYear(), h.getMonth(), 0)
-      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(inicio))
-      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(fim))
+      de = inicio.toISOString().split('T')[0]
+      ate = fim.toISOString().split('T')[0]
       break
     }
     case 'trimestre': {
       const inicio = new Date(h.getFullYear(), h.getMonth() - 2, 1)
       const fim = new Date(h.getFullYear(), h.getMonth() + 1, 0)
-      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(inicio))
-      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(fim))
+      de = inicio.toISOString().split('T')[0]
+      ate = fim.toISOString().split('T')[0]
       break
     }
     case 'ano':
-      de = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), 0, 1)))
-      ate = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), 11, 31)))
+      de = new Date(h.getFullYear(), 0, 1).toISOString().split('T')[0]
+      ate = new Date(h.getFullYear(), 11, 31).toISOString().split('T')[0]
       break
     case 'tudo':
     default:
@@ -7946,8 +7379,8 @@ function relDRE() {
   /* Inicializa preset padrão se primeira vez */
   if (!_dreDe && !_dreAte && _drePreset === 'mes-atual') {
     const h = new Date()
-    _dreDe = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth(), 1)))
-    _dreAte = ((d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date(h.getFullYear(), h.getMonth() + 1, 0)))
+    _dreDe = new Date(h.getFullYear(), h.getMonth(), 1).toISOString().split('T')[0]
+    _dreAte = new Date(h.getFullYear(), h.getMonth() + 1, 0).toISOString().split('T')[0]
   }
   const de = _dreDe, ate = _dreAte
   const recsFilt = recData.filter(r => dateInRange(r.data, de, ate))
@@ -8393,12 +7826,12 @@ function relMec(periodo, ini, fim) {
       <div class="metric" style="padding:8px;border-left:2px solid var(--am)"><div class="ml" style="font-size:9px">Comissão</div><div class="mv" style="font-size:13px;font-weight:700;color:var(--amt)">${fmt(comissao)}</div></div>
       <div class="metric" style="padding:8px;border-left:2px solid var(--pu)"><div class="ml" style="font-size:9px">Líquido</div><div class="mv" style="font-size:13px;font-weight:700">${fmt(fatSrv-comissao)}</div></div>
     </div>
-    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado considera apenas valor de Serviços · apenas OSs concluídas dentro do filtro</div>
+    <div style="font-size:10px;color:var(--t3);margin:-4px 0 10px">Faturado considera apenas valor de Serviços (Peças: ${fmt(fatPec)} não entram nesse total nem na comissão) · apenas OSs concluídas dentro do filtro</div>
 
     <!-- Tabela detalhada de todas as OSs filtradas -->
     <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em"><i class="ti ti-list-details"></i> OSs no filtro (${oss.length})</div>
     ${oss.length ? `<table style="font-size:11px">
-      <thead><tr><th style="padding:6px 7px">OS</th><th style="padding:6px 7px">Data</th><th style="padding:6px 7px">Status</th><th style="padding:6px 7px">Cliente</th><th style="padding:6px 7px">Veículo</th><th style="padding:6px 7px">Placa</th><th style="padding:6px 7px;text-align:right">Serviço</th></tr></thead>
+      <thead><tr><th style="padding:6px 7px">OS</th><th style="padding:6px 7px">Data</th><th style="padding:6px 7px">Status</th><th style="padding:6px 7px">Cliente</th><th style="padding:6px 7px">Placa</th><th style="padding:6px 7px;text-align:right">Serviço</th><th style="padding:6px 7px;text-align:right">Peças</th><th style="padding:6px 7px;text-align:right">Total</th></tr></thead>
       <tbody>
         ${oss.map(o => {
           const st = o.status
@@ -8408,14 +7841,17 @@ function relMec(periodo, ini, fim) {
             <td style="padding:5px 7px;color:var(--t2)">${o.dataConclusao || o.data}</td>
             <td style="padding:5px 7px"><span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600;color:${cor};background:${cor}18">${st}</span></td>
             <td style="padding:5px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.cliNome || '—'}</td>
-            <td style="padding:5px 7px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)">${o.vei || '—'}</td>
             <td style="padding:5px 7px;font-family:monospace;color:var(--pul);font-size:10px">${o.pla || '—'}</td>
-            <td style="padding:5px 7px;text-align:right;font-weight:600;color:var(--grt)">${fmt(o.vsrv || 0)}</td>
+            <td style="padding:5px 7px;text-align:right;color:var(--t2)">${fmt(o.vsrv || 0)}</td>
+            <td style="padding:5px 7px;text-align:right;color:var(--t2)">${fmt(o.vpec || 0)}</td>
+            <td style="padding:5px 7px;text-align:right;font-weight:600;color:var(--grt)">${fmt(o.total || 0)}</td>
           </tr>`
         }).join('')}
         <tr style="border-top:2px solid var(--bd)">
-          <td colspan="6" style="padding:6px 7px;text-align:right;font-weight:700">SUBTOTAL</td>
-          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.vsrv||0), 0))}</td>
+          <td colspan="5" style="padding:6px 7px;text-align:right;font-weight:700">SUBTOTAIS</td>
+          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--t1)">${fmt(oss.reduce((a,o) => a + (o.vsrv||0), 0))}</td>
+          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--t1)">${fmt(oss.reduce((a,o) => a + (o.vpec||0), 0))}</td>
+          <td style="padding:6px 7px;text-align:right;font-weight:700;color:var(--grt)">${fmt(oss.reduce((a,o) => a + (o.total||0), 0))}</td>
         </tr>
       </tbody>
     </table>` : `<div class="empty" style="padding:16px;font-size:12px">Nenhuma OS encontrada com os filtros atuais.</div>`}
@@ -9729,33 +9165,24 @@ function printOrc(id) {
   document.getElementById('p-orc-tel').textContent = cli?.tel || '—'
   document.getElementById('p-orc-vei').textContent = o.vei
   document.getElementById('p-orc-pla').textContent = o.pla
-  const kmEl = document.getElementById('p-orc-km')
-  if (kmEl) kmEl.textContent = o.km ? Number(o.km).toLocaleString('pt-BR') + ' km' : '—'
   document.getElementById('p-orc-srvs').querySelector('tbody').innerHTML =
-    o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.qtd||1}</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
+    o.srvs.length ? o.srvs.map(s => `<tr><td>${s.desc}</td><td>${s.h}h</td><td style="text-align:right">${fmt(s.val)}</td></tr>`).join('') : '<tr><td colspan="3" style="color:#aaa">—</td></tr>'
   document.getElementById('p-orc-pecs').querySelector('tbody').innerHTML =
     o.pecs.length ? o.pecs.map(p => `<tr><td>${p.desc}</td><td>${p.qtd}</td><td style="text-align:right">${fmt(p.unit)}</td><td style="text-align:right">${fmt(p.tot)}</td></tr>`).join('') : '<tr><td colspan="4" style="color:#aaa">—</td></tr>'
-  /* Desconto: pode estar em % (correto) ou em R$ (legado). Detectar e converter */
-  let dS = o.descSrv || 0, dP = o.descPec || 0
-  /* Se descSrv > 100, está em R$ (bug de versões anteriores) — converter para % */
-  if (dS > 100 && o.tSrv > 0) dS = Math.round(dS / o.tSrv * 10000) / 100
-  if (dP > 100 && o.tPec > 0) dP = Math.round(dP / o.tPec * 10000) / 100
-  const descValSrv = o.tSrv * dS / 100
-  const descValPec = o.tPec * dP / 100
+  const dS = o.descSrv || 0, dP = o.descPec || 0
   const mostrarDesc = o.mostrarDesc !== false /* default true */
   if (mostrarDesc) {
     document.getElementById('p-orc-tsrv').textContent = fmt(o.tSrv)
     document.getElementById('p-orc-tpec').textContent = fmt(o.tPec)
-    const partes = []
-    if (dS > 0) partes.push(`Serviços: ${dS}% (−${fmt(descValSrv)})`)
-    if (dP > 0) partes.push(`Peças: ${dP}% (−${fmt(descValPec)})`)
-    const descTxt = partes.length ? partes.join(' · ') : '—'
+    const descTxt = (dS > 0 || dP > 0)
+      ? `Serviços: ${dS}% (−${fmt(o.tSrv * dS / 100)}) · Peças: ${dP}% (−${fmt(o.tPec * dP / 100)})`
+      : '—'
     document.getElementById('p-orc-tdesc').textContent = descTxt
     document.getElementById('p-orc-tdesc').parentElement.style.display = ''
   } else {
     /* Esconde a linha de desconto e exibe os subtotais já com desconto aplicado */
-    document.getElementById('p-orc-tsrv').textContent = fmt(o.tSrv - descValSrv)
-    document.getElementById('p-orc-tpec').textContent = fmt(o.tPec - descValPec)
+    document.getElementById('p-orc-tsrv').textContent = fmt(o.tSrv * (1 - dS / 100))
+    document.getElementById('p-orc-tpec').textContent = fmt(o.tPec * (1 - dP / 100))
     const linha = document.getElementById('p-orc-tdesc').parentElement
     if (linha) linha.style.display = 'none'
   }
@@ -10417,7 +9844,6 @@ loadLojas()
 const _loaded = loadState()
 const _loadedAuth = loadAuth()
 
-document.getElementById('rec_data').value = hoje
 document.getElementById('desp_data').value = hoje
 document.getElementById('mec_adm').value = hoje
 
