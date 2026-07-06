@@ -5599,7 +5599,7 @@ function lancarFinanceiro(osId) {
         const btnS = document.getElementById('orc-btn-salvar'); if (btnS) btnS.style.display = 'none'
         const btnF = document.getElementById('orc-btn-fechar'); if (btnF) btnF.style.display = ''
         populateContasSelects()
-        document.getElementById('orc_fech_data').value = hojeISO()
+        document.getElementById('orc_fech_data').value = hoje
         document.getElementById('orc_fech_status').value = 'Recebido'
         document.getElementById('orc_fech_forma').value = 'PIX'
         const orcWrap = document.getElementById('orc-parcela-wrap'); if (orcWrap) orcWrap.style.display = 'none'
@@ -5614,7 +5614,7 @@ function lancarFinanceiro(osId) {
   resetModalRec()
   document.getElementById('rec_av_desc').value = `OS-${osId} · ${os.cliNome || ''}`
   document.getElementById('rec_av_valor').value = os.total || 0
-  document.getElementById('rec_av_data').value = hojeISO()
+  document.getElementById('rec_av_data').value = hoje
   document.getElementById('rec_av_cli').value = os.cliNome || ''
   _recAvulsaOsId = osId
   abrirModal('mFinRec')
@@ -5632,16 +5632,16 @@ async function confirmarFechamento() {
   const forma = document.getElementById('orc_fech_forma')?.value || 'PIX'
   const contaId = document.getElementById('orc_fech_conta')?.value || null
   const status = document.getElementById('orc_fech_status')?.value || 'Recebido'
-  const dataFech = document.getElementById('orc_fech_data')?.value || hojeISO()
+  const dataFech = document.getElementById('orc_fech_data')?.value || hoje
   const dataFmt = new Date(dataFech + 'T12:00').toLocaleDateString('pt-BR')
   const dataVenc = document.getElementById('orc_fech_venc')?.value
   const dataVencFmt = dataVenc ? new Date(dataVenc + 'T12:00').toLocaleDateString('pt-BR') : null
   const isParc = FORMAS_PARCELAMENTO.includes(forma)
   const nParc = isParc ? (parseInt(document.getElementById('orc_parc_n')?.value) || 1) : 1
-  const parcIniISO = isParc ? (document.getElementById('orc_parc_ini')?.value || hojeISO()) : null
+  const parcIniISO = isParc ? (document.getElementById('orc_parc_ini')?.value || hoje) : null
   const parcDias = isParc ? (parseInt(document.getElementById('orc_parc_dias')?.value) || 30) : 30
   const entradaValor = isParc ? (parseFloat(document.getElementById('orc_parc_entrada')?.value) || 0) : 0
-  const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hojeISO()) : null
+  const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hoje) : null
   const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : null
 
   /* Calcular totais direto do orçamento em memória — não chama salvarOrc */
