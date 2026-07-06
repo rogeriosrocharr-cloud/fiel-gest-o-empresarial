@@ -826,11 +826,23 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <span><b>Passo 2 de 4:</b> Crie o orçamento com serviços e peças separados. Após aprovação do cliente, clique em <b>"Gerar OS"</b>.</span>
   </div>
   <div class="fb" style="margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    <div class="sb-bar">
-      <input id="orc-busca" type="text" placeholder="Buscar cliente, veículo..." style="width:220px" oninput="renderOrc()">
-      <select id="orc-sf" onchange="renderOrc()"><option value="">Todos status</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Recusado</option><option>OS gerada</option></select>
-      <input id="orc-de" type="date" title="Data inicial" onchange="renderOrc()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
-      <input id="orc-ate" type="date" title="Data final" onchange="renderOrc()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <input id="orc-busca" type="text" placeholder="Buscar cliente, veículo..." style="width:200px;font-size:12px;padding:6px 10px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none" oninput="renderOrc()">
+      <select id="orc-sf" onchange="renderOrc()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todos status</option><option>Aguardando aprovação</option><option>Aprovado</option><option>Recusado</option><option>OS gerada</option></select>
+      <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase">PERÍODO</span>
+      <div style="display:flex;gap:4px" id="orc-periodo-btns">
+        <button onclick="setOrcPeriodo('dia')" id="orc-p-dia" class="btn btn-sm btn-pu" style="padding:4px 10px;font-size:12px">Hoje</button>
+        <button onclick="setOrcPeriodo('semana')" id="orc-p-semana" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Semana</button>
+        <button onclick="setOrcPeriodo('mes')" id="orc-p-mes" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Mês</button>
+        <button onclick="setOrcPeriodo('ano')" id="orc-p-ano" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Ano</button>
+        <button onclick="setOrcPeriodo('tudo')" id="orc-p-tudo" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Tudo</button>
+        <button onclick="setOrcPeriodo('custom')" id="orc-p-custom" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Período...</button>
+      </div>
+      <div id="orc-custom-datas" style="display:none;gap:6px;align-items:center">
+        <input id="orc-de" type="date" onchange="renderOrc()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+        <span style="font-size:11px;color:var(--t3)">até</span>
+        <input id="orc-ate" type="date" onchange="renderOrc()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+      </div>
     </div>
     <button class="btn btn-pu" onclick="resetModalOrc();populateClis();populateMecs();abrirModal('mOrcAdd')"><i class="ti ti-plus"></i> Novo Orçamento</button>
   </div>
@@ -850,12 +862,24 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <span><b>Passo 3 de 4:</b> OS geradas automaticamente dos orçamentos aprovados. Ao concluir, clique no <b>ícone de caixa</b> para lançar no financeiro.</span>
   </div>
   <div class="fb" style="margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    <div class="sb-bar">
-      <input id="os-busca" type="text" placeholder="Buscar OS, cliente, placa..." style="width:220px" oninput="renderOS()">
-      <select id="os-sf" onchange="renderOS()"><option value="">Todos status</option><option>Aberta</option><option>Em execução</option><option>Aguardando peça</option><option>Concluída</option><option>Cancelada</option></select>
-      <select id="os-mf" onchange="renderOS()"><option value="">Todos mecânicos</option></select>
-      <input id="os-de" type="date" title="Data inicial" onchange="renderOS()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
-      <input id="os-ate" type="date" title="Data final" onchange="renderOS()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <input id="os-busca" type="text" placeholder="Buscar OS, cliente, placa..." style="width:200px;font-size:12px;padding:6px 10px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none" oninput="renderOS()">
+      <select id="os-sf" onchange="renderOS()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todos status</option><option>Aberta</option><option>Em execução</option><option>Aguardando peça</option><option>Concluída</option><option>Cancelada</option></select>
+      <select id="os-mf" onchange="renderOS()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todos mecânicos</option></select>
+      <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase">PERÍODO</span>
+      <div style="display:flex;gap:4px" id="os-periodo-btns">
+        <button onclick="setOsPeriodo('dia')" id="os-p-dia" class="btn btn-sm btn-pu" style="padding:4px 10px;font-size:12px">Hoje</button>
+        <button onclick="setOsPeriodo('semana')" id="os-p-semana" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Semana</button>
+        <button onclick="setOsPeriodo('mes')" id="os-p-mes" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Mês</button>
+        <button onclick="setOsPeriodo('ano')" id="os-p-ano" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Ano</button>
+        <button onclick="setOsPeriodo('tudo')" id="os-p-tudo" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Tudo</button>
+        <button onclick="setOsPeriodo('custom')" id="os-p-custom" class="btn btn-sm" style="padding:4px 10px;font-size:12px">Período...</button>
+      </div>
+      <div id="os-custom-datas" style="display:none;gap:6px;align-items:center">
+        <input id="os-de" type="date" onchange="renderOS()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+        <span style="font-size:11px;color:var(--t3)">até</span>
+        <input id="os-ate" type="date" onchange="renderOS()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+      </div>
     </div>
     <button class="btn btn-sm" onclick="resetModalOS();populateClis();populateMecs();abrirModal('mOsAdd')"><i class="ti ti-plus"></i> OS manual</button>
   </div>
@@ -4320,8 +4344,8 @@ function goTab(id, el, fromUser = true) {
   if (id === 'dashboard') renderDash()
   if (id === 'fluxo') { renderKanban() }
   if (id === 'clientes') renderClientes()
-  if (id === 'orcamentos') { populateClis(); populateMecs(); const _od = document.getElementById('orc-de'); const _oa = document.getElementById('orc-ate'); if (_od && !_od.value) _od.value = ''; if (_oa && !_oa.value) _oa.value = ''; renderOrc() }
-  if (id === 'os') { populateOSSelects(); const _osd = document.getElementById('os-de'); const _osa = document.getElementById('os-ate'); if (_osd) _osd.value = ''; if (_osa) _osa.value = ''; renderOS() }
+  if (id === 'orcamentos') { populateClis(); populateMecs(); setTimeout(() => setOrcPeriodo(_orcPeriodo || 'dia'), 0) }
+  if (id === 'os') { populateOSSelects(); setTimeout(() => setOsPeriodo(_osPeriodo || 'dia'), 0) }
   if (id === 'financeiro') { aplicarFiltroFinanceiroHoje(); populateOSSelects(); renderFinMetrics(); renderMov(); renderBancoExtrato() }
   if (id === 'mecanicos') renderMec()
   if (id === 'servicos') renderSrvCat()
@@ -4355,8 +4379,8 @@ function irParaPasso(n) {
   updateFlowBar(id)
   updateSbSteps()
   if (id === 'clientes') renderClientes()
-  if (id === 'orcamentos') { populateClis(); populateMecs(); const _od = document.getElementById('orc-de'); const _oa = document.getElementById('orc-ate'); if (_od && !_od.value) _od.value = ''; if (_oa && !_oa.value) _oa.value = ''; renderOrc() }
-  if (id === 'os') { populateOSSelects(); const _osd = document.getElementById('os-de'); const _osa = document.getElementById('os-ate'); if (_osd) _osd.value = ''; if (_osa) _osa.value = ''; renderOS() }
+  if (id === 'orcamentos') { populateClis(); populateMecs(); setTimeout(() => setOrcPeriodo(_orcPeriodo || 'dia'), 0) }
+  if (id === 'os') { populateOSSelects(); setTimeout(() => setOsPeriodo(_osPeriodo || 'dia'), 0) }
   if (id === 'financeiro') { aplicarFiltroFinanceiroHoje(); populateOSSelects(); renderFinMetrics(); renderMov(); renderBancoExtrato() }
 }
 
@@ -5502,6 +5526,60 @@ function resetModalOS() {
   populateClis(); populateMecs()
   const mh = document.querySelector('#mOsAdd .mh h3')
   if (mh) mh.innerHTML = `<div class="mh-ic"><i class="ti ti-clipboard-list"></i></div>OS Manual (sem orçamento)`
+}
+
+
+/* ── FILTRO POR PERÍODO — ORÇAMENTOS e OS ─────────────────── */
+function _setPeriodoBtns(prefix, p) {
+  ;['dia','semana','mes','ano','tudo','custom'].forEach(id => {
+    const btn = document.getElementById(prefix + '-p-' + id)
+    if (!btn) return
+    btn.className = btn.className.replace(' btn-pu','').replace(/\s+/,' ').trim()
+    if (id === p) btn.className += ' btn-pu'
+  })
+  const customWrap = document.getElementById(prefix + '-custom-datas')
+  if (customWrap) customWrap.style.display = p === 'custom' ? 'flex' : 'none'
+}
+
+function _calcPeriodoDates(p) {
+  const d = new Date(hoje + 'T00:00')
+  if (p === 'dia')    return { de: hoje, ate: hoje }
+  if (p === 'semana') {
+    const dow = d.getDay()
+    const seg = new Date(d); seg.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1))
+    const dom = new Date(seg); dom.setDate(seg.getDate() + 6)
+    return { de: seg.toISOString().split('T')[0], ate: dom.toISOString().split('T')[0] }
+  }
+  if (p === 'mes')  return { de: hoje.slice(0,7) + '-01', ate: new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().split('T')[0] }
+  if (p === 'ano')  return { de: hoje.slice(0,4) + '-01-01', ate: hoje.slice(0,4) + '-12-31' }
+  if (p === 'tudo') return { de: '', ate: '' }
+  return null // custom: não mexe nos inputs
+}
+
+let _orcPeriodo = 'dia'
+function setOrcPeriodo(p) {
+  _orcPeriodo = p
+  _setPeriodoBtns('orc', p)
+  if (p !== 'custom') {
+    const dts = _calcPeriodoDates(p)
+    const deEl = document.getElementById('orc-de'); const ateEl = document.getElementById('orc-ate')
+    if (deEl) deEl.value = dts.de
+    if (ateEl) ateEl.value = dts.ate
+  }
+  renderOrc()
+}
+
+let _osPeriodo = 'dia'
+function setOsPeriodo(p) {
+  _osPeriodo = p
+  _setPeriodoBtns('os', p)
+  if (p !== 'custom') {
+    const dts = _calcPeriodoDates(p)
+    const deEl = document.getElementById('os-de'); const ateEl = document.getElementById('os-ate')
+    if (deEl) deEl.value = dts.de
+    if (ateEl) ateEl.value = dts.ate
+  }
+  renderOS()
 }
 
 function renderOrc() {
