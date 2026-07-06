@@ -1659,7 +1659,7 @@ const toast = (m, t = 3000) => {
 }
 const abrirModal = id => document.getElementById(id).classList.add('open')
 const fecharModal = id => document.getElementById(id).classList.remove('open')
-document.querySelectorAll('.ov,.pov').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') }))
+/* fechar modal apenas pelo X — clique fora não fecha */
 
 const pillMap = {
   'Aguardando aprovação': 'p-am', 'Aprovado': 'p-gr', 'Recusado': 'p-re', 'OS gerada': 'p-pu',
