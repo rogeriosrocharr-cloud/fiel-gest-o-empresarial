@@ -774,8 +774,8 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 <div class="tabpage active" id="tab-dashboard">
   <div class="grid g4" style="margin-bottom:18px" id="dash-metrics"></div>
   <div class="grid g2" style="margin-bottom:18px">
-    <div class="card"><div class="ct"><i class="ti ti-chart-bar" style="color:var(--pu2)"></i>Faturamento — 6 meses</div><div class="chart-w" id="chart-fat"></div><div style="display:flex;gap:5px;margin-top:4px" id="chart-fat-lbl"></div></div>
-    <div class="card"><div class="ct"><i class="ti ti-scale" style="color:var(--pu2)"></i>Receita × Despesa <span style="font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-left:auto">balanço geral</span></div><div id="dash-rvd"></div></div>
+    <div class="card"><div class="ct"><i class="ti ti-chart-bar" style="color:var(--pu2)"></i>Faturamento — Projeção 6 meses <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto" id="chart-fat-legenda"></span></div><div class="chart-w" id="chart-fat"></div><div style="display:flex;gap:5px;margin-top:4px" id="chart-fat-lbl"></div></div>
+    <div class="card"><div class="ct"><i class="ti ti-scale" style="color:var(--pu2)"></i>Receita × Despesa <div style="display:flex;gap:4px;align-items:center;margin-left:auto" id="dash-rvd-filtros"></div></div><div id="dash-rvd"></div></div>
   </div>
 
   <!-- Vencimentos e Atividades -->
@@ -790,10 +790,6 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
     <div class="card"><div class="ct"><i class="ti ti-cake" style="color:var(--pul)"></i>Aniversariantes <span style="font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-left:auto">deste mês</span></div><div id="dash-aniv"></div></div>
   </div>
 
-  <div class="card card-sm">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--bd)"><span class="ct" style="margin:0"><i class="ti ti-clipboard-list" style="color:var(--pu2)"></i>OS em andamento</span></div>
-    <div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Mecânico</th><th>Total</th><th>Status</th></tr></thead><tbody id="dash-os"></tbody></table></div>
-  </div>
 </div>
 
 <!-- FLUXO -->
@@ -4427,13 +4423,13 @@ function renderProxPasso(container, passo) {
 }
 
 /* ── DASHBOARD ───────────────────────────────────── */
+/* Mês selecionado no filtro Receita x Despesa (YYYY-MM) */
+let _dashRvdMes = hoje.substring(0, 7)
+
 function renderDash() {
   updateBadge()
-  const osAb = osData.filter(o => ['Aberta', 'Em execução', 'Aguardando peça'].includes(o.status)).length
-  const orcPend = orcData.filter(o => o.status === 'Aguardando aprovação').length
 
-  /* Calcular vencimentos próximos */
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+  const hojeD = new Date(); hojeD.setHours(0, 0, 0, 0)
   const limite = new Date(); limite.setDate(limite.getDate() + 30); limite.setHours(23, 59, 59, 999)
   const vencRec = recData.filter(r => r.status === 'A receber' && r.dataVenc && (() => {
     const dv = new Date(r.dataVenc.split('/').reverse().join('-') + 'T12:00')
@@ -4447,85 +4443,86 @@ function renderDash() {
   const totVencRec = vencRec.reduce((a, b) => a + (b.total || 0), 0)
   const atrasados = vencDesp.filter(d => {
     const dv = new Date(d.dataVenc.split('/').reverse().join('-') + 'T12:00')
-    return dv < hoje
+    return dv < hojeD
   }).length
 
   document.getElementById('dash-metrics').innerHTML = `
-    <div class="metric"><div class="mb am"></div><div class="mi am"><i class="ti ti-file-invoice"></i></div><div class="ml">Orç. Pendentes</div><div class="mv">${orcPend}</div><div class="ms">aguardando aprovação</div></div>
-    <div class="metric"><div class="mb bl"></div><div class="mi bl"><i class="ti ti-clipboard-list"></i></div><div class="ml">OS Abertas</div><div class="mv">${osAb}</div><div class="ms">em andamento</div></div>
     <div class="metric" style="cursor:pointer" onclick="goTab('financeiro',document.querySelector('.sb-step[onclick*=\\'financeiro\\']'))"><div class="mb gr"></div><div class="mi gr"><i class="ti ti-arrow-down-left"></i></div><div class="ml">A receber (30d)</div><div class="mv" style="font-size:16px;color:var(--grt)">${fmt(totVencRec)}</div><div class="ms">${vencRec.length} lançamento(s)</div></div>
-    <div class="metric" style="cursor:pointer" onclick="goTab('financeiro',document.querySelector('.sb-step[onclick*=\\'financeiro\\']'))"><div class="mb ${atrasados > 0 ? 're' : 'am'}"></div><div class="mi ${atrasados > 0 ? 're' : 'am'}"><i class="ti ti-arrow-up-right"></i></div><div class="ml">A pagar (30d)</div><div class="mv" style="font-size:16px;color:${atrasados > 0 ? 'var(--ret)' : 'var(--amt)'}">${fmt(totVencDesp)}</div><div class="ms">${vencDesp.length} lançamento(s)${atrasados > 0 ? ` · <b style="color:var(--ret)">${atrasados} atrasado(s)</b>` : ''}</div></div>`
+    <div class="metric" style="cursor:pointer" onclick="goTab('financeiro',document.querySelector('.sb-step[onclick*=\\'financeiro\\']'))"><div class="mb ${atrasados > 0 ? 're' : 'am'}"></div><div class="mi ${atrasados > 0 ? 're' : 'am'}"><i class="ti ti-arrow-up-right"></i></div><div class="ml">A pagar (30d)</div><div class="mv" style="font-size:16px;color:${atrasados > 0 ? 'var(--ret)' : 'var(--amt)'}">${fmt(totVencDesp)}</div><div class="ms">${vencDesp.length} lançamento(s)${atrasados > 0 ? ` · <b style="color:var(--ret)">${atrasados} atrasado(s)</b>` : ''}</div></div>
+    <div class="metric"><div class="mb pu"></div><div class="mi pu"><i class="ti ti-trending-up"></i></div><div class="ml">Receita este mês</div><div class="mv" style="font-size:16px;color:var(--pul)">${fmt(recData.filter(r => { const iso = dataIso(r.data); return iso && iso.substring(0,7) === hoje.substring(0,7) }).reduce((a,b) => a+(b.total||0), 0))}</div><div class="ms">lançamentos recebidos</div></div>
+    <div class="metric"><div class="mb re"></div><div class="mi re"><i class="ti ti-trending-down"></i></div><div class="ml">Despesas este mês</div><div class="mv" style="font-size:16px;color:var(--ret)">${fmt(despData.filter(d => { const iso = dataIso(d.data); return iso && iso.substring(0,7) === hoje.substring(0,7) }).reduce((a,b) => a+(b.valor||0), 0))}</div><div class="ms">saídas registradas</div></div>`
 
-  /* Faturamento real dos últimos 6 meses */
+  /* Faturamento: 3 meses reais + atual + projeção 3 meses */
   const hojeF = new Date()
-  const labels = []; const valores = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(hojeF.getFullYear(), hojeF.getMonth() - i, 1)
+  const mesAtualIdx = 3
+  const meses = []
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(hojeF.getFullYear(), hojeF.getMonth() + i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    labels.push(['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth() + 1])
-    const totMes = recData.filter(r => {
-      const i = dataIso(r.data); return i && i.substring(0, 7) === key
-    }).reduce((a, b) => a + (b.total || 0), 0)
-    valores.push(totMes)
+    const label = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]
+    const recMes = recData.filter(r => { const iso = dataIso(r.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.total||0), 0)
+    const despMes = despData.filter(d2 => { const iso = dataIso(d2.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.valor||0), 0)
+    meses.push({ key, label, rec: recMes, desp: despMes, futuro: i > 0 })
   }
-  const mfReal = Math.max(...valores, 1)
-  document.getElementById('chart-fat').innerHTML = valores.map((v, i) => `<div class="bar" style="flex:1;height:${Math.round(v / mfReal * 76)}px;background:${v > 0 ? 'var(--pu2)' : 'var(--bd2)'}" title="${labels[i]}: ${fmt(v)}"></div>`).join('')
-  document.getElementById('chart-fat-lbl').innerHTML = labels.map(l => `<div class="bl2" style="flex:1">${l}</div>`).join('')
+  const mediaRec3 = meses.slice(0,3).reduce((a,b) => a+b.rec, 0) / 3
+  const mediaDesp3 = meses.slice(0,3).reduce((a,b) => a+b.desp, 0) / 3
+  meses.forEach((m, i) => { if (m.futuro) { m.rec = mediaRec3; m.desp = mediaDesp3 } })
+  const maxF = Math.max(...meses.map(m => Math.max(m.rec, m.desp)), 1)
+  document.getElementById('chart-fat').innerHTML = meses.map((m, i) => {
+    const hRec = Math.round(m.rec / maxF * 72)
+    const hDesp = Math.round(m.desp / maxF * 72)
+    const isCurrent = i === mesAtualIdx
+    const opacity = m.futuro ? '.45' : '1'
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;align-items:flex-end;gap:2px;height:76px"><div style="width:10px;height:${hRec}px;background:var(--grt);border-radius:3px 3px 0 0;opacity:${opacity}${isCurrent ? ';outline:2px solid var(--pul)' : ''}" title="${m.label} Rec: ${fmt(m.rec)}${m.futuro ? ' (proj.)' : ''}"></div><div style="width:10px;height:${hDesp}px;background:var(--ret);border-radius:3px 3px 0 0;opacity:${opacity}" title="${m.label} Desp: ${fmt(m.desp)}${m.futuro ? ' (proj.)' : ''}"></div></div></div>`
+  }).join('')
+  document.getElementById('chart-fat-lbl').innerHTML = meses.map((m,i) => `<div class="bl2" style="flex:1;font-size:10px;text-align:center;color:${i===mesAtualIdx?'var(--pul)':m.futuro?'var(--t3)':'var(--t2)'}">${m.label}${m.futuro?'*':''}</div>`).join('')
+  const legEl = document.getElementById('chart-fat-legenda')
+  if (legEl) legEl.innerHTML = '<span style="color:var(--grt)">■</span> Rec &nbsp;<span style="color:var(--ret)">■</span> Desp &nbsp;<span style="color:var(--t3)">*proj.</span>'
 
-  /* Card Vencimentos */
-  renderDashVencimentos(vencRec, vencDesp, hoje)
-  /* Card Atividades */
+  renderDashVencimentos(vencRec, vencDesp, hojeD)
   renderDashAtividades()
-  /* Card Top Mecânicos do mês */
   renderDashTopMec()
-  /* Card Aniversariantes */
   renderDashAniv()
+  renderDashRvd()
+}
 
-  /* Card Receita × Despesa */
-  const totSrv = recData.reduce((a, b) => a + (Number(b.vsrv) || 0), 0)
-  const totPec = recData.reduce((a, b) => a + (Number(b.vpec) || 0), 0)
-  const totRec = totSrv + totPec
-  const totDesp = despData.reduce((a, b) => a + (Number(b.valor) || 0), 0)
+function renderDashRvd() {
+  const filtrosEl = document.getElementById('dash-rvd-filtros')
+  if (filtrosEl) {
+    const hojeF2 = new Date()
+    let opts = ''
+    for (let i = -5; i <= 2; i++) {
+      const d = new Date(hojeF2.getFullYear(), hojeF2.getMonth() + i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const lbl = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()] + '/' + String(d.getFullYear()).slice(2)
+      opts += `<option value="${key}" ${key === _dashRvdMes ? 'selected' : ''}>${lbl}</option>`
+    }
+    filtrosEl.innerHTML = `<select onchange="_dashRvdMes=this.value;renderDashRvd()" style="font-size:11px;padding:2px 6px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">${opts}</select>`
+  }
+  const mes = _dashRvdMes
+  const recMes = recData.filter(r => { const iso = dataIso(r.data); return iso && iso.substring(0,7) === mes })
+  const despMes = despData.filter(d => { const iso = dataIso(d.data); return iso && iso.substring(0,7) === mes })
+  const totSrv = recMes.reduce((a, b) => a + (Number(b.vsrv) || 0), 0)
+  const totPec = recMes.reduce((a, b) => a + (Number(b.vpec) || 0), 0)
+  const totRec = recMes.reduce((a,b) => a+(b.total||0), 0)
+  const totDesp = despMes.reduce((a, b) => a + (Number(b.valor) || 0), 0)
   const saldo = totRec - totDesp
   const margem = totRec > 0 ? Math.round(saldo / totRec * 100) : 0
   const maxRD = Math.max(totRec, totDesp, 1)
   const despPorCat = {}
-  despData.forEach(d => { despPorCat[d.cat] = (despPorCat[d.cat] || 0) + d.valor })
+  despMes.forEach(d => { despPorCat[d.cat] = (despPorCat[d.cat] || 0) + d.valor })
   const catsOrd = Object.entries(despPorCat).sort((a, b) => b[1] - a[1]).slice(0, 4)
-
   document.getElementById('dash-rvd').innerHTML = `
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--grt);font-weight:700">▲ Receita Total</span><span style="font-weight:700;color:var(--grt)">${fmt(totRec)}</span></div>
-    <div style="height:14px;background:var(--s3);border-radius:7px;overflow:hidden;margin-bottom:4px;display:flex">
-      <div style="height:100%;width:${totRec > 0 ? Math.round(totSrv / totRec * 100) : 0}%;background:linear-gradient(90deg,var(--gr),var(--grt));transition:width .5s" title="Serviços: ${fmt(totSrv)}"></div>
-      <div style="height:100%;width:${totRec > 0 ? Math.round(totPec / totRec * 100) : 0}%;background:linear-gradient(90deg,var(--bl),var(--blt));transition:width .5s" title="Peças: ${fmt(totPec)}"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:14px">
-      <span><span style="display:inline-block;width:8px;height:8px;background:var(--grt);border-radius:2px;margin-right:4px"></span>Serviços ${fmt(totSrv)}</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:var(--blt);border-radius:2px;margin-right:4px"></span>Peças ${fmt(totPec)}</span>
-    </div>
-
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--grt);font-weight:700">▲ Receita</span><span style="font-weight:700;color:var(--grt)">${fmt(totRec)}</span></div>
+    <div style="height:14px;background:var(--s3);border-radius:7px;overflow:hidden;margin-bottom:4px;display:flex"><div style="height:100%;width:${totRec > 0 ? Math.round(totSrv / totRec * 100) : 0}%;background:linear-gradient(90deg,var(--gr),var(--grt));transition:width .5s" title="Serviços: ${fmt(totSrv)}"></div><div style="height:100%;width:${totRec > 0 ? Math.round(totPec / totRec * 100) : 0}%;background:linear-gradient(90deg,var(--bl),var(--blt));transition:width .5s" title="Peças: ${fmt(totPec)}"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:14px"><span><span style="display:inline-block;width:8px;height:8px;background:var(--grt);border-radius:2px;margin-right:4px"></span>Serviços ${fmt(totSrv)}</span><span><span style="display:inline-block;width:8px;height:8px;background:var(--blt);border-radius:2px;margin-right:4px"></span>Peças ${fmt(totPec)}</span></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--ret);font-weight:700">▼ Despesas</span><span style="font-weight:700;color:var(--ret)">${fmt(totDesp)}</span></div>
-    <div style="height:14px;background:var(--s3);border-radius:7px;overflow:hidden;margin-bottom:4px">
-      <div style="height:100%;width:${Math.round(totDesp / maxRD * 100)}%;background:linear-gradient(90deg,var(--re),var(--ret));transition:width .5s"></div>
-    </div>
-    <div style="font-size:10px;color:var(--t3);margin-bottom:14px">
-      ${catsOrd.map(([cat, v]) => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${cat}</span><span>${fmt(v)}</span></div>`).join('')}
-    </div>
-
+    <div style="height:14px;background:var(--s3);border-radius:7px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${Math.round(totDesp / maxRD * 100)}%;background:linear-gradient(90deg,var(--re),var(--ret));transition:width .5s"></div></div>
+    <div style="font-size:10px;color:var(--t3);margin-bottom:14px">${catsOrd.map(([cat, v]) => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${cat}</span><span>${fmt(v)}</span></div>`).join('')}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:${saldo >= 0 ? 'var(--grb)' : 'var(--reb)'};border:1px solid ${saldo >= 0 ? 'rgba(24,168,118,.3)' : 'rgba(196,48,48,.3)'};border-radius:var(--r)">
-      <div>
-        <div style="font-size:10px;font-weight:700;color:${saldo >= 0 ? 'var(--grt)' : 'var(--ret)'};text-transform:uppercase;letter-spacing:.06em">Saldo</div>
-        <div style="font-size:18px;font-weight:700;color:${saldo >= 0 ? 'var(--grt)' : 'var(--ret)'};margin-top:2px">${fmt(saldo)}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">Margem</div>
-        <div style="font-size:16px;font-weight:700;color:${margem >= 0 ? 'var(--grt)' : 'var(--ret)'};margin-top:2px">${margem}%</div>
-      </div>
+      <div><div style="font-size:10px;font-weight:700;color:${saldo >= 0 ? 'var(--grt)' : 'var(--ret)'};text-transform:uppercase;letter-spacing:.06em">Saldo</div><div style="font-size:18px;font-weight:700;color:${saldo >= 0 ? 'var(--grt)' : 'var(--ret)'};margin-top:2px">${fmt(saldo)}</div></div>
+      <div style="text-align:right"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">Margem</div><div style="font-size:16px;font-weight:700;color:${margem >= 0 ? 'var(--grt)' : 'var(--ret)'};margin-top:2px">${margem}%</div></div>
     </div>`
-
-  document.getElementById('dash-os').innerHTML = osData.filter(o => !['Concluída', 'Cancelada'].includes(o.status)).slice(0, 5).map(o =>
-    `<tr><td><b style="color:var(--pul)">${o.id}</b></td><td>${o.cliNome}</td><td>${o.mec}</td><td style="font-weight:600">${fmt(o.total)}</td><td>${pill(o.status)}</td></tr>`
-  ).join('') || `<tr><td colspan="5"><div class="empty" style="padding:16px"><i class="ti ti-check"></i>Sem OS em andamento</div></td></tr>`
 }
 
 function renderDashVencimentos(vencRec, vencDesp, hoje) {
@@ -4704,10 +4701,35 @@ function renderDashAtividades() {
 }
 
 function renderKanban() {
+  /* Regra: mostrar orçamentos/OS do dia + pendências de dias anteriores
+     Concluídas: apenas as de hoje (não mostrar as de outros dias) */
+  const hojeIso = hoje  // formato YYYY-MM-DD
+
+  // Orçamentos: todos os pendentes (não tem data de conclusão, sempre relevante)
   const c1 = orcData.filter(o => o.status === 'Aguardando aprovação')
-  const c2 = osData.filter(o => ['Aberta', 'Em execução', 'Aguardando peça'].includes(o.status))
-  const c3 = osData.filter(o => o.status === 'Concluída')
-  const c4 = recData.filter(r => r.osId && osData.some(o => o.id == r.osId))
+
+  // OS em execução: do dia OU de dias anteriores não concluídas (pendências)
+  const c2 = osData.filter(o => {
+    if (!['Aberta', 'Em execução', 'Aguardando peça'].includes(o.status)) return false
+    return true // todas as abertas aparecem (são pendências por definição)
+  })
+
+  // OS Concluídas: apenas as de hoje
+  const c3 = osData.filter(o => {
+    if (o.status !== 'Concluída') return false
+    const iso = dataIso(o.data)
+    return iso && iso === hojeIso
+  })
+
+  // Financeiro OK: apenas receitas de OS concluídas hoje
+  const c3ids = new Set(c3.map(o => o.id))
+  const c4 = recData.filter(r => {
+    if (!r.osId) return false
+    const os = osData.find(o => o.id == r.osId)
+    if (!os) return false
+    const iso = dataIso(os.data)
+    return iso && iso === hojeIso
+  })
   const cols = [
     { label: '① Aguardando Aprovação', cor: 'var(--am)', bg: 'var(--amb)', items: c1, tipo: 'orc' },
     { label: '② Em Execução (OS)', cor: 'var(--bl)', bg: 'var(--blb)', items: c2, tipo: 'os_ab' },
