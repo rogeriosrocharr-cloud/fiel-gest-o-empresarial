@@ -2303,7 +2303,9 @@ const db = {
         tSrv: Number(o.v_srv) || 0, tPec: Number(o.v_pec) || 0,
         total: Number(o.total) || 0,
         status: o.status || 'Aguardando aprovação',
-        obs, mec, mostrarDesc, osId
+        obs, mec, mostrarDesc, osId,
+        descSrvVal: meta.descSrvVal != null ? Number(meta.descSrvVal) : null,
+        descPecVal: meta.descPecVal != null ? Number(meta.descPecVal) : null
       }
     },
     _mapToDB(d) {
@@ -2321,13 +2323,15 @@ const db = {
       if (d.total !== undefined) o.total = Number(d.total) || 0
       /* Só toca no obs se algum campo correlato foi fornecido (texto ou meta).
          Caso contrário, NÃO inclui obs no payload — preserva o que está no DB. */
-      const tocaObs = d.obs !== undefined || d.mec !== undefined || d.mostrarDesc !== undefined || d.osId !== undefined
+      const tocaObs = d.obs !== undefined || d.mec !== undefined || d.mostrarDesc !== undefined || d.osId !== undefined || d.descSrvVal !== undefined || d.descPecVal !== undefined
       if (tocaObs) {
         const obsText = d.obs || ''
         const meta = {}
         if (d.mec !== undefined) meta.mec = d.mec
         if (d.mostrarDesc !== undefined) meta.mostrarDesc = d.mostrarDesc
         if (d.osId !== undefined) meta.osId = d.osId
+        if (d.descSrvVal !== undefined) meta.descSrvVal = d.descSrvVal
+        if (d.descPecVal !== undefined) meta.descPecVal = d.descPecVal
         o.obs = Object.keys(meta).length ? obsText + '\n###META###\n' + JSON.stringify(meta) : obsText || null
       }
       return o
@@ -5239,8 +5243,9 @@ function orcDescFromPct(tipo) {
   const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
   const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
   const pct = parseFloat(pctEl?.value) || 0
+  // % preenche o campo R$ — R$ é sempre a fonte de cálculo
   valEl.value = Math.round(total * pct) / 100
-  atualizarTotalOrc()
+  atualizarTotalOrc()  // atualizarTotalOrc já lê do campo R$
 }
 
 function atualizarTotalOrc() {
@@ -5251,13 +5256,22 @@ function atualizarTotalOrc() {
   /* Usar o valor em R$ digitado diretamente quando disponível — evita erro de floating point ao recalcular do % */
   const dSrvValEl = document.getElementById('orc_descSrvVal')
   const dPecValEl = document.getElementById('orc_descPecVal')
-  const descValSrv = dSrvValEl?.value ? (parseFloat(dSrvValEl.value) || 0) : Math.round(tS * dS * 100) / 10000
-  const descValPec = dPecValEl?.value ? (parseFloat(dPecValEl.value) || 0) : Math.round(tP * dP * 100) / 10000
+  // R$ é sempre a fonte — % é só ilustrativo
+  const descValSrv = parseFloat(dSrvValEl?.value) || 0
+  const descValPec = parseFloat(dPecValEl?.value) || 0
   const total = Math.round(((tS - descValSrv) + (tP - descValPec)) * 100) / 100
+  // Recalcular % equivalente do R$ digitado (ilustrativo)
+  const pctSrvReal = tS > 0 ? Math.round(descValSrv / tS * 10000) / 100 : 0
+  const pctPecReal = tP > 0 ? Math.round(descValPec / tP * 10000) / 100 : 0
+  // Atualizar campo % para refletir o R$ (sem disparar evento)
+  const pctSrvEl = document.getElementById('orc_descSrv')
+  const pctPecEl = document.getElementById('orc_descPec')
+  if (pctSrvEl && document.activeElement !== pctSrvEl) pctSrvEl.value = pctSrvReal
+  if (pctPecEl && document.activeElement !== pctPecEl) pctPecEl.value = pctPecReal
   document.getElementById('orc-t-srv').textContent = fmt(tS)
-  document.getElementById('orc-t-dsrv').textContent = '− ' + fmt(descValSrv) + (dS > 0 ? ' (' + dS + '%)' : '')
+  document.getElementById('orc-t-dsrv').textContent = '− ' + fmt(descValSrv) + (descValSrv > 0 ? ' (' + pctSrvReal + '%)' : '')
   document.getElementById('orc-t-pec').textContent = fmt(tP)
-  document.getElementById('orc-t-dpec').textContent = '− ' + fmt(descValPec) + (dP > 0 ? ' (' + dP + '%)' : '')
+  document.getElementById('orc-t-dpec').textContent = '− ' + fmt(descValPec) + (descValPec > 0 ? ' (' + pctPecReal + '%)' : '')
   document.getElementById('orc-t-tot').textContent = fmt(total)
 }
 
@@ -5271,13 +5285,16 @@ async function salvarOrc() {
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
   const dS = parseFloat(document.getElementById('orc_descSrv').value) || 0
   const dP = parseFloat(document.getElementById('orc_descPec').value) || 0
-  const total = Math.round(((tS - Math.round(tS * dS) / 100) + (tP - Math.round(tP * dP) / 100)) * 100) / 100
+  // Total calculado a partir do valor R$ do desconto (campo direto) — % é só ilustrativo
+  const dSrvV = parseFloat(document.getElementById('orc_descSrvVal')?.value) || 0
+  const dPecV = parseFloat(document.getElementById('orc_descPecVal')?.value) || 0
+  const total = Math.round(((tS - dSrvV) + (tP - dPecV)) * 100) / 100
   const vei = cli.veiculos.find(v => v.pla === pla) || cli.veiculos[0]
 
   const dadosOrc = {
     cliId, cliNome: cli.nome, vei: vei.vei, pla: vei.pla,
     srvs: [...orcTempSrvs], pecs: [...orcTempPecs],
-    tSrv: tS, tPec: tP, descSrv: dS, descPec: dP, total,
+    tSrv: tS, tPec: tP, descSrv: dS, descPec: dP, descSrvVal: dSrvV, descPecVal: dPecV, total,
     mostrarDesc: document.getElementById('orc_mostrarDesc').checked,
     obs: document.getElementById('orc_obs').value,
     data: fmtD()
@@ -5348,8 +5365,9 @@ function editarOrc(id) {
   const tPEdit = o.pecs.reduce((a,b) => a + (b.tot||0), 0)
   const dSrvValEl = document.getElementById('orc_descSrvVal')
   const dPecValEl = document.getElementById('orc_descPecVal')
-  if (dSrvValEl) dSrvValEl.value = Math.round(tSEdit * (o.descSrv||0) / 100 * 100) / 100
-  if (dPecValEl) dPecValEl.value = Math.round(tPEdit * (o.descPec||0) / 100 * 100) / 100
+  // Preferir o valor R$ salvo; fallback: recalcular do % (orçamentos antigos)
+  if (dSrvValEl) dSrvValEl.value = o.descSrvVal != null ? o.descSrvVal : (Math.round(tSEdit * (o.descSrv||0) * 100) / 10000)
+  if (dPecValEl) dPecValEl.value = o.descPecVal != null ? o.descPecVal : (Math.round(tPEdit * (o.descPec||0) * 100) / 10000)
   document.getElementById('orc_mostrarDesc').checked = o.mostrarDesc !== false /* default true */
   document.getElementById('orc_obs').value = limparMetaObs(o.obs)
   renderTempOrc(); atualizarTotalOrc()
