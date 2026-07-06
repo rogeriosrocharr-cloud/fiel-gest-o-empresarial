@@ -5627,14 +5627,8 @@ async function confirmarFechamento() {
   const os = osData.find(x => x.id == _orcFechOsId); if (!os) return
   const orc = os.orcId ? orcData.find(o => o.id == os.orcId) : null; if (!orc) return
 
-  await salvarOrc()
-
-  const orcA = orcData.find(o => o.id == orc.id)
-  const tS = orcA.tSrv || 0, tP = orcA.tPec || 0
-  const dS = orcA.descSrv || 0, dP = orcA.descPec || 0
-  const subSrv = tS * (1 - dS / 100), subPec = tP * (1 - dP / 100)
-  const total = subSrv + subPec
-
+  /* Ler TODOS os valores do DOM antes de salvarOrc (que fecha o modal e limpa os campos) */
+  const osIdFechSnap = _orcFechOsId
   const forma = document.getElementById('orc_fech_forma')?.value || 'PIX'
   const contaId = document.getElementById('orc_fech_conta')?.value || null
   const status = document.getElementById('orc_fech_status')?.value || 'Recebido'
@@ -5646,27 +5640,36 @@ async function confirmarFechamento() {
   const nParc = isParc ? (parseInt(document.getElementById('orc_parc_n')?.value) || 1) : 1
   const parcIniISO = isParc ? (document.getElementById('orc_parc_ini')?.value || hojeISO()) : null
   const parcDias = isParc ? (parseInt(document.getElementById('orc_parc_dias')?.value) || 30) : 30
+  const entradaValor = isParc ? (parseFloat(document.getElementById('orc_parc_entrada')?.value) || 0) : 0
+  const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hojeISO()) : null
+  const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : null
+
+  /* Salvar orçamento (fecha modal internamente) */
+  await salvarOrc()
+
+  /* Calcular totais do orçamento já atualizado */
+  const orcA = orcData.find(o => o.id == orc.id)
+  const tS = orcA.tSrv || 0, tP = orcA.tPec || 0
+  const dS = orcA.descSrv || 0, dP = orcA.descPec || 0
+  const subSrv = Math.round((tS - Math.round(tS * dS) / 100) * 100) / 100
+  const subPec = Math.round((tP - Math.round(tP * dP) / 100) * 100) / 100
+  const total = Math.round((subSrv + subPec) * 100) / 100
   const cat = tS > 0 && tP > 0 ? 'Serviços + Peças (OS)' : (tP > 0 ? 'Peças (OS)' : 'Serviços (OS)')
 
   const dadosBase = {
-    data: dataFmt, dataVenc: dataVencFmt, osId: _orcFechOsId, cliNome: os.cliNome || '',
-    vsrv: tS, vpec: tP, descSrv: tS * dS / 100, descPec: tP * dP / 100,
+    data: dataFmt, dataVenc: dataVencFmt, osId: osIdFechSnap, cliNome: os.cliNome || '',
+    vsrv: tS, vpec: tP, descSrv: Math.round(tS * dS) / 100, descPec: Math.round(tP * dP) / 100,
     subSrv, subPec, total, cat,
     forma, status, contaId, dataPgto: status === 'Recebido' ? dataFmt : null,
     tipo: 'os', desc: ''
   }
 
-  const entradaValor = isParc ? (parseFloat(document.getElementById('orc_parc_entrada')?.value) || 0) : 0
-  const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hojeISO()) : null
-  const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : null
-
   try {
-    const osIdFech = _orcFechOsId // salvar antes de qualquer await
-    const recExistente = recData.find(r => r.osId == osIdFech)
+    const recExistente = recData.find(r => r.osId == osIdFechSnap)
 
     if (!isParc || nParc <= 1) {
       // Lançamento simples ou atualização
-      const dadosSimples = { ...dadosBase, osId: osIdFech }
+      const dadosSimples = { ...dadosBase, osId: osIdFechSnap }
       if (recExistente) {
         const atualizado = await db.entradas.update(recExistente.id, dadosSimples)
         Object.assign(recExistente, atualizado)
@@ -5689,7 +5692,7 @@ async function confirmarFechamento() {
       if (entradaValor > 0) {
         const dadosEntrada = {
           ...dadosBase,
-          osId: osIdFech, total: entradaValor,
+          osId: osIdFechSnap, total: entradaValor,
           data: entradaDataFmt, dataVenc: null,
           status: 'Recebido', desc: 'Entrada'
         }
@@ -5705,7 +5708,7 @@ async function confirmarFechamento() {
         const dvFmt = dv.toLocaleDateString('pt-BR')
         const dadosParc = {
           ...dadosBase,
-          osId: (i === 0 && !primeiroId) ? osIdFech : null,
+          osId: (i === 0 && !primeiroId) ? osIdFechSnap : null,
           dataVenc: dvFmt, total: valorParc,
           status: 'A receber', desc: `${i+1}/${nParc}`
         }
@@ -5724,7 +5727,7 @@ async function confirmarFechamento() {
     }
     os.vsrv = subSrv; os.vpec = subPec; os.total = total
     try { await db.os.update(os.id, { vsrv: subSrv, vpec: subPec, total }) } catch (_) {}
-    logAtividade('rec_novo', `Fechamento OS-${_orcFechOsId} · ${fmt(total)}`)
+    logAtividade('rec_novo', `Fechamento OS-${osIdFechSnap} · ${fmt(total)}`)
   } catch (err) { toast('Erro: ' + err.message, 5000); return }
 
   _orcFechOsId = null
