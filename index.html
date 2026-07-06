@@ -889,16 +889,32 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
   <!-- SUB-ABA: MOVIMENTAÇÕES (entradas + saídas unificadas) -->
   <div id="sub-fin-mov" class="sub-fin-page active">
-    <div class="sb-bar" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">
-      <span style="font-size:11px;color:var(--t3);white-space:nowrap">Período:</span>
-      <input id="fin-de" type="date" title="Data inicial" onchange="renderFinMetrics();renderMov()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
-      <input id="fin-ate" type="date" title="Data final" onchange="renderFinMetrics();renderMov()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
-      <span style="font-size:11px;color:var(--t3);white-space:nowrap;margin-left:8px">Tipo:</span>
-      <select id="mov-tipo" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Tudo</option><option value="entrada">Só entradas</option><option value="saida">Só saídas</option></select>
-      <span style="font-size:11px;color:var(--t3);white-space:nowrap;margin-left:8px">Status:</span>
-      <select id="mov-status" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Tudo</option><option value="ok">Pago/Recebido</option><option value="pend">Pendente</option></select>
-      <span style="font-size:11px;color:var(--t3);white-space:nowrap;margin-left:8px">Conta:</span>
-      <select id="mov-conta" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todas as contas</option></select>
+    <!-- Filtros período: botões estilo relatório -->
+    <div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap">PERÍODO</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap" id="mov-periodo-btns">
+          <button onclick="setMovPeriodo('dia')" id="mov-p-dia" class="btn btn-sm btn-pu" style="padding:4px 12px;font-size:12px">Hoje</button>
+          <button onclick="setMovPeriodo('semana')" id="mov-p-semana" class="btn btn-sm" style="padding:4px 12px;font-size:12px">Semana</button>
+          <button onclick="setMovPeriodo('mes')" id="mov-p-mes" class="btn btn-sm" style="padding:4px 12px;font-size:12px">Mês</button>
+          <button onclick="setMovPeriodo('ano')" id="mov-p-ano" class="btn btn-sm" style="padding:4px 12px;font-size:12px">Ano</button>
+          <button onclick="setMovPeriodo('tudo')" id="mov-p-tudo" class="btn btn-sm" style="padding:4px 12px;font-size:12px">Tudo</button>
+          <button onclick="setMovPeriodo('custom')" id="mov-p-custom" class="btn btn-sm" style="padding:4px 12px;font-size:12px">Período...</button>
+        </div>
+        <div id="mov-custom-datas" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="fin-de" type="date" onchange="renderFinMetrics();renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+          <span style="font-size:11px;color:var(--t3)">até</span>
+          <input id="fin-ate" type="date" onchange="renderFinMetrics();renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap">TIPO</span>
+        <select id="mov-tipo" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Tudo</option><option value="entrada">Só entradas</option><option value="saida">Só saídas</option></select>
+        <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;margin-left:4px">STATUS</span>
+        <select id="mov-status" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Tudo</option><option value="ok">Pago/Recebido</option><option value="pend">Pendente</option></select>
+        <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;margin-left:4px">CONTA</span>
+        <select id="mov-conta" onchange="renderMov()" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none"><option value="">Todas as contas</option></select>
+      </div>
     </div>
 
     <div class="fb" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -4116,12 +4132,53 @@ async function limparDadosOperacionaisSupabase() {
 }
 
 /* refreshAll — re-renderiza apenas a tab ativa + globais */
+/* ── FILTRO POR PERÍODO — MOVIMENTAÇÕES ─────────────────── */
+let _movPeriodo = 'dia'
+
+function setMovPeriodo(p) {
+  _movPeriodo = p
+  // Atualizar botões ativos
+  ;['dia','semana','mes','ano','tudo','custom'].forEach(id => {
+    const btn = document.getElementById('mov-p-' + id)
+    if (!btn) return
+    btn.className = btn.className.replace(' btn-pu','')
+    if (id === p) btn.className += ' btn-pu'
+  })
+  // Mostrar/esconder inputs de data customizados
+  const customWrap = document.getElementById('mov-custom-datas')
+  if (customWrap) customWrap.style.display = p === 'custom' ? 'flex' : 'none'
+  // Calcular datas
+  const d = new Date(hoje + 'T00:00')
+  let de, ate
+  if (p === 'dia') {
+    de = hoje; ate = hoje
+  } else if (p === 'semana') {
+    const dow = d.getDay()
+    const seg = new Date(d); seg.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1))
+    const dom = new Date(seg); dom.setDate(seg.getDate() + 6)
+    de = seg.toISOString().split('T')[0]; ate = dom.toISOString().split('T')[0]
+  } else if (p === 'mes') {
+    de = hoje.slice(0,7) + '-01'
+    const fim = new Date(d.getFullYear(), d.getMonth()+1, 0)
+    ate = fim.toISOString().split('T')[0]
+  } else if (p === 'ano') {
+    de = hoje.slice(0,4) + '-01-01'; ate = hoje.slice(0,4) + '-12-31'
+  } else if (p === 'tudo') {
+    de = ''; ate = ''
+  } else if (p === 'custom') {
+    // Manter o que já está nos inputs
+    renderFinMetrics(); renderMov(); return
+  }
+  const deEl = document.getElementById('fin-de')
+  const ateEl = document.getElementById('fin-ate')
+  if (deEl) deEl.value = de
+  if (ateEl) ateEl.value = ate
+  renderFinMetrics(); renderMov()
+}
+
 /* Define filtros padrão da tela financeiro como "hoje" sempre que abrir a aba */
 function aplicarFiltroFinanceiroHoje() {
-  const de = document.getElementById('fin-de')
-  const ate = document.getElementById('fin-ate')
-  if (de) de.value = hoje
-  if (ate) ate.value = hoje
+  setMovPeriodo('dia')
 }
 
 function refreshAll() {
@@ -5691,7 +5748,7 @@ async function confirmarFechamento() {
           ...dadosBase,
           osId: osIdFechSnap, total: entradaValor,
           data: entradaDataFmt, dataVenc: null,
-          status: 'Recebido', desc: 'Entrada'
+          status: 'Recebido', desc: ''
         }
         const novEnt = await db.entradas.create(lojaAtual.id, dadosEntrada)
         recData.unshift(novEnt)
@@ -5703,11 +5760,13 @@ async function confirmarFechamento() {
         const dv = new Date(baseDate)
         dv.setDate(dv.getDate() + i * parcDias)
         const dvFmt = dv.toLocaleDateString('pt-BR')
+        const parcOsId = (i === 0 && !primeiroId) ? osIdFechSnap : null
         const dadosParc = {
           ...dadosBase,
-          osId: (i === 0 && !primeiroId) ? osIdFechSnap : null,
+          osId: parcOsId,
           dataVenc: dvFmt, total: valorParc,
-          status: 'A receber', desc: `${i+1}/${nParc}`
+          status: 'A receber',
+          desc: parcOsId ? '' : `OS-${osIdFechSnap} · ${os.cliNome} (${i+1}/${nParc})`
         }
         const novo = await db.entradas.create(lojaAtual.id, dadosParc)
         recData.unshift(novo)
@@ -5913,7 +5972,7 @@ function renderMov() {
     const valor = ent ? it.total : it.valor
     const conta = contasData.find(c => c.id == it.contaId)
     const desc = ent
-      ? (it.osId ? `<b style="color:var(--pul)">OS-${it.osId}</b> · ${it.cliNome || '—'}` : `Avulso · ${it.cliNome || it.desc || '—'}`)
+      ? (it.osId ? `<b style="color:var(--pul)">OS-${it.osId}</b> · ${it.cliNome || '—'}` : (it.desc ? `${it.desc}` : `Avulso · ${it.cliNome || '—'}`))
       : `${it.desc || '—'}${it.fornecedor ? `<div style="font-size:10px;color:var(--t3);margin-top:2px"><i class="ti ti-truck-delivery" style="font-size:11px"></i> ${it.fornecedor}</div>` : ''}`
     const isPend = ent ? it.status === 'A receber' : (it.status === 'A pagar' || it.status === 'Atrasado')
     let descComVenc = desc
