@@ -2640,7 +2640,7 @@ const db = {
       ;['cat','forma','status','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.fornId !== undefined) o.fornecedor_id = d.fornId || null
       if (d.valor !== undefined) o.valor = Number(d.valor) || 0
-      if (d.contaId !== undefined) o.conta_id = (d.contaId && d.contaId !== '') ? d.contaId : null
+      /* conta_id não existe na tabela saidas — campo removido */
       return o
     },
     async list(lojaId) {
