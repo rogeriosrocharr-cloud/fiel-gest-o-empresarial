@@ -2304,11 +2304,11 @@ const db = {
   orcamentos: {
     _mapFromDB(o) {
       /* obs pode conter metadata JSON no formato: texto\n###META###\n{json} */
-      let obs = o.obs || '', mec = '', mostrarDesc = true, osId = null
+      let obs = o.obs || '', mec = '', mostrarDesc = true, osId = null, meta = {}
       const metaIdx = (obs || '').indexOf('\n###META###\n')
       if (metaIdx >= 0) {
         try {
-          const meta = JSON.parse(obs.substring(metaIdx + 13))
+          meta = JSON.parse(obs.substring(metaIdx + 13))
           mec = meta.mec || ''; mostrarDesc = meta.mostrarDesc !== false; osId = meta.osId || null
           obs = obs.substring(0, metaIdx)
         } catch (_) {}
