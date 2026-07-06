@@ -2640,7 +2640,7 @@ const db = {
       ;['cat','forma','status','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.fornId !== undefined) o.fornecedor_id = d.fornId || null
       if (d.valor !== undefined) o.valor = Number(d.valor) || 0
-      /* conta_id não existe na tabela saidas — campo removido */
+      if (d.contaId !== undefined) o.conta_id = (d.contaId && d.contaId !== '') ? d.contaId : null
       return o
     },
     async list(lojaId) {
@@ -6074,8 +6074,15 @@ async function salvarOSManual() {
 
 /* ── FINANCEIRO ──────────────────────────────────── */
 function renderFinMetrics() {
-  const de = document.getElementById('fin-de')?.value
-  const ate = document.getElementById('fin-ate')?.value
+  // Usar mesmo período ativo do filtro de movimentações
+  let de = '', ate = ''
+  if (_movPeriodo === 'custom') {
+    de = document.getElementById('fin-de')?.value || ''
+    ate = document.getElementById('fin-ate')?.value || ''
+  } else if (_movPeriodo !== 'tudo') {
+    const dts = _calcPeriodoDates(_movPeriodo)
+    if (dts) { de = dts.de; ate = dts.ate }
+  }
   const recFil = recData.filter(r => dateInRange(r.data, de, ate))
   const despFil = despData.filter(d => dateInRange(d.data, de, ate))
   const totRec = recFil.reduce((a, b) => a + b.total, 0)
