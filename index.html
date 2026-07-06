@@ -5156,7 +5156,7 @@ function orcDescFromPct(tipo) {
   const pctEl = document.getElementById(tipo === 'srv' ? 'orc_descSrv' : 'orc_descPec')
   const valEl = document.getElementById(tipo === 'srv' ? 'orc_descSrvVal' : 'orc_descPecVal')
   const pct = parseFloat(pctEl?.value) || 0
-  valEl.value = Math.round(total * pct / 100 * 100) / 100
+  valEl.value = Math.round(total * pct) / 100
   atualizarTotalOrc()
 }
 
@@ -5165,9 +5165,9 @@ function atualizarTotalOrc() {
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
   const dS = parseFloat(document.getElementById('orc_descSrv').value) || 0
   const dP = parseFloat(document.getElementById('orc_descPec').value) || 0
-  const descValSrv = tS * dS / 100
-  const descValPec = tP * dP / 100
-  const total = (tS - descValSrv) + (tP - descValPec)
+  const descValSrv = Math.round(tS * dS) / 100
+  const descValPec = Math.round(tP * dP) / 100
+  const total = Math.round(((tS - descValSrv) + (tP - descValPec)) * 100) / 100
   document.getElementById('orc-t-srv').textContent = fmt(tS)
   document.getElementById('orc-t-dsrv').textContent = '− ' + fmt(descValSrv) + (dS > 0 ? ' (' + dS + '%)' : '')
   document.getElementById('orc-t-pec').textContent = fmt(tP)
@@ -5185,7 +5185,7 @@ async function salvarOrc() {
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
   const dS = parseFloat(document.getElementById('orc_descSrv').value) || 0
   const dP = parseFloat(document.getElementById('orc_descPec').value) || 0
-  const total = (tS * (1 - dS / 100)) + (tP * (1 - dP / 100))
+  const total = Math.round(((tS - Math.round(tS * dS) / 100) + (tP - Math.round(tP * dP) / 100)) * 100) / 100
   const vei = cli.veiculos.find(v => v.pla === pla) || cli.veiculos[0]
 
   const dadosOrc = {
