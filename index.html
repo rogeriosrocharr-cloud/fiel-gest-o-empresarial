@@ -1415,7 +1415,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <!-- Comum aos dois modos -->
-  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
+  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Parcelado</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
   <div class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
 
   <div class="mf"><button class="btn" onclick="fecharModal('mFinRec');resetModalRec()">Cancelar</button><button class="btn btn-gr" onclick="salvarReceita()"><i class="ti ti-check"></i> <span id="rec-btn-label">Lançar Entrada</span></button></div>
@@ -1426,7 +1426,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="mh"><h3><div class="mh-ic" style="background:var(--reb);color:var(--ret)"><i class="ti ti-trending-down"></i></div><span id="mFinDesp-title">Nova Saída</span></h3><button class="xbtn" onclick="fecharModal('mFinDesp');resetModalDesp()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
-  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma"><option>PIX</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Cartão</option></select></div></div>
+  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Parcelado</option></select></div></div>
   <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
   <div class="mf"><button class="btn" onclick="fecharModal('mFinDesp');resetModalDesp()">Cancelar</button><button class="btn btn-re" onclick="salvarDespesa()"><i class="ti ti-check"></i> <span id="desp-btn-label">Lançar Saída</span></button></div>
 </div></div>
@@ -4087,15 +4087,12 @@ async function limparDadosOperacionaisSupabase() {
 }
 
 /* refreshAll — re-renderiza apenas a tab ativa + globais */
-/* Define filtros padrão da tela financeiro como "hoje" na primeira vez que abrir nesta sessão */
-let _finFiltroAplicado = false
+/* Define filtros padrão da tela financeiro como "hoje" sempre que abrir a aba */
 function aplicarFiltroFinanceiroHoje() {
-  if (_finFiltroAplicado) return
   const de = document.getElementById('fin-de')
   const ate = document.getElementById('fin-ate')
-  if (de && !de.value) de.value = hoje
-  if (ate && !ate.value) ate.value = hoje
-  _finFiltroAplicado = true
+  if (de) de.value = hoje
+  if (ate) ate.value = hoje
 }
 
 function refreshAll() {
@@ -7741,7 +7738,7 @@ function relOS() {
    Aceita período: 'tudo' | 'dia' | 'semana' | 'mes' | 'ano' | 'custom'
    Em 'custom', precisa de dataIni/dataFim (formato YYYY-MM-DD). */
 const REL_MEC_STATUS_ALL = ['Aberta', 'Em execução', 'Aguardando peça', 'Concluída', 'Cancelada']
-let _relMecState = { periodo: 'semana', ini: null, fim: null, mecId: null, status: ['Concluída'] }
+let _relMecState = { periodo: 'dia', ini: null, fim: null, mecId: null, status: ['Concluída'] }
 
 function relMec(periodo, ini, fim) {
   if (periodo) _relMecState.periodo = periodo
@@ -8679,7 +8676,7 @@ function relFluxo() {
    esconde a grade de cartões, exibe header com botões "Voltar" e "Gerar PDF"
    e dá scroll suave para o resultado. */
 /* ── RELATÓRIO: MARGEM DE PEÇAS ─────────────────────────────── */
-let _relPecState = { periodo: 'mes', ini: null, fim: null }
+let _relPecState = { periodo: 'dia', ini: null, fim: null }
 
 function relMargemPecas(periodo, ini, fim) {
   if (periodo) _relPecState.periodo = periodo
