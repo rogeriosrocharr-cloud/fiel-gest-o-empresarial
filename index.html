@@ -5593,17 +5593,19 @@ function lancarFinanceiro(osId) {
     if (orc) {
       _orcFechOsId = osId
       editarOrc(orc.id)
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         orcShowStep(3)
         const wrap = document.getElementById('orc-fechamento-wrap'); if (wrap) wrap.style.display = ''
         const btnS = document.getElementById('orc-btn-salvar'); if (btnS) btnS.style.display = 'none'
         const btnF = document.getElementById('orc-btn-fechar'); if (btnF) btnF.style.display = ''
-        const selC = document.getElementById('orc_fech_conta')
-        if (selC) { selC.innerHTML = '<option value="">— Selecione —</option>'; contasData.forEach(c => { const op = document.createElement('option'); op.value = c.id; op.textContent = c.nome; selC.appendChild(op) }) }
+        populateContasSelects()
         document.getElementById('orc_fech_data').value = hojeISO()
+        document.getElementById('orc_fech_status').value = 'Recebido'
+        document.getElementById('orc_fech_forma').value = 'PIX'
+        const orcWrap = document.getElementById('orc-parcela-wrap'); if (orcWrap) orcWrap.style.display = 'none'
         const mh = document.querySelector('#mOrcAdd .mh h3')
         if (mh) mh.innerHTML = `<div class="mh-ic" style="background:var(--grb);color:var(--grt)"><i class="ti ti-cash"></i></div>Fechamento — OS ${osId} · ${os.cliNome}`
-      })
+      }, 120)
       return
     }
   }
@@ -6468,30 +6470,51 @@ async function salvarReceita() {
           logAtividade('rec_edit', `Receita avulsa editada`)
           toast('Entrada atualizada.', 3500)
         } else {
+          // Se veio de OS manual, vincular osId e finId
+          if (_recAvulsaOsId) dados.osId = _recAvulsaOsId
           const novo = await db.entradas.create(lojaAtual.id, dados)
           recData.unshift(novo)
+          if (_recAvulsaOsId) {
+            const osManual = osData.find(x => x.id == _recAvulsaOsId)
+            if (osManual) {
+              osManual.finId = novo.id
+              try { await db.os.update(osManual.id, { finId: novo.id }) } catch (_) {}
+            }
+          }
           logAtividade('rec_novo', `Receita avulsa: ${desc} · ${fmt(valor)}`)
-          toast('Receita avulsa lançada.', 3000)
+          toast('Receita lançada!', 3000)
         }
       } else {
         // Parcelamento: entrada (opcional) + N parcelas
         const saldoRec = valor - entradaValorRec
         const valorParc = Math.round(saldoRec / nParc * 100) / 100
         const baseDate = new Date((parcIniISO || hoje) + 'T12:00')
+        const osIdParc = _recAvulsaOsId || null
         const dadosBase = { osId: null, cliNome: cli || desc, cat, vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, forma, contaId, tipo: 'avulsa' }
+        let primeiroIdRec = null
 
         if (entradaValorRec > 0) {
-          const dEnt = { ...dadosBase, data: entradaDataRecFmt || dataFmt, dataVenc: null, desc: `${desc} — Entrada`, total: entradaValorRec, status: 'Recebido' }
+          const dEnt = { ...dadosBase, osId: osIdParc, data: entradaDataRecFmt || dataFmt, dataVenc: null, desc: `${desc} — Entrada`, total: entradaValorRec, status: 'Recebido' }
           const novEnt = await db.entradas.create(lojaAtual.id, dEnt)
           recData.unshift(novEnt)
+          primeiroIdRec = novEnt.id
         }
         for (let i = 0; i < nParc; i++) {
           const dv = new Date(baseDate)
           dv.setDate(dv.getDate() + i * parcDias)
           const dvFmt = dv.toLocaleDateString('pt-BR')
-          const dadosParc = { ...dadosBase, data: dataFmt, dataVenc: dvFmt, desc: `${desc} (${i+1}/${nParc})`, total: valorParc, status: 'A receber' }
+          const dadosParc = { ...dadosBase, osId: (i === 0 && !primeiroIdRec) ? osIdParc : null, data: dataFmt, dataVenc: dvFmt, desc: `${desc} (${i+1}/${nParc})`, total: valorParc, status: 'A receber' }
           const novo = await db.entradas.create(lojaAtual.id, dadosParc)
           recData.unshift(novo)
+          if (i === 0 && !primeiroIdRec) primeiroIdRec = novo.id
+        }
+        // Vincular finId na OS manual se aplicável
+        if (osIdParc && primeiroIdRec) {
+          const osManual = osData.find(x => x.id == osIdParc)
+          if (osManual) {
+            osManual.finId = primeiroIdRec
+            try { await db.os.update(osManual.id, { finId: primeiroIdRec }) } catch (_) {}
+          }
         }
         const totalLanc = nParc + (entradaValorRec > 0 ? 1 : 0)
         logAtividade('rec_novo', `Parcelado ${nParc}x: ${desc} · ${fmt(valor)}`)
