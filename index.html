@@ -1354,6 +1354,10 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <!-- Bloco parcelamento fechamento OS -->
       <div id="orc-parcela-wrap" style="display:none;margin-top:10px;padding:12px;background:var(--amb);border:1px solid rgba(212,138,12,.3);border-radius:var(--r)">
         <div style="font-size:11px;font-weight:700;color:var(--amt);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
+        <div class="fr g2" style="margin-bottom:8px">
+          <div class="fg"><label>Entrada (R$) <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="orc_parc_entrada" type="number" min="0" step="0.01" placeholder="0,00" oninput="onOrcParcChange()"></div>
+          <div class="fg"><label>Data da entrada</label><input id="orc_parc_entrada_data" type="date" oninput="onOrcParcChange()"></div>
+        </div>
         <div class="fr g3">
           <div class="fg"><label>Nº de parcelas</label><input id="orc_parc_n" type="number" min="1" max="48" value="1" step="1" oninput="onOrcParcChange()"></div>
           <div class="fg"><label>1ª parcela em</label><input id="orc_parc_ini" type="date" oninput="onOrcParcChange()"></div>
@@ -1431,6 +1435,10 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <!-- Bloco parcelamento -->
   <div id="rec-parcela-wrap" style="display:none;margin-bottom:14px;padding:12px;background:var(--amb);border:1px solid rgba(212,138,12,.3);border-radius:var(--r)">
     <div style="font-size:11px;font-weight:700;color:var(--amt);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
+    <div class="fr g2" style="margin-bottom:8px">
+      <div class="fg"><label>Entrada (R$) <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="rec_parc_entrada" type="number" min="0" step="0.01" placeholder="0,00" oninput="onRecParcChange()"></div>
+      <div class="fg"><label>Data da entrada</label><input id="rec_parc_entrada_data" type="date" oninput="onRecParcChange()"></div>
+    </div>
     <div class="fr g3">
       <div class="fg"><label>Nº de parcelas</label><input id="rec_parc_n" type="number" min="1" max="48" value="1" step="1" oninput="onRecParcChange()"></div>
       <div class="fg"><label>1ª parcela em</label><input id="rec_parc_ini" type="date" oninput="onRecParcChange()"></div>
@@ -5646,45 +5654,71 @@ async function confirmarFechamento() {
     tipo: 'os', desc: ''
   }
 
+  const entradaValor = isParc ? (parseFloat(document.getElementById('orc_parc_entrada')?.value) || 0) : 0
+  const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hojeISO()) : null
+  const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : null
+
   try {
-    const recExistente = recData.find(r => r.osId == _orcFechOsId)
-    if (recExistente || nParc <= 1) {
-      // Atualização ou lançamento simples
+    const osIdFech = _orcFechOsId // salvar antes de qualquer await
+    const recExistente = recData.find(r => r.osId == osIdFech)
+
+    if (!isParc || nParc <= 1) {
+      // Lançamento simples ou atualização
+      const dadosSimples = { ...dadosBase, osId: osIdFech }
       if (recExistente) {
-        const atualizado = await db.entradas.update(recExistente.id, dadosBase)
+        const atualizado = await db.entradas.update(recExistente.id, dadosSimples)
         Object.assign(recExistente, atualizado)
         toast('Receita atualizada.', 3500)
       } else {
-        const novo = await db.entradas.create(lojaAtual.id, dadosBase)
+        const novo = await db.entradas.create(lojaAtual.id, dadosSimples)
         recData.unshift(novo)
         os.finId = novo.id
-        try { await db.os.update(os.id, { finId: novo.id }) } catch (_) {}
+        await db.os.update(os.id, { finId: novo.id })
         toast('Receita lançada!', 3500)
       }
     } else {
-      // Parcelamento OS: gera N lançamentos
-      const valorParc = Math.round(total / nParc * 100) / 100
+      // Parcelamento: gera entrada (opcional) + N parcelas
+      const saldo = total - entradaValor
+      const valorParc = Math.round(saldo / nParc * 100) / 100
       const baseDate = new Date(parcIniISO + 'T12:00')
       let primeiroId = null
+
+      // Lançar entrada à vista se informada
+      if (entradaValor > 0) {
+        const dadosEntrada = {
+          ...dadosBase,
+          osId: osIdFech, total: entradaValor,
+          data: entradaDataFmt, dataVenc: null,
+          status: 'Recebido', desc: 'Entrada'
+        }
+        const novEnt = await db.entradas.create(lojaAtual.id, dadosEntrada)
+        recData.unshift(novEnt)
+        primeiroId = novEnt.id
+      }
+
+      // Lançar parcelas
       for (let i = 0; i < nParc; i++) {
         const dv = new Date(baseDate)
         dv.setDate(dv.getDate() + i * parcDias)
         const dvFmt = dv.toLocaleDateString('pt-BR')
         const dadosParc = {
           ...dadosBase,
-          dataVenc: dvFmt, total: valorParc, status: 'A receber',
-          desc: `${i+1}/${nParc}`,
-          osId: i === 0 ? _orcFechOsId : null  // só 1ª parcela vincula à OS
+          osId: (i === 0 && !primeiroId) ? osIdFech : null,
+          dataVenc: dvFmt, total: valorParc,
+          status: 'A receber', desc: `${i+1}/${nParc}`
         }
         const novo = await db.entradas.create(lojaAtual.id, dadosParc)
         recData.unshift(novo)
-        if (i === 0) primeiroId = novo.id
+        if (i === 0 && !primeiroId) primeiroId = novo.id
       }
+
+      // Vincular finId da OS à primeira receita criada
       if (primeiroId) {
         os.finId = primeiroId
-        try { await db.os.update(os.id, { finId: primeiroId }) } catch (_) {}
+        await db.os.update(os.id, { finId: primeiroId })
       }
-      toast(`${nParc} parcelas lançadas como A receber.`, 3500)
+      const totalParc = nParc + (entradaValor > 0 ? 1 : 0)
+      toast(`${totalParc} lançamentos criados (${nParc} parcela(s)${entradaValor > 0 ? ' + entrada' : ''}).`, 4000)
     }
     os.vsrv = subSrv; os.vpec = subPec; os.total = total
     try { await db.os.update(os.id, { vsrv: subSrv, vpec: subPec, total }) } catch (_) {}
@@ -6274,17 +6308,21 @@ function onChangeSelectCat(selectId, tipo) {
 /* ── PARCELAMENTO — formas que ativam o bloco ──────────────── */
 const FORMAS_PARCELAMENTO = ['Cartão crédito','Boleto','Crédito da casa']
 
-function _parcPreview(n, iniISO, dias, valorTotal, elId) {
+function _parcPreview(n, iniISO, dias, valorTotal, entrada, elId) {
   const el = document.getElementById(elId); if (!el) return
-  if (!n || n < 2 || !iniISO) { el.textContent = ''; return }
-  const valorParc = Math.round(valorTotal / n * 100) / 100
+  if (!iniISO) { el.textContent = ''; return }
+  const saldo = valorTotal - (entrada || 0)
+  const valorParc = n > 0 ? Math.round(saldo / n * 100) / 100 : saldo
   const linhas = []
-  for (let i = 0; i < Math.min(n, 4); i++) {
-    const d = new Date(iniISO + 'T12:00')
-    d.setDate(d.getDate() + i * dias)
-    linhas.push(`${i+1}/${n} — ${d.toLocaleDateString('pt-BR')} — ${fmt(valorParc)}`)
+  if (entrada > 0) linhas.push(`<b>Entrada:</b> ${fmt(entrada)} — à vista (Recebido)`)
+  if (n > 0) {
+    for (let i = 0; i < Math.min(n, 4); i++) {
+      const d = new Date(iniISO + 'T12:00')
+      d.setDate(d.getDate() + i * dias)
+      linhas.push(`${i+1}/${n} — ${d.toLocaleDateString('pt-BR')} — ${fmt(valorParc)}`)
+    }
+    if (n > 4) linhas.push(`... e mais ${n-4} parcela(s)`)
   }
-  if (n > 4) linhas.push(`... e mais ${n-4} parcela(s)`)
   el.innerHTML = linhas.join('<br>')
 }
 
@@ -6295,9 +6333,10 @@ function onRecFormaChange() {
   if (FORMAS_PARCELAMENTO.includes(forma)) {
     wrap.style.display = 'block'
     statusEl.value = 'A receber'
-    // 1ª parcela = hoje por padrão
     const iniEl = document.getElementById('rec_parc_ini')
     if (!iniEl.value) iniEl.value = hoje
+    const entDtEl = document.getElementById('rec_parc_entrada_data')
+    if (!entDtEl.value) entDtEl.value = hoje
     onRecParcChange()
   } else {
     wrap.style.display = 'none'
@@ -6310,7 +6349,8 @@ function onRecParcChange() {
   const ini = document.getElementById('rec_parc_ini').value
   const dias = parseInt(document.getElementById('rec_parc_dias').value) || 30
   const valor = parseFloat(document.getElementById('rec_av_valor').value) || 0
-  _parcPreview(n, ini, dias, valor, 'rec-parcela-preview')
+  const entrada = parseFloat(document.getElementById('rec_parc_entrada').value) || 0
+  _parcPreview(n, ini, dias, valor, entrada, 'rec-parcela-preview')
 }
 
 function onOrcFechFormaChange() {
@@ -6322,6 +6362,8 @@ function onOrcFechFormaChange() {
     statusEl.value = 'A receber'
     const iniEl = document.getElementById('orc_parc_ini')
     if (!iniEl.value) iniEl.value = hoje
+    const entDtEl = document.getElementById('orc_parc_entrada_data')
+    if (!entDtEl.value) entDtEl.value = hoje
     onOrcParcChange()
   } else {
     wrap.style.display = 'none'
@@ -6333,10 +6375,10 @@ function onOrcParcChange() {
   const n = parseInt(document.getElementById('orc_parc_n').value) || 1
   const ini = document.getElementById('orc_parc_ini').value
   const dias = parseInt(document.getElementById('orc_parc_dias').value) || 30
-  // valor vem do total do orçamento ativo
   const totEl = document.getElementById('orc-t-tot')
   const valor = totEl ? parseFloat(totEl.textContent.replace(/[^0-9,]/g,'').replace(',','.')) || 0 : 0
-  _parcPreview(n, ini, dias, valor, 'orc-parcela-preview')
+  const entrada = parseFloat(document.getElementById('orc_parc_entrada')?.value) || 0
+  _parcPreview(n, ini, dias, valor, entrada, 'orc-parcela-preview')
 }
 
 function resetModalRec() {
@@ -6351,7 +6393,7 @@ function resetModalRec() {
   document.getElementById('rec_forma').value = 'PIX'
   document.getElementById('rec_status').value = 'Recebido'
   const _rw = document.getElementById('rec-parcela-wrap'); if (_rw) _rw.style.display = 'none'
-  const _ri = document.getElementById('rec_parc_ini'); if (_ri) _ri.value = ''
+  ;['rec_parc_ini','rec_parc_entrada','rec_parc_entrada_data'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   const _rn = document.getElementById('rec_parc_n'); if (_rn) _rn.value = 1
   document.getElementById('mFinRec-title').textContent = 'Nova Entrada'
   document.getElementById('rec-btn-label').textContent = 'Lançar Entrada'
@@ -6408,8 +6450,12 @@ async function salvarReceita() {
       const parcIniISO = isParc ? document.getElementById('rec_parc_ini').value : null
       const parcDias = isParc ? (parseInt(document.getElementById('rec_parc_dias').value) || 30) : 30
 
-      if (recEditId || nParc <= 1) {
-        // Edição ou lançamento simples (inclui parcelado em 1x)
+      const entradaValorRec = isParc ? (parseFloat(document.getElementById('rec_parc_entrada')?.value) || 0) : 0
+      const entradaDataRecISO = isParc ? (document.getElementById('rec_parc_entrada_data')?.value || hoje) : null
+      const entradaDataRecFmt = entradaDataRecISO ? new Date(entradaDataRecISO + 'T12:00').toLocaleDateString('pt-BR') : null
+
+      if (recEditId || !isParc || nParc <= 1) {
+        // Edição ou lançamento simples
         const dados = {
           data: dataFmt, dataVenc: dataVencFmt, osId: null, cliNome: cli || desc, desc, cat,
           vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valor,
@@ -6428,24 +6474,28 @@ async function salvarReceita() {
           toast('Receita avulsa lançada.', 3000)
         }
       } else {
-        // Parcelamento: gera N lançamentos
-        const valorParc = Math.round(valor / nParc * 100) / 100
+        // Parcelamento: entrada (opcional) + N parcelas
+        const saldoRec = valor - entradaValorRec
+        const valorParc = Math.round(saldoRec / nParc * 100) / 100
         const baseDate = new Date((parcIniISO || hoje) + 'T12:00')
+        const dadosBase = { osId: null, cliNome: cli || desc, cat, vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, forma, contaId, tipo: 'avulsa' }
+
+        if (entradaValorRec > 0) {
+          const dEnt = { ...dadosBase, data: entradaDataRecFmt || dataFmt, dataVenc: null, desc: `${desc} — Entrada`, total: entradaValorRec, status: 'Recebido' }
+          const novEnt = await db.entradas.create(lojaAtual.id, dEnt)
+          recData.unshift(novEnt)
+        }
         for (let i = 0; i < nParc; i++) {
           const dv = new Date(baseDate)
           dv.setDate(dv.getDate() + i * parcDias)
           const dvFmt = dv.toLocaleDateString('pt-BR')
-          const dadosParc = {
-            data: dataFmt, dataVenc: dvFmt, osId: null, cliNome: cli || desc,
-            desc: `${desc} (${i+1}/${nParc})`, cat,
-            vsrv: 0, vpec: 0, descSrv: 0, descPec: 0, subSrv: 0, subPec: 0, total: valorParc,
-            forma, status: 'A receber', contaId, tipo: 'avulsa'
-          }
+          const dadosParc = { ...dadosBase, data: dataFmt, dataVenc: dvFmt, desc: `${desc} (${i+1}/${nParc})`, total: valorParc, status: 'A receber' }
           const novo = await db.entradas.create(lojaAtual.id, dadosParc)
           recData.unshift(novo)
         }
+        const totalLanc = nParc + (entradaValorRec > 0 ? 1 : 0)
         logAtividade('rec_novo', `Parcelado ${nParc}x: ${desc} · ${fmt(valor)}`)
-        toast(`${nParc} parcelas lançadas como A receber.`, 3500)
+        toast(`${totalLanc} lançamentos criados (${nParc} parcela(s)${entradaValorRec > 0 ? ' + entrada' : ''}).`, 4000)
       }
 
       /* Salvar categoria customizada se for nova */
