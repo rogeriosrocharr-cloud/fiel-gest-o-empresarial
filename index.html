@@ -5644,10 +5644,7 @@ async function confirmarFechamento() {
   const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hojeISO()) : null
   const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : null
 
-  /* Salvar orçamento (fecha modal internamente) */
-  await salvarOrc()
-
-  /* Calcular totais do orçamento já atualizado */
+  /* Calcular totais direto do orçamento em memória — não chama salvarOrc */
   const orcA = orcData.find(o => o.id == orc.id)
   const tS = orcA.tSrv || 0, tP = orcA.tPec || 0
   const dS = orcA.descSrv || 0, dP = orcA.descPec || 0
@@ -5731,6 +5728,8 @@ async function confirmarFechamento() {
   } catch (err) { toast('Erro: ' + err.message, 5000); return }
 
   _orcFechOsId = null
+  orcEditId = null
+  orcTempSrvs = []; orcTempPecs = []
   fecharModal('mOrcAdd'); resetModalOrc()
   renderKanban(); renderOS(); renderMov(); renderFinMetrics(); renderBancoExtrato()
 }
