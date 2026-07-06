@@ -2732,31 +2732,50 @@ const db = {
 
   /* ─── CONTAS BANCÁRIAS (armazena em campo JSON na loja) ─── */
   contas: {
-    _storageKey() { return `fiel_contas_${lojaAtual?.id || 'local'}` },
-    list() {
-      try {
-        const raw = localStorage.getItem(this._storageKey())
-        return raw ? JSON.parse(raw) : []
-      } catch { return [] }
+    _mapFromDB(c) {
+      return {
+        id: c.id, nome: c.nome || '', banco: c.banco || '',
+        agencia: c.agencia || '', conta: c.conta || '',
+        tipo: c.tipo || 'corrente', cor: c.cor || '#5c14dc',
+        saldoInicial: Number(c.saldo_inicial) || 0, ativa: c.ativa !== false
+      }
     },
-    save(contas) {
-      try { localStorage.setItem(this._storageKey(), JSON.stringify(contas)) } catch {}
+    _mapToDB(d) {
+      const o = {}
+      if (d.nome !== undefined) o.nome = d.nome || ''
+      if (d.banco !== undefined) o.banco = d.banco || null
+      if (d.agencia !== undefined) o.agencia = d.agencia || null
+      if (d.conta !== undefined) o.conta = d.conta || null
+      if (d.tipo !== undefined) o.tipo = d.tipo || 'corrente'
+      if (d.cor !== undefined) o.cor = d.cor || '#5c14dc'
+      if (d.saldoInicial !== undefined) o.saldo_inicial = Number(d.saldoInicial) || 0
+      if (d.ativa !== undefined) o.ativa = d.ativa !== false
+      return o
     },
-    add(dados) {
-      const lista = this.list()
-      const nova = { id: Date.now(), nome: dados.nome, banco: dados.banco || '', agencia: dados.agencia || '', conta: dados.conta || '', tipo: dados.tipo || 'corrente', cor: dados.cor || '#5c14dc', saldoInicial: Number(dados.saldoInicial) || 0, ativa: true }
-      lista.push(nova)
-      this.save(lista)
-      return nova
+    async list(lojaId) {
+      if (!_supabaseOk) return []
+      const lid = lojaId || lojaAtual?.id; if (!lid) return []
+      const { data, error } = await sbClient.from('contas').select('*').eq('loja_id', lid).eq('ativa', true).order('id')
+      if (error) { console.error('contas.list', error); return [] }
+      return (data || []).map(c => this._mapFromDB(c))
     },
-    update(id, dados) {
-      const lista = this.list()
-      const idx = lista.findIndex(c => c.id == id)
-      if (idx >= 0) { lista[idx] = { ...lista[idx], ...dados }; this.save(lista) }
+    async add(lojaId, dados) {
+      if (!_supabaseOk) throw new Error('Offline')
+      const payload = { loja_id: lojaId, ...this._mapToDB(dados) }
+      const { data, error } = await sbClient.from('contas').insert(payload).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
     },
-    remove(id) {
-      const lista = this.list().filter(c => c.id != id)
-      this.save(lista)
+    async update(id, dados) {
+      if (!_supabaseOk) throw new Error('Offline')
+      const { data, error } = await sbClient.from('contas').update(this._mapToDB(dados)).eq('id', id).select().single()
+      if (error) throw error
+      return this._mapFromDB(data)
+    },
+    async remove(id) {
+      if (!_supabaseOk) throw new Error('Offline')
+      const { error } = await sbClient.from('contas').update({ ativa: false }).eq('id', id)
+      if (error) throw error
     }
   },
 
@@ -3791,7 +3810,7 @@ async function carregarCadastrosDaLoja() {
     try { return await fn } catch (e) { console.warn(`[FIEL] Falha ao carregar ${label}:`, e.message); return [] }
   }
   const lid = lojaAtual.id
-  const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias, atividades] = await Promise.all([
+  const [clientes, fornecedores, mecanicos, catalogo, orcamentos, ordens, pecas, entradas, saidas, banco, categorias, atividades, contas] = await Promise.all([
     safe(db.clientes.list(lid), 'clientes'),
     safe(db.fornecedores.list(lid), 'fornecedores'),
     safe(db.mecanicos.list(lid), 'mecânicos'),
@@ -3803,7 +3822,8 @@ async function carregarCadastrosDaLoja() {
     safe(db.saidas.list(lid), 'saídas'),
     safe(db.banco.list(lid), 'banco'),
     safe(db.categorias.list(lid), 'categorias').then(r => r || { rec: [], desp: [], pec: [], srv: [], forn: [] }),
-    safe(db.atividades.list(lid, 500), 'atividades')
+    safe(db.atividades.list(lid, 500), 'atividades'),
+    safe(db.contas.list(lid), 'contas')
   ])
   cliData = clientes || []
   fornData = fornecedores || []
@@ -3815,13 +3835,29 @@ async function carregarCadastrosDaLoja() {
   recData = entradas || []
   despData = saidas || []
   bancData = banco || []
-  contasData = db.contas.list()  /* carrega do localStorage */
+  contasData = contas || []
   recCatCustom = (categorias && categorias.rec) || []
   despCatCustom = (categorias && categorias.desp) || []
   pecCatCustom = (categorias && categorias.pec) || []
   srvCatCustomLista = (categorias && categorias.srv) || []
   fornCatCustom = (categorias && categorias.forn) || []
   atividadeData = atividades || []
+  /* Migrar contas do localStorage para Supabase (roda uma vez automaticamente) */
+  if (contasData.length === 0) {
+    try {
+      const raw = localStorage.getItem(`fiel_contas_${lojaAtual.id}`)
+      if (raw) {
+        const legacy = JSON.parse(raw)
+        if (legacy && legacy.length > 0) {
+          for (const c of legacy) { try { await db.contas.add(lojaAtual.id, c) } catch(_) {} }
+          contasData = await db.contas.list(lojaAtual.id)
+          localStorage.removeItem(`fiel_contas_${lojaAtual.id}`)
+          console.log('[FIEL] Contas migradas do localStorage:', contasData.length)
+        }
+      }
+    } catch(_) {}
+  }
+
   console.log(`[FIEL] Dados carregados: ${cliData.length} cli, ${fornData.length} forn, ${mecData.length} mec, ${srvCatData.length} srv, ${orcData.length} orc, ${osData.length} os, ${estData.length} est, ${recData.length} ent, ${despData.length} sai, ${bancData.length} banc, ${atividadeData.length} ativ`)
 }
 
@@ -6194,8 +6230,8 @@ function renderMov() {
 
 /* Aba Banco: lista transações do extrato com indicação de vínculo */
 /* ── CONTAS BANCÁRIAS ──────────────────────────────────────── */
-function populateContasSelects() {
-  contasData = db.contas.list()  /* garantir dados atualizados */
+async function populateContasSelects() {
+  contasData = await db.contas.list(lojaAtual?.id)
   const selects = ['rec_conta', 'desp_conta', 'mov-conta', 'orc_fech_conta']
   selects.forEach(id => {
     const el = document.getElementById(id)
@@ -6215,8 +6251,8 @@ function populateContasSelects() {
   })
 }
 
-function renderContasList() {
-  contasData = db.contas.list()
+async function renderContasList() {
+  contasData = await db.contas.list(lojaAtual?.id)
   const el = document.getElementById('contas-lista'); if (!el) return
   if (!contasData.length) {
     el.innerHTML = `<div class="empty" style="padding:14px;font-size:12px">Nenhuma conta cadastrada ainda.</div>`
@@ -6241,38 +6277,40 @@ function renderContasList() {
   }).join('')
 }
 
-function adicionarConta() {
+async function adicionarConta() {
   const nome = document.getElementById('cta_nome')?.value.trim()
   if (!nome) { toast('⚠️ Nome da conta é obrigatório.', 3000); return }
-  const nova = db.contas.add({
-    nome,
-    banco: document.getElementById('cta_banco')?.value.trim(),
-    tipo: document.getElementById('cta_tipo')?.value,
-    saldoInicial: document.getElementById('cta_saldo')?.value,
-    cor: document.getElementById('cta_cor')?.value
-  })
-  contasData = db.contas.list()
-  ;['cta_nome','cta_banco','cta_saldo'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
-  toast(`✓ Conta "${nova.nome}" adicionada.`, 3000)
-  renderContasList()
-  populateContasSelects()
-  renderBancoExtrato()
+  try {
+    const nova = await db.contas.add(lojaAtual.id, {
+      nome,
+      banco: document.getElementById('cta_banco')?.value.trim(),
+      tipo: document.getElementById('cta_tipo')?.value,
+      saldoInicial: document.getElementById('cta_saldo')?.value,
+      cor: document.getElementById('cta_cor')?.value
+    })
+    contasData = await db.contas.list(lojaAtual?.id)
+    ;['cta_nome','cta_banco','cta_saldo'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
+    toast(`✓ Conta "${nova.nome}" adicionada.`, 3000)
+    renderContasList()
+    populateContasSelects()
+    renderBancoExtrato()
+  } catch(e) { toast('Erro ao salvar conta: ' + e.message, 5000) }
 }
 
-function removerConta(id) {
+async function removerConta(id) {
   const c = contasData.find(x => x.id == id); if (!c) return
   if (!confirmar(`Remover a conta "${c.nome}"? Os lançamentos vinculados a ela não serão apagados, só perderão o vínculo com a conta.`)) return
-  db.contas.remove(id)
-  contasData = db.contas.list()
+  await db.contas.remove(id)
+  contasData = await db.contas.list(lojaAtual?.id)
   renderContasList()
   populateContasSelects()
   renderBancoExtrato()
   toast('Conta removida.', 3000)
 }
 
-function renderBancoExtrato() {
-  contasData = db.contas.list()
-  populateContasSelects()
+async function renderBancoExtrato() {
+  contasData = await db.contas.list(lojaAtual?.id)
+  await populateContasSelects()
 
   /* Cards de saldo por conta */
   const cardsEl = document.getElementById('banco-contas-cards')
