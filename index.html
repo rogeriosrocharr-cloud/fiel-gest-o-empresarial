@@ -941,7 +941,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
       <div class="slabel" style="margin:0">Movimentações</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-gr btn-sm" onclick="resetModalRec();abrirModal('mFinRec')"><i class="ti ti-arrow-down-left"></i> Nova Entrada</button>
-        <button class="btn btn-re btn-sm" onclick="resetModalDesp();abrirModal('mFinDesp')"><i class="ti ti-arrow-up-right"></i> Nova Saída</button>
+        <button class="btn btn-re btn-sm" onclick="resetModalDesp();populateContasSelects();abrirModal('mFinDesp')"><i class="ti ti-arrow-up-right"></i> Nova Saída</button>
         <button class="btn btn-sm" onclick="abrirModalOFX()" title="Importar extrato bancário (.ofx)"><i class="ti ti-file-import"></i> Importar extrato</button>
       </div>
     </div>
@@ -1491,8 +1491,24 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="mh"><h3><div class="mh-ic" style="background:var(--reb);color:var(--ret)"><i class="ti ti-trending-down"></i></div><span id="mFinDesp-title">Nova Saída</span></h3><button class="xbtn" onclick="fecharModal('mFinDesp');resetModalDesp()"><i class="ti ti-x"></i></button></div>
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
-  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Parcelado</option></select></div></div>
+  <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01" oninput="onDespParcChange()"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma" onchange="onDespFormaChange()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div></div>
   <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
+
+  <!-- Bloco parcelamento saída -->
+  <div id="desp-parcela-wrap" style="display:none;margin-bottom:14px;padding:12px;background:var(--reb);border:1px solid rgba(196,48,48,.3);border-radius:var(--r)">
+    <div style="font-size:11px;font-weight:700;color:var(--ret);margin-bottom:10px"><i class="ti ti-calendar-repeat"></i> Parcelamento</div>
+    <div class="fr g2" style="margin-bottom:8px">
+      <div class="fg"><label>Entrada (R$) <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_parc_entrada" type="number" min="0" step="0.01" placeholder="0,00" oninput="onDespParcChange()"></div>
+      <div class="fg"><label>Data da entrada</label><input id="desp_parc_entrada_data" type="date" oninput="onDespParcChange()"></div>
+    </div>
+    <div class="fr g3">
+      <div class="fg"><label>Nº de parcelas</label><input id="desp_parc_n" type="number" min="1" max="48" value="1" step="1" oninput="onDespParcChange()"></div>
+      <div class="fg"><label>1ª parcela em</label><input id="desp_parc_ini" type="date" oninput="onDespParcChange()"></div>
+      <div class="fg"><label>Intervalo (dias)</label><input id="desp_parc_dias" type="number" min="1" value="30" step="1" oninput="onDespParcChange()"></div>
+    </div>
+    <div id="desp-parcela-preview" style="font-size:11px;color:var(--ret);margin-top:6px"></div>
+  </div>
+
   <div class="mf"><button class="btn" onclick="fecharModal('mFinDesp');resetModalDesp()">Cancelar</button><button class="btn btn-re" onclick="salvarDespesa()"><i class="ti ti-check"></i> <span id="desp-btn-label">Lançar Saída</span></button></div>
 </div></div>
 
@@ -2581,9 +2597,12 @@ const db = {
     },
     async create(lojaId, dados) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'ent' })
-      if (numErr) throw numErr
-      const payload = { loja_id: lojaId, numero: numData, ...this._mapToDB(dados) }
+      let numero = null
+      try {
+        const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'ent' })
+        if (!numErr) numero = numData
+      } catch (_) {}
+      const payload = { loja_id: lojaId, ...(numero != null ? { numero } : {}), ...this._mapToDB(dados) }
       const { data, error } = await sbClient.from('entradas').insert(payload).select().single()
       if (error) throw error
       return this._mapFromDB(data)
@@ -2609,7 +2628,8 @@ const db = {
         desc: d.descricao || '', cat: d.cat || '',
         fornecedor: d.fornecedor || '', fornId: d.fornecedor_id || null,
         valor: Number(d.valor) || 0, forma: d.forma || '',
-        status: d.status || 'Pago'
+        status: d.status || 'Pago',
+        contaId: d.conta_id || null
       }
     },
     _mapToDB(d) {
@@ -2620,6 +2640,7 @@ const db = {
       ;['cat','forma','status','fornecedor'].forEach(k => { if (d[k] !== undefined) o[k] = d[k] || null })
       if (d.fornId !== undefined) o.fornecedor_id = d.fornId || null
       if (d.valor !== undefined) o.valor = Number(d.valor) || 0
+      if (d.contaId !== undefined) o.conta_id = (d.contaId && d.contaId !== '') ? d.contaId : null
       return o
     },
     async list(lojaId) {
@@ -2630,9 +2651,12 @@ const db = {
     },
     async create(lojaId, dados) {
       if (!_supabaseOk) throw new Error('Sistema offline.')
-      const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'sai' })
-      if (numErr) throw numErr
-      const payload = { loja_id: lojaId, numero: numData, ...this._mapToDB(dados) }
+      let numero = null
+      try {
+        const { data: numData, error: numErr } = await sbClient.rpc('next_numero', { p_loja_id: lojaId, p_tipo: 'sai' })
+        if (!numErr) numero = numData
+      } catch (_) {}
+      const payload = { loja_id: lojaId, ...(numero != null ? { numero } : {}), ...this._mapToDB(dados) }
       const { data, error } = await sbClient.from('saidas').insert(payload).select().single()
       if (error) throw error
       return this._mapFromDB(data)
@@ -6607,6 +6631,49 @@ function resetModalRec() {
   document.getElementById('rec-btn-label').textContent = 'Lançar Entrada'
 }
 
+
+/* ── PARCELAMENTO DESPESA ────────────────────────────────── */
+const FORMAS_PARCELAMENTO_DESP = ['Cartão crédito','Boleto','Crédito da casa']
+
+function onDespFormaChange() {
+  const forma = document.getElementById('desp_forma').value
+  const wrap = document.getElementById('desp-parcela-wrap')
+  const statusEl = document.getElementById('desp_status')
+  if (FORMAS_PARCELAMENTO_DESP.includes(forma)) {
+    wrap.style.display = 'block'
+    statusEl.value = 'A pagar'
+    const iniEl = document.getElementById('desp_parc_ini')
+    if (!iniEl.value) iniEl.value = hoje
+    const entDtEl = document.getElementById('desp_parc_entrada_data')
+    if (!entDtEl.value) entDtEl.value = hoje
+    onDespParcChange()
+  } else {
+    wrap.style.display = 'none'
+    statusEl.value = 'Pago'
+  }
+}
+
+function onDespParcChange() {
+  const n = parseInt(document.getElementById('desp_parc_n')?.value) || 1
+  const ini = document.getElementById('desp_parc_ini')?.value
+  const dias = parseInt(document.getElementById('desp_parc_dias')?.value) || 30
+  const valor = parseFloat(document.getElementById('desp_valor')?.value) || 0
+  const entrada = parseFloat(document.getElementById('desp_parc_entrada')?.value) || 0
+  const el = document.getElementById('desp-parcela-preview'); if (!el) return
+  if (!ini) { el.textContent = ''; return }
+  const saldo = valor - entrada
+  const valorParc = n > 0 ? Math.round(saldo / n * 100) / 100 : saldo
+  const linhas = []
+  if (entrada > 0) linhas.push(`<b>Entrada:</b> ${fmt(entrada)} — à vista (Pago)`)
+  for (let i = 0; i < Math.min(n, 4); i++) {
+    const d = new Date(ini + 'T12:00')
+    d.setDate(d.getDate() + i * dias)
+    linhas.push(`${i+1}/${n} — ${d.toLocaleDateString('pt-BR')} — ${fmt(valorParc)}`)
+  }
+  if (n > 4) linhas.push(`... e mais ${n-4} parcela(s)`)
+  el.innerHTML = linhas.join('<br>')
+}
+
 function resetModalDesp() {
   despEditId = null
   ;['desp_desc','desp_valor','desp_fornecedor','desp_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
@@ -6616,8 +6683,22 @@ function resetModalDesp() {
   popularFornecedoresList()
   document.getElementById('desp_forma').value = 'PIX'
   document.getElementById('desp_status').value = 'Pago'
+  const _dw = document.getElementById('desp-parcela-wrap'); if (_dw) _dw.style.display = 'none'
+  ;['desp_parc_ini','desp_parc_entrada','desp_parc_entrada_data'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  const _dn = document.getElementById('desp_parc_n'); if (_dn) _dn.value = 1
   document.getElementById('mFinDesp-title').textContent = 'Nova Saída'
   document.getElementById('desp-btn-label').textContent = 'Lançar Saída'
+  /* Popular select de contas */
+  const despContaEl = document.getElementById('desp_conta')
+  if (despContaEl) {
+    despContaEl.innerHTML = '<option value="">— Selecione a conta —</option>'
+    contasData.forEach(c => {
+      const op = document.createElement('option')
+      op.value = c.id
+      op.textContent = c.nome + (c.banco ? ' · ' + c.banco : '')
+      despContaEl.appendChild(op)
+    })
+  }
 }
 
 /* Popula datalist de fornecedores: cadastrados primeiro, depois nomes únicos de saídas antigas */
@@ -6756,31 +6837,65 @@ async function salvarDespesa() {
   const fornecedor = document.getElementById('desp_fornecedor').value.trim()
   const fornMatch = fornecedor ? fornData.find(f => (f.nome || '').toLowerCase() === fornecedor.toLowerCase()) : null
   const fornId = fornMatch ? fornMatch.id : null
-  const cat = document.getElementById('desp_cat').value
+  const cat = document.getElementById('desp_cat').value || DESP_CAT_PADRAO[0] || 'Outros'
+  const forma = document.getElementById('desp_forma').value
+  const status = document.getElementById('desp_status').value
+  const contaIdRaw = document.getElementById('desp_conta')?.value
+  const contaId = (contaIdRaw && contaIdRaw !== '') ? contaIdRaw : null
+  const isParc = FORMAS_PARCELAMENTO_DESP.includes(forma)
+  const nParc = isParc ? (parseInt(document.getElementById('desp_parc_n')?.value) || 1) : 1
+  const parcIniISO = isParc ? (document.getElementById('desp_parc_ini')?.value || hoje) : null
+  const parcDias = isParc ? (parseInt(document.getElementById('desp_parc_dias')?.value) || 30) : 30
+  const entradaValor = isParc ? (parseFloat(document.getElementById('desp_parc_entrada')?.value) || 0) : 0
+  const entradaDataISO = isParc ? (document.getElementById('desp_parc_entrada_data')?.value || hoje) : null
+  const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : dataFmt
 
-  const dados = {
-    data: dataFmt, dataVenc: dataVencFmt, desc, fornecedor, fornId,
-    cat, valor,
-    forma: document.getElementById('desp_forma').value,
-    status: document.getElementById('desp_status').value,
-    contaId: document.getElementById('desp_conta')?.value || null
-  }
+  const dadosBase = { dataVenc: dataVencFmt, desc: desc || '(sem descrição)', fornecedor: fornecedor || null, fornId, cat: cat || 'Outros', forma, contaId }
 
   try {
-    if (despEditId) {
-      const d = despData.find(x => x.id == despEditId); if (!d) return
-      const atualizado = await db.saidas.update(despEditId, dados)
-      Object.assign(d, atualizado)
-      logAtividade('desp_edit', `Saída editada: ${desc}`)
-      toast('Saída atualizada.', 3500)
+    if (despEditId || !isParc || nParc <= 1) {
+      // Lançamento simples ou edição
+      const dados = { ...dadosBase, data: dataFmt, valor, status }
+      if (despEditId) {
+        const d = despData.find(x => x.id == despEditId); if (!d) return
+        const atualizado = await db.saidas.update(despEditId, dados)
+        Object.assign(d, atualizado)
+        logAtividade('desp_edit', `Saída editada: ${desc}`)
+        toast('Saída atualizada.', 3500)
+        despData.sort((a,b) => (b.id > a.id ? 1 : -1))
+      } else {
+        const novo = await db.saidas.create(lojaAtual.id, dados)
+        despData.unshift(novo)
+        logAtividade('desp_novo', `${desc} · ${fmt(valor)}${fornecedor ? ' · ' + fornecedor : ''}`)
+        toast('Saída registrada.', 3000)
+      }
     } else {
-      const novo = await db.saidas.create(lojaAtual.id, dados)
-      despData.unshift(novo)
-      logAtividade('desp_novo', `${desc} · ${fmt(valor)}${fornecedor ? ' · ' + fornecedor : ''}`)
-      toast('Saída registrada.', 3000)
+      // Parcelamento: entrada (opcional) + N parcelas
+      const saldo = valor - entradaValor
+      const saldoCents = Math.round(saldo * 100)
+      const parcBase = Math.floor(saldoCents / nParc)
+      const residuo = saldoCents - parcBase * nParc
+      const baseDate = new Date(parcIniISO + 'T12:00')
+
+      if (entradaValor > 0) {
+        const dEnt = { ...dadosBase, data: entradaDataFmt, dataVenc: null, valor: entradaValor, status: 'Pago', desc: `${desc} — Entrada` }
+        const novEnt = await db.saidas.create(lojaAtual.id, dEnt)
+        despData.unshift(novEnt)
+      }
+      for (let i = 0; i < nParc; i++) {
+        const dv = new Date(baseDate)
+        dv.setDate(dv.getDate() + i * parcDias)
+        const dvFmt = dv.toLocaleDateString('pt-BR')
+        const valorParc = (i === nParc - 1) ? (parcBase + residuo) / 100 : parcBase / 100
+        const dadosParc = { ...dadosBase, data: dataFmt, dataVenc: dvFmt, valor: valorParc, status: 'A pagar', desc: `${desc} (${i+1}/${nParc})` }
+        const novo = await db.saidas.create(lojaAtual.id, dadosParc)
+        despData.unshift(novo)
+      }
+      const totalLanc = nParc + (entradaValor > 0 ? 1 : 0)
+      logAtividade('desp_novo', `Parcelado ${nParc}x: ${desc} · ${fmt(valor)}`)
+      toast(`${totalLanc} lançamentos criados (${nParc} parcela(s)${entradaValor > 0 ? ' + entrada' : ''}).`, 4000)
     }
 
-    /* Salvar categoria customizada se for nova */
     if (cat && !DESP_CAT_PADRAO.includes(cat) && !despCatCustom.includes(cat)) {
       despCatCustom.push(cat)
       try { await db.categorias.add(lojaAtual.id, 'desp', cat) } catch (_) {}
@@ -6796,10 +6911,11 @@ async function salvarDespesa() {
         }
       }, 200)
     }
-    renderFinMetrics(); renderMov()
+    renderFinMetrics(); renderMov(); renderBancoExtrato(); renderDash()
   } catch (e) {
     console.error('Erro salvarDespesa:', e)
-    toast('Erro ao salvar despesa: ' + (e.message || ''), 5000)
+    const msg = e?.message || e?.details || e?.hint || e?.error_description || JSON.stringify(e) || 'Erro desconhecido'
+    toast('Erro ao salvar saída: ' + msg, 8000)
   }
 }
 
@@ -6842,7 +6958,7 @@ function editarDespesa(despId) {
   document.getElementById('desp_status').value = d.status || 'Pago'
   document.getElementById('desp_venc').value = d.dataVenc ? (d.dataVenc.split('/').reverse().join('-')) : ''
   if (document.getElementById('desp_conta')) document.getElementById('desp_conta').value = d.contaId || ''
-  abrirModal('mFinDesp')
+  populateContasSelects(); abrirModal('mFinDesp')
 }
 
 /* ── HISTÓRICO FINANCEIRO DO CLIENTE ───────────────
