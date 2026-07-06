@@ -5248,8 +5248,11 @@ function atualizarTotalOrc() {
   const tP = orcTempPecs.reduce((a, b) => a + b.tot, 0)
   const dS = parseFloat(document.getElementById('orc_descSrv').value) || 0
   const dP = parseFloat(document.getElementById('orc_descPec').value) || 0
-  const descValSrv = Math.round(tS * dS) / 100
-  const descValPec = Math.round(tP * dP) / 100
+  /* Usar o valor em R$ digitado diretamente quando disponível — evita erro de floating point ao recalcular do % */
+  const dSrvValEl = document.getElementById('orc_descSrvVal')
+  const dPecValEl = document.getElementById('orc_descPecVal')
+  const descValSrv = dSrvValEl?.value ? (parseFloat(dSrvValEl.value) || 0) : Math.round(tS * dS * 100) / 10000
+  const descValPec = dPecValEl?.value ? (parseFloat(dPecValEl.value) || 0) : Math.round(tP * dP * 100) / 10000
   const total = Math.round(((tS - descValSrv) + (tP - descValPec)) * 100) / 100
   document.getElementById('orc-t-srv').textContent = fmt(tS)
   document.getElementById('orc-t-dsrv').textContent = '− ' + fmt(descValSrv) + (dS > 0 ? ' (' + dS + '%)' : '')
@@ -5701,15 +5704,19 @@ async function confirmarFechamento() {
   const entradaDataISO = isParc ? (document.getElementById('orc_parc_entrada_data')?.value || hoje) : null
   const entradaDataFmt = entradaDataISO ? new Date(entradaDataISO + 'T12:00').toLocaleDateString('pt-BR') : null
 
-  /* Usar totais já calculados e salvos no orçamento — evita recalcular floating point */
+  /* Usar totais do orçamento em memória — priorizar o valor exibido no display (já usa R$ direto) */
   const orcA = orcData.find(o => o.id == orc.id)
   const tS = orcA.tSrv || 0, tP = orcA.tPec || 0
-  const dS = orcA.descSrv || 0, dP = orcA.descPec || 0
-  const descValSrv = Math.round(tS * dS * 100) / 10000
-  const descValPec = Math.round(tP * dP * 100) / 10000
+  /* Ler o desconto em R$ dos campos do modal (mais preciso que recalcular do %) */
+  const dSrvValEl = document.getElementById('orc_descSrvVal')
+  const dPecValEl = document.getElementById('orc_descPecVal')
+  const descValSrv = dSrvValEl?.value ? (parseFloat(dSrvValEl.value) || 0) : (orcA.descSrv ? Math.round(tS * orcA.descSrv * 100) / 10000 : 0)
+  const descValPec = dPecValEl?.value ? (parseFloat(dPecValEl.value) || 0) : (orcA.descPec ? Math.round(tP * orcA.descPec * 100) / 10000 : 0)
   const subSrv = Math.round((tS - descValSrv) * 100) / 100
   const subPec = Math.round((tP - descValPec) * 100) / 100
-  const total = orcA.total != null ? orcA.total : Math.round((subSrv + subPec) * 100) / 100
+  /* Ler total direto do display que já foi calculado corretamente */
+  const totEl = document.getElementById('orc-t-tot')
+  const total = totEl ? (parseFloat(totEl.textContent.replace(/[^\d,]/g,'').replace(',','.')) || Math.round((subSrv + subPec) * 100) / 100) : Math.round((subSrv + subPec) * 100) / 100
   const cat = tS > 0 && tP > 0 ? 'Serviços + Peças (OS)' : (tP > 0 ? 'Peças (OS)' : 'Serviços (OS)')
 
   const dadosBase = {
