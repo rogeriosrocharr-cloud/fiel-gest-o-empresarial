@@ -5585,8 +5585,15 @@ function setOsPeriodo(p) {
 function renderOrc() {
   const b = (document.getElementById('orc-busca').value || '').toLowerCase()
   const sf = document.getElementById('orc-sf').value
-  const de = document.getElementById('orc-de').value
-  const ate = document.getElementById('orc-ate').value
+  // Calcular datas a partir do período ativo (não depende dos inputs para períodos pré-definidos)
+  let de = '', ate = ''
+  if (_orcPeriodo === 'custom') {
+    de = document.getElementById('orc-de')?.value || ''
+    ate = document.getElementById('orc-ate')?.value || ''
+  } else if (_orcPeriodo !== 'tudo') {
+    const dts = _calcPeriodoDates(_orcPeriodo)
+    if (dts) { de = dts.de; ate = dts.ate }
+  }
   const rows = orcData.filter(r =>
     (!b || (r.cliNome + r.vei + r.pla).toLowerCase().includes(b)) &&
     (!sf || r.status === sf) &&
@@ -5929,8 +5936,14 @@ function renderOS() {
   const b = (document.getElementById('os-busca').value || '').toLowerCase()
   const sf = document.getElementById('os-sf').value
   const mf = document.getElementById('os-mf').value
-  const de = document.getElementById('os-de').value
-  const ate = document.getElementById('os-ate').value
+  let de = '', ate = ''
+  if (_osPeriodo === 'custom') {
+    de = document.getElementById('os-de')?.value || ''
+    ate = document.getElementById('os-ate')?.value || ''
+  } else if (_osPeriodo !== 'tudo') {
+    const dts = _calcPeriodoDates(_osPeriodo)
+    if (dts) { de = dts.de; ate = dts.ate }
+  }
   const rows = osData.filter(r =>
     (!b || (r.id + r.cliNome + r.vei + r.pla).toLowerCase().includes(b)) &&
     (!sf || r.status === sf) &&
