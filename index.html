@@ -4278,8 +4278,6 @@ function podeFazerPasso(n) {
     return true
   }
   if (n === 3) {
-    const aprovados = orcData.filter(o => o.status === 'Aprovado' || o.status === 'OS gerada')
-    if (aprovados.length === 0) { toast('⚠️ Aprove pelo menos um orçamento antes de acessar as OS.', 4000); return false }
     return true
   }
   if (n === 4) {
@@ -4322,8 +4320,8 @@ function goTab(id, el, fromUser = true) {
   if (id === 'dashboard') renderDash()
   if (id === 'fluxo') { renderKanban() }
   if (id === 'clientes') renderClientes()
-  if (id === 'orcamentos') { populateClis(); populateMecs(); renderOrc() }
-  if (id === 'os') { populateOSSelects(); renderOS() }
+  if (id === 'orcamentos') { populateClis(); populateMecs(); const _od = document.getElementById('orc-de'); const _oa = document.getElementById('orc-ate'); if (_od && !_od.value) _od.value = ''; if (_oa && !_oa.value) _oa.value = ''; renderOrc() }
+  if (id === 'os') { populateOSSelects(); const _osd = document.getElementById('os-de'); const _osa = document.getElementById('os-ate'); if (_osd) _osd.value = ''; if (_osa) _osa.value = ''; renderOS() }
   if (id === 'financeiro') { aplicarFiltroFinanceiroHoje(); populateOSSelects(); renderFinMetrics(); renderMov(); renderBancoExtrato() }
   if (id === 'mecanicos') renderMec()
   if (id === 'servicos') renderSrvCat()
@@ -4357,8 +4355,8 @@ function irParaPasso(n) {
   updateFlowBar(id)
   updateSbSteps()
   if (id === 'clientes') renderClientes()
-  if (id === 'orcamentos') { populateClis(); populateMecs(); renderOrc() }
-  if (id === 'os') { populateOSSelects(); renderOS() }
+  if (id === 'orcamentos') { populateClis(); populateMecs(); const _od = document.getElementById('orc-de'); const _oa = document.getElementById('orc-ate'); if (_od && !_od.value) _od.value = ''; if (_oa && !_oa.value) _oa.value = ''; renderOrc() }
+  if (id === 'os') { populateOSSelects(); const _osd = document.getElementById('os-de'); const _osa = document.getElementById('os-ate'); if (_osd) _osd.value = ''; if (_osa) _osa.value = ''; renderOS() }
   if (id === 'financeiro') { aplicarFiltroFinanceiroHoje(); populateOSSelects(); renderFinMetrics(); renderMov(); renderBancoExtrato() }
 }
 
