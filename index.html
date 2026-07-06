@@ -4344,8 +4344,8 @@ function goTab(id, el, fromUser = true) {
   if (id === 'dashboard') renderDash()
   if (id === 'fluxo') { renderKanban() }
   if (id === 'clientes') renderClientes()
-  if (id === 'orcamentos') { populateClis(); populateMecs(); setTimeout(() => setOrcPeriodo(_orcPeriodo || 'dia'), 0) }
-  if (id === 'os') { populateOSSelects(); setTimeout(() => setOsPeriodo(_osPeriodo || 'dia'), 0) }
+  if (id === 'orcamentos') { populateClis(); populateMecs(); setOrcPeriodo(_orcPeriodo || 'dia') }
+  if (id === 'os') { populateOSSelects(); setOsPeriodo(_osPeriodo || 'dia') }
   if (id === 'financeiro') { aplicarFiltroFinanceiroHoje(); populateOSSelects(); renderFinMetrics(); renderMov(); renderBancoExtrato() }
   if (id === 'mecanicos') renderMec()
   if (id === 'servicos') renderSrvCat()
@@ -4379,8 +4379,8 @@ function irParaPasso(n) {
   updateFlowBar(id)
   updateSbSteps()
   if (id === 'clientes') renderClientes()
-  if (id === 'orcamentos') { populateClis(); populateMecs(); setTimeout(() => setOrcPeriodo(_orcPeriodo || 'dia'), 0) }
-  if (id === 'os') { populateOSSelects(); setTimeout(() => setOsPeriodo(_osPeriodo || 'dia'), 0) }
+  if (id === 'orcamentos') { populateClis(); populateMecs(); setOrcPeriodo(_orcPeriodo || 'dia') }
+  if (id === 'os') { populateOSSelects(); setOsPeriodo(_osPeriodo || 'dia') }
   if (id === 'financeiro') { aplicarFiltroFinanceiroHoje(); populateOSSelects(); renderFinMetrics(); renderMov(); renderBancoExtrato() }
 }
 
