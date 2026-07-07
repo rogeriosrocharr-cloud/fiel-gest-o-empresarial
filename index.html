@@ -8371,7 +8371,7 @@ function relMec(periodo, ini, fim) {
 
   function dentro(o) {
     if (dIni === null || dFim === null) return true
-    const ref = o.dataConclusao || o.data; if (!ref) return false
+    const ref = o.data || o.dataConclusao; if (!ref) return false
     const [d,m,a] = ref.split('/'); if (!d) return false
     const t = new Date(+a, +m-1, +d).getTime()
     return t >= dIni && t <= dFim
