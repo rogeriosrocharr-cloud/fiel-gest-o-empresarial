@@ -774,7 +774,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 <div class="tabpage active" id="tab-dashboard">
   <div class="grid g4" style="margin-bottom:18px" id="dash-metrics"></div>
   <div class="grid g2" style="margin-bottom:18px">
-    <div class="card"><div class="ct"><i class="ti ti-chart-bar" style="color:var(--pu2)"></i>Faturamento — Projeção 6 meses <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto" id="chart-fat-legenda"></span></div><div class="chart-w" id="chart-fat"></div><div style="display:flex;gap:5px;margin-top:4px" id="chart-fat-lbl"></div></div>
+    <div class="card"><div class="ct"><i class="ti ti-chart-bar" style="color:var(--pu2)"></i>Faturamento — 6 meses <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto" id="chart-fat-legenda"></span></div><div class="chart-w" id="chart-fat"></div><div style="display:flex;gap:5px;margin-top:4px" id="chart-fat-lbl"></div></div>
     <div class="card"><div class="ct"><i class="ti ti-scale" style="color:var(--pu2)"></i>Receita × Despesa <div style="display:flex;gap:4px;align-items:center;margin-left:auto" id="dash-rvd-filtros"></div></div><div id="dash-rvd"></div></div>
   </div>
 
@@ -4534,7 +4534,7 @@ function renderDash() {
     <div class="metric"><div class="mb pu"></div><div class="mi pu"><i class="ti ti-trending-up"></i></div><div class="ml">Receita este mês</div><div class="mv" style="font-size:16px;color:var(--pul)">${fmt(recData.filter(r => { const iso = dataIso(r.data); return iso && iso.substring(0,7) === hoje.substring(0,7) }).reduce((a,b) => a+(b.total||0), 0))}</div><div class="ms">lançamentos recebidos</div></div>
     <div class="metric"><div class="mb re"></div><div class="mi re"><i class="ti ti-trending-down"></i></div><div class="ml">Despesas este mês</div><div class="mv" style="font-size:16px;color:var(--ret)">${fmt(despData.filter(d => { const iso = dataIso(d.data); return iso && iso.substring(0,7) === hoje.substring(0,7) }).reduce((a,b) => a+(b.valor||0), 0))}</div><div class="ms">saídas registradas</div></div>`
 
-  /* Faturamento: 3 meses reais + atual + projeção 3 meses */
+  /* Faturamento: 3 meses anteriores + atual + 3 meses futuros — valores reais lançados */
   const hojeF = new Date()
   const mesAtualIdx = 3
   const meses = []
@@ -4542,31 +4542,28 @@ function renderDash() {
     const d = new Date(hojeF.getFullYear(), hojeF.getMonth() + i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const label = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]
-    const recMes = recData.filter(r => { const iso = dataIso(r.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.total||0), 0)
-    const despMes = despData.filter(d2 => { const iso = dataIso(d2.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.valor||0), 0)
-    meses.push({ key, label, rec: recMes, desp: despMes, futuro: i > 0 })
+    const futuro = i > 0
+    // Receitas: meses passados/atual = data do lançamento; meses futuros = dataVenc das parcelas A receber
+    const recMes = futuro
+      ? recData.filter(r => { const iso = r.dataVenc ? dataIso(r.dataVenc) : dataIso(r.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.total||0), 0)
+      : recData.filter(r => { const iso = dataIso(r.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.total||0), 0)
+    // Despesas: meses passados/atual = data do lançamento; meses futuros = dataVenc das saídas A pagar
+    const despMes = futuro
+      ? despData.filter(d2 => { const iso = d2.dataVenc ? dataIso(d2.dataVenc) : dataIso(d2.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.valor||0), 0)
+      : despData.filter(d2 => { const iso = dataIso(d2.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.valor||0), 0)
+    meses.push({ key, label, rec: recMes, desp: despMes, futuro })
   }
-  // Projeção: média dos meses com valor > 0; fallback para mês atual se histórico vazio
-  const mesesComRec = meses.slice(0,4).filter(m => m.rec > 0)
-  const mesesComDesp = meses.slice(0,4).filter(m => m.desp > 0)
-  const mediaRec3 = mesesComRec.length > 0
-    ? mesesComRec.reduce((a,b) => a+b.rec, 0) / mesesComRec.length
-    : meses[3].rec  // fallback: mês atual
-  const mediaDesp3 = mesesComDesp.length > 0
-    ? mesesComDesp.reduce((a,b) => a+b.desp, 0) / mesesComDesp.length
-    : meses[3].desp  // fallback: mês atual
-  meses.forEach((m, i) => { if (m.futuro) { m.rec = mediaRec3; m.desp = mediaDesp3 } })
   const maxF = Math.max(...meses.map(m => Math.max(m.rec, m.desp)), 1)
   document.getElementById('chart-fat').innerHTML = meses.map((m, i) => {
     const hRec = Math.round(m.rec / maxF * 72)
     const hDesp = Math.round(m.desp / maxF * 72)
     const isCurrent = i === mesAtualIdx
-    const opacity = m.futuro ? '.45' : '1'
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;align-items:flex-end;gap:2px;height:76px"><div style="width:10px;height:${hRec}px;background:var(--grt);border-radius:3px 3px 0 0;opacity:${opacity}${isCurrent ? ';outline:2px solid var(--pul)' : ''}" title="${m.label} Rec: ${fmt(m.rec)}${m.futuro ? ' (proj.)' : ''}"></div><div style="width:10px;height:${hDesp}px;background:var(--ret);border-radius:3px 3px 0 0;opacity:${opacity}" title="${m.label} Desp: ${fmt(m.desp)}${m.futuro ? ' (proj.)' : ''}"></div></div></div>`
+    const opacity = m.futuro ? '.55' : '1'
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;align-items:flex-end;gap:2px;height:76px"><div style="width:10px;height:${Math.max(hRec,1)}px;background:${m.rec>0?'var(--grt)':'var(--bd2)'};border-radius:3px 3px 0 0;opacity:${opacity}${isCurrent?';outline:2px solid var(--pul)':''}" title="${m.label} Rec: ${fmt(m.rec)}"></div><div style="width:10px;height:${Math.max(hDesp,1)}px;background:${m.desp>0?'var(--ret)':'var(--bd2)'};border-radius:3px 3px 0 0;opacity:${opacity}" title="${m.label} Desp: ${fmt(m.desp)}"></div></div></div>`
   }).join('')
-  document.getElementById('chart-fat-lbl').innerHTML = meses.map((m,i) => `<div class="bl2" style="flex:1;font-size:10px;text-align:center;color:${i===mesAtualIdx?'var(--pul)':m.futuro?'var(--t3)':'var(--t2)'}">${m.label}${m.futuro?'*':''}</div>`).join('')
+  document.getElementById('chart-fat-lbl').innerHTML = meses.map((m,i) => `<div class="bl2" style="flex:1;font-size:10px;text-align:center;color:${i===mesAtualIdx?'var(--pul)':m.futuro?'var(--t3)':'var(--t2)'}">${m.label}</div>`).join('')
   const legEl = document.getElementById('chart-fat-legenda')
-  if (legEl) legEl.innerHTML = '<span style="color:var(--grt)">■</span> Rec &nbsp;<span style="color:var(--ret)">■</span> Desp &nbsp;<span style="color:var(--t3)">*proj.</span>'
+  if (legEl) legEl.innerHTML = '<span style="color:var(--grt)">■</span> Receita &nbsp;<span style="color:var(--ret)">■</span> Despesa'
 
   renderDashVencimentos(vencRec, vencDesp, hojeD)
   renderDashAtividades()
