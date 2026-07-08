@@ -4958,8 +4958,15 @@ function renderKanban() {
      Concluídas: apenas as de hoje (não mostrar as de outros dias) */
   const hojeIso = hoje  // formato YYYY-MM-DD
 
-  // Orçamentos: pendentes + aprovados aguardando OS
-  const c1 = orcData.filter(o => ['Aguardando aprovação', 'Aprovado', 'OS gerada'].includes(o.status))
+  // Orçamentos: apenas pendentes reais
+  // - "Aguardando aprovação": qualquer data (cliente ainda não respondeu = pendência)
+  // - "Aprovado": ainda não gerou OS = pendência ativa
+  // - "OS gerada": já resolvido — NÃO aparece
+  const c1 = orcData.filter(o => {
+    if (o.status === 'OS gerada' || o.status === 'Recusado') return false
+    if (o.status === 'Aguardando aprovação' || o.status === 'Aprovado') return true
+    return false
+  })
 
   // OS em execução: do dia OU de dias anteriores não concluídas (pendências)
   const c2 = osData.filter(o => {
