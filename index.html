@@ -3099,120 +3099,284 @@ async function sairConsultor() {
   mostrarTelaAuth()
 }
 
+/* ── PAINEL FINANCEIRO DO CONSULTOR ─────────────────────────
+   Métricas baseadas no Modelo de Fleuriet e boas práticas de
+   gestão de caixa para pequenas empresas (Sebrae / CFC 2023):
+   • Caixa Mínimo Operacional = 2× despesas médias mensais
+   • Capital de Giro Líquido  = A receber - A pagar
+   • NCG (Necessidade de Cap. Giro) = CMO - CGL
+   • Liquidez Corrente = A receber / A pagar  (saudável ≥ 1.2)
+   • Margem Líquida = Lucro / Receita Bruta × 100
+   • Ciclo Financeiro = PMR - PMP (dias a financiar)
+──────────────────────────────────────────────────────────── */
+
+function _calcMetricasLoja(entradas, saidas) {
+  const agora = new Date(); agora.setHours(0,0,0,0)
+  const mesAtual = hoje.substring(0,7)
+
+  // Helpers
+  const toD = s => { if (!s||!s.includes('/')) return null; const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d) }
+  const isoM = s => { const d=toD(s); return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : null }
+
+  // --- RECEITAS ---
+  const recRecebidas   = entradas.filter(r => r.status === 'Recebido' || !r.status)
+  const recAReceber    = entradas.filter(r => r.status === 'A receber')
+  const fatMesAtual    = recRecebidas.filter(r => isoM(r.data) === mesAtual).reduce((a,b)=>a+(Number(b.total)||0),0)
+  const fatMesAnterior = (() => { const d=new Date(agora.getFullYear(),agora.getMonth()-1,1); const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; return recRecebidas.filter(r=>isoM(r.data)===k).reduce((a,b)=>a+(Number(b.total)||0),0) })()
+  const fatTotal       = recRecebidas.reduce((a,b)=>a+(Number(b.total)||0),0)
+
+  // Receita média dos últimos 3 meses com dados
+  const fatPorMes = {}
+  recRecebidas.forEach(r => { const k=isoM(r.data); if(k) fatPorMes[k]=(fatPorMes[k]||0)+(Number(r.total)||0) })
+  const mesesComFat = Object.values(fatPorMes).filter(v=>v>0)
+  const fatMedioMensal = mesesComFat.length > 0 ? mesesComFat.reduce((a,b)=>a+b,0)/mesesComFat.length : 0
+
+  // A receber nos próximos 30 dias
+  const lim30 = new Date(agora); lim30.setDate(lim30.getDate()+30)
+  const aReceber30 = recAReceber.filter(r => { const d=toD(r.dataVenc||r.data); return d&&d<=lim30 }).reduce((a,b)=>a+(Number(b.total)||0),0)
+  const aReceberVencido = recAReceber.filter(r => { const d=toD(r.dataVenc||r.data); return d&&d<agora }).reduce((a,b)=>a+(Number(b.total)||0),0)
+
+  // --- DESPESAS ---
+  const despPagas  = saidas.filter(d => d.status === 'Pago' || !d.status)
+  const despAPagar = saidas.filter(d => d.status === 'A pagar' || d.status === 'Atrasado')
+  const despMesAtual = despPagas.filter(d=>isoM(d.data)===mesAtual).reduce((a,b)=>a+(Number(b.valor)||0),0)
+
+  const despPorMes = {}
+  despPagas.forEach(d => { const k=isoM(d.data); if(k) despPorMes[k]=(despPorMes[k]||0)+(Number(d.valor)||0) })
+  const mesesComDesp = Object.values(despPorMes).filter(v=>v>0)
+  const despMedioMensal = mesesComDesp.length > 0 ? mesesComDesp.reduce((a,b)=>a+b,0)/mesesComDesp.length : 0
+
+  const aPagar30 = despAPagar.filter(d => { const dd=toD(d.dataVenc||d.data); return dd&&dd<=lim30 }).reduce((a,b)=>a+(Number(b.valor)||0),0)
+  const aPagarVencido = despAPagar.filter(d => { const dd=toD(d.dataVenc||d.data); return dd&&dd<agora }).reduce((a,b)=>a+(Number(b.valor)||0),0)
+
+  // --- INDICADORES (modelo Fleuriet + CFC 2023) ---
+  // Saldo real de caixa (recebido - pago)
+  const saldoCaixa = fatTotal - despPagas.reduce((a,b)=>a+(Number(b.valor)||0),0)
+
+  // Caixa Mínimo Operacional = 2× média mensal de despesas (reserva de 2 meses)
+  const caixaMinimo = despMedioMensal * 2
+
+  // Capital de Giro Líquido = A receber - A pagar (curto prazo)
+  const cgl = aReceber30 - aPagar30
+
+  // NCG = Caixa Mínimo - Saldo Atual (quanto falta ou sobra vs o mínimo)
+  const ncg = caixaMinimo - saldoCaixa
+
+  // Liquidez Corrente = A receber 30d / A pagar 30d
+  const liquidez = aPagar30 > 0 ? aReceber30 / aPagar30 : aReceber30 > 0 ? 99 : 0
+
+  // Margem líquida do mês = (fat - desp) / fat
+  const lucroMes = fatMesAtual - despMesAtual
+  const margemLiq = fatMesAtual > 0 ? (lucroMes / fatMesAtual) * 100 : 0
+
+  // Variação mês a mês
+  const varFat = fatMesAnterior > 0 ? ((fatMesAtual - fatMesAnterior) / fatMesAnterior) * 100 : 0
+
+  // Semáforo de saúde geral
+  let saude = 'verde', saudeMsg = 'Saudável'
+  if (saldoCaixa < caixaMinimo * 0.5 || liquidez < 0.8 || aPagarVencido > 0) { saude = 'vermelho'; saudeMsg = 'Atenção crítica' }
+  else if (saldoCaixa < caixaMinimo || liquidez < 1.2 || aReceberVencido > 0) { saude = 'amarelo'; saudeMsg = 'Atenção' }
+
+  return { saldoCaixa, caixaMinimo, cgl, ncg, liquidez, margemLiq, fatMesAtual, fatMesAnterior, varFat, fatMedioMensal, despMedioMensal, aReceber30, aPagar30, aReceberVencido, aPagarVencido, saude, saudeMsg }
+}
+
 async function renderPainelConsultor() {
   const grid = document.getElementById('lojas-grid')
   const stats = document.getElementById('cons-stats')
 
-  /* Estado de loading */
-  if (grid) grid.innerHTML = `
-    <div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.5)">
-      <i class="ti ti-loader" style="font-size:32px;animation:spin 1s linear infinite"></i>
-      <div style="margin-top:12px;font-size:13px">Carregando lojas...</div>
-    </div>`
+  if (grid) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.5)"><i class="ti ti-loader" style="font-size:32px;animation:spin 1s linear infinite"></i><div style="margin-top:12px;font-size:13px">Carregando análise financeira...</div></div>`
 
   let lojas = []
-  try {
-    lojas = await db.lojas.list()
-  } catch (e) {
-    console.error('Erro ao listar lojas:', e)
-    if (grid) grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed rgba(196,48,48,.3);border-radius:12px">
-        <i class="ti ti-cloud-off" style="font-size:48px;color:#ff8c8c;margin-bottom:14px;display:block"></i>
-        <div style="color:#fff;font-weight:700;margin-bottom:6px;font-size:16px">Erro ao carregar lojas</div>
-        <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px">${e.message || 'Sem conexão com o servidor'}</div>
-        <button class="consultor-btn" onclick="renderPainelConsultor()"><i class="ti ti-refresh"></i> Tentar de novo</button>
-      </div>`
+  try { lojas = await db.lojas.list() } catch (e) {
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px"><i class="ti ti-cloud-off" style="font-size:48px;color:#ff8c8c;display:block;margin-bottom:14px"></i><div style="color:#fff;font-weight:700">Erro ao carregar lojas</div><div style="color:rgba(255,255,255,.5);font-size:13px;margin:8px 0 18px">${e.message||''}</div><button class="consultor-btn" onclick="renderPainelConsultor()"><i class="ti ti-refresh"></i> Tentar de novo</button></div>`
     return
   }
 
-  /* Stats globais — queries agregadas por loja */
-  const ativas = lojas.filter(l => l.ativa).length
-  const total = lojas.length
+  const ativas = lojas.filter(l=>l.ativa).length
 
-  let cliCounts = {}, osCounts = {}, fatCounts = {}
-  let totalCli = 0, totalOsAbertas = 0, totalFat = 0
-
-  try {
-    const lojaIds = lojas.map(l => l.id)
-    if (lojaIds.length) {
-      /* Helper: busca tudo em batches de 1000 (contorna limite do Supabase) */
-      async function fetchAll(table, select) {
-        const PAGE = 1000
-        let result = [], pg = 0
-        while (true) {
-          const { data, error } = await sbClient.from(table).select(select)
-            .in('loja_id', lojaIds).range(pg * PAGE, (pg + 1) * PAGE - 1)
-          if (error) { console.warn(`stats ${table}:`, error.message); return result }
-          result = result.concat(data || [])
-          if (!data || data.length < PAGE) break
-          pg++
-        }
-        return result
-      }
-      const [cliRes, osRes, fatRes] = await Promise.all([
-        fetchAll('clientes', 'loja_id'),
-        fetchAll('ordens_servico', 'loja_id, status'),
-        fetchAll('entradas', 'loja_id, total')
-      ])
-      cliRes.forEach(r => { cliCounts[r.loja_id] = (cliCounts[r.loja_id] || 0) + 1; totalCli++ })
-      const osAbertaStatus = ['Aberta', 'Em execução', 'Aguardando peça']
-      osRes.forEach(r => {
-        if (osAbertaStatus.includes(r.status)) {
-          osCounts[r.loja_id] = (osCounts[r.loja_id] || 0) + 1; totalOsAbertas++
-        }
-      })
-      fatRes.forEach(r => {
-        const v = Number(r.total) || 0
-        fatCounts[r.loja_id] = (fatCounts[r.loja_id] || 0) + v; totalFat += v
-      })
+  // Buscar dados financeiros de todas as lojas em paralelo
+  async function fetchAll(table, select, lojaIds) {
+    const PAGE = 1000; let result = [], pg = 0
+    while (true) {
+      const { data, error } = await sbClient.from(table).select(select).in('loja_id', lojaIds).range(pg*PAGE, (pg+1)*PAGE-1)
+      if (error) { console.warn(`stats ${table}:`, error.message); return result }
+      result = result.concat(data||[]); if (!data||data.length<PAGE) break; pg++
     }
-  } catch (e) { console.warn('Erro ao carregar stats consultor:', e) }
+    return result
+  }
 
+  const lojaIds = lojas.map(l=>l.id)
+  let entradasAll=[], saidasAll=[], osAll=[], cliAll=[]
+  if (lojaIds.length) {
+    try {
+      ;[entradasAll, saidasAll, osAll, cliAll] = await Promise.all([
+        fetchAll('entradas', 'loja_id,total,data,data_venc,status', lojaIds),
+        fetchAll('saidas', 'loja_id,valor,data,data_venc,status', lojaIds),
+        fetchAll('ordens_servico', 'loja_id,status,data', lojaIds),
+        fetchAll('clientes', 'loja_id', lojaIds)
+      ])
+    } catch(e) { console.warn('Erro stats:', e) }
+  }
+
+  // Normalizar dados por loja
+  const porLoja = {}
+  lojas.forEach(l => { porLoja[l.id] = { entradas:[], saidas:[], os:[], clis:0 } })
+  entradasAll.forEach(r => { if(porLoja[r.loja_id]) porLoja[r.loja_id].entradas.push({ total:Number(r.total)||0, data:r.data||'', dataVenc:r.data_venc||'', status:r.status||'Recebido' }) })
+  saidasAll.forEach(r => { if(porLoja[r.loja_id]) porLoja[r.loja_id].saidas.push({ valor:Number(r.valor)||0, data:r.data||'', dataVenc:r.data_venc||'', status:r.status||'Pago' }) })
+  osAll.forEach(r => { if(porLoja[r.loja_id]) porLoja[r.loja_id].os.push(r) })
+  cliAll.forEach(r => { if(porLoja[r.loja_id]) porLoja[r.loja_id].clis++ })
+
+  // Calcular métricas globais
+  let totalFatGlobal=0, totalSaldoGlobal=0, totalAReceberGlobal=0, totalAPagarGlobal=0
+  const metricasPorLoja = {}
+  lojas.forEach(l => {
+    const d = porLoja[l.id]
+    const m = _calcMetricasLoja(d.entradas, d.saidas)
+    metricasPorLoja[l.id] = m
+    totalFatGlobal += m.fatMesAtual
+    totalSaldoGlobal += m.saldoCaixa
+    totalAReceberGlobal += m.aReceber30
+    totalAPagarGlobal += m.aPagar30
+  })
+
+  const lojasAlerta = lojas.filter(l => metricasPorLoja[l.id]?.saude !== 'verde').length
+
+  // Stats globais
   if (stats) stats.innerHTML = `
-    <div class="consultor-stat"><div class="consultor-stat-l">Lojas ativas</div><div class="consultor-stat-v">${ativas}<span style="font-size:14px;color:rgba(255,255,255,.4);font-weight:600">/${total}</span></div><div class="consultor-stat-s">no total</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">Clientes</div><div class="consultor-stat-v">${totalCli}</div><div class="consultor-stat-s">todas as lojas</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">OS abertas</div><div class="consultor-stat-v">${totalOsAbertas}</div><div class="consultor-stat-s">em andamento</div></div>
-    <div class="consultor-stat"><div class="consultor-stat-l">Faturamento</div><div class="consultor-stat-v">${fmt(totalFat)}</div><div class="consultor-stat-s">total registrado</div></div>`
+    <div class="consultor-stat"><div class="consultor-stat-l">Lojas ativas</div><div class="consultor-stat-v">${ativas}<span style="font-size:14px;color:rgba(255,255,255,.4);font-weight:600">/${lojas.length}</span></div><div class="consultor-stat-s">no total</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">Faturamento do mês</div><div class="consultor-stat-v" style="font-size:16px">${fmt(totalFatGlobal)}</div><div class="consultor-stat-s">todas as lojas</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">A receber (30d)</div><div class="consultor-stat-v" style="font-size:16px;color:#4ade80">${fmt(totalAReceberGlobal)}</div><div class="consultor-stat-s">consolidado</div></div>
+    <div class="consultor-stat"><div class="consultor-stat-l">A pagar (30d)</div><div class="consultor-stat-v" style="font-size:16px;color:#f87171">${fmt(totalAPagarGlobal)}</div><div class="consultor-stat-s">consolidado</div></div>
+    ${lojasAlerta > 0 ? `<div class="consultor-stat" style="border-color:rgba(234,179,8,.4);background:rgba(234,179,8,.08)"><div class="consultor-stat-l" style="color:#fbbf24">⚠ Lojas em alerta</div><div class="consultor-stat-v" style="color:#fbbf24">${lojasAlerta}</div><div class="consultor-stat-s" style="color:rgba(251,191,36,.6)">requerem atenção</div></div>` : `<div class="consultor-stat" style="border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.06)"><div class="consultor-stat-l" style="color:#4ade80">✓ Todas saudáveis</div><div class="consultor-stat-v" style="color:#4ade80">OK</div><div class="consultor-stat-s" style="color:rgba(74,222,128,.5)">nenhum alerta</div></div>`}`
 
-  /* Cards de lojas */
   if (!lojas.length) {
-    if (grid) grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed rgba(255,255,255,.08);border-radius:12px">
-        <i class="ti ti-building-store" style="font-size:48px;color:rgba(212,169,66,.3);margin-bottom:14px;display:block"></i>
-        <div style="color:#fff;font-weight:700;margin-bottom:6px;font-size:16px">Nenhuma loja cadastrada</div>
-        <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px">Clique em "Nova Loja" para começar</div>
-        <button class="consultor-btn" onclick="abrirModalNovaLoja()"><i class="ti ti-plus"></i> Cadastrar primeira loja</button>
-      </div>`
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed rgba(255,255,255,.08);border-radius:12px"><i class="ti ti-building-store" style="font-size:48px;color:rgba(212,169,66,.3);margin-bottom:14px;display:block"></i><div style="color:#fff;font-weight:700;margin-bottom:6px;font-size:16px">Nenhuma loja cadastrada</div><button class="consultor-btn" onclick="abrirModalNovaLoja()"><i class="ti ti-plus"></i> Cadastrar primeira loja</button></div>`
     return
   }
+
+  const saudeColor = { verde:'#4ade80', amarelo:'#fbbf24', vermelho:'#f87171' }
+  const saudeBg    = { verde:'rgba(74,222,128,.08)', amarelo:'rgba(251,191,36,.08)', vermelho:'rgba(248,113,113,.08)' }
+  const saudeBd    = { verde:'rgba(74,222,128,.25)', amarelo:'rgba(251,191,36,.25)', vermelho:'rgba(248,113,113,.3)' }
+
+  const fmtC = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0})
+  const fmtP = v => (v>=0?'+':'')+v.toFixed(1)+'%'
 
   if (grid) grid.innerHTML = lojas.map(loja => {
+    const m = metricasPorLoja[loja.id]
+    const d = porLoja[loja.id]
+    const osAbertas = d.os.filter(o=>['Aberta','Em execução','Aguardando peça'].includes(o.status)).length
+    const cor = saudeColor[m.saude]; const bg = saudeBg[m.saude]; const bd = saudeBd[m.saude]
     const criado = loja.criado_em ? new Date(loja.criado_em).toLocaleDateString('pt-BR') : '—'
-    return `<div class="loja-card ${loja.ativa ? '' : 'inativa'}">
+
+    // Barra de liquidez (0 a 2+)
+    const liqPct = Math.min(m.liquidez / 2 * 100, 100)
+    const liqCor = m.liquidez >= 1.2 ? '#4ade80' : m.liquidez >= 0.8 ? '#fbbf24' : '#f87171'
+
+    // Barra de caixa vs mínimo
+    const caixaPct = m.caixaMinimo > 0 ? Math.min(m.saldoCaixa / m.caixaMinimo * 100, 100) : 100
+    const caixaCor = caixaPct >= 100 ? '#4ade80' : caixaPct >= 50 ? '#fbbf24' : '#f87171'
+
+    return `<div class="loja-card" style="border-color:${bd};background:linear-gradient(160deg,var(--s2),${bg})">
+
+      <!-- Cabeçalho -->
       <div class="loja-card-top">
-        <div class="loja-card-icon" ${loja.logo ? `style="background:#fff;border-color:rgba(212,169,66,.3);padding:0;overflow:hidden"` : ''}>
-          ${loja.logo
-            ? `<img src="${loja.logo}" style="width:100%;height:100%;object-fit:contain">`
-            : '<i class="ti ti-building-store"></i>'}
+        <div class="loja-card-icon" ${loja.logo?`style="background:#fff;padding:0;overflow:hidden"`:''}>${loja.logo?`<img src="${loja.logo}" style="width:100%;height:100%;object-fit:contain">`:'<i class="ti ti-building-store"></i>'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="loja-card-nome" style="margin:0 0 2px">${loja.nome}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">${loja.cidade||'—'}/${loja.uf||'—'} · ${d.clis} clientes · ${osAbertas} OS abertas</div>
         </div>
-        <div class="loja-card-status ${loja.ativa ? 'ativa' : 'inativa'}">${loja.ativa ? 'Ativa' : 'Suspensa'}</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${cor};box-shadow:0 0 6px ${cor}"></div>
+          <div style="font-size:9px;color:${cor};font-weight:700;white-space:nowrap">${m.saudeMsg}</div>
+        </div>
       </div>
-      <div class="loja-card-nome">${loja.nome}</div>
-      <div class="loja-card-cnpj">${loja.cnpj || '—'}</div>
-      <div class="loja-card-info">
-        <b>${loja.cidade || '—'}/${loja.uf || '—'}</b><br>
-        ${loja.tel || ''}${loja.tel && loja.email ? ' · ' : ''}${loja.email || ''}<br>
-        <span style="color:rgba(255,255,255,.35);font-size:10px">Cadastrada em ${criado}</span>
+
+      <!-- Faturamento do mês -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:10px 0 8px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em">Faturamento do mês</div>
+          <div style="font-size:22px;font-weight:800;color:#fff;margin-top:2px">${fmtC(m.fatMesAtual)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">vs mês anterior</div>
+          <div style="font-size:14px;font-weight:700;color:${m.varFat>=0?'#4ade80':'#f87171'}">${fmtP(m.varFat)}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3)">${fmtC(m.fatMesAnterior)}</div>
+        </div>
       </div>
-      <div class="loja-card-metrics">
-        <div class="loja-card-metric"><div class="loja-card-metric-v">${cliCounts[loja.id] || 0}</div><div class="loja-card-metric-l">Clientes</div></div>
-        <div class="loja-card-metric"><div class="loja-card-metric-v">${osCounts[loja.id] || 0}</div><div class="loja-card-metric-l">OS abertas</div></div>
-        <div class="loja-card-metric"><div class="loja-card-metric-v">${fmt(fatCounts[loja.id] || 0).replace('R$ ','')}</div><div class="loja-card-metric-l">Faturado</div></div>
+
+      <!-- Indicadores financeiros principais -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0 8px;border-bottom:1px solid rgba(255,255,255,.06)">
+
+        <!-- Saldo de caixa vs mínimo -->
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Caixa atual</div>
+          <div style="font-size:15px;font-weight:700;color:${caixaCor}">${fmtC(m.saldoCaixa)}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);margin:4px 0 3px">mín. recomendado: ${fmtC(m.caixaMinimo)}</div>
+          <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${Math.max(caixaPct,2)}%;background:${caixaCor};border-radius:2px;transition:width .4s"></div>
+          </div>
+          <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:3px">${caixaPct>=100?'✓ Acima do mínimo':caixaPct>=50?'⚠ Atenção':'⛔ Abaixo do mínimo'}</div>
+        </div>
+
+        <!-- Liquidez Corrente -->
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Liquidez corrente</div>
+          <div style="font-size:15px;font-weight:700;color:${liqCor}">${m.liquidez===99?'∞':m.liquidez.toFixed(2)}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);margin:4px 0 3px">saudável ≥ 1,20 · ideal ≥ 1,50</div>
+          <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${Math.max(liqPct,2)}%;background:${liqCor};border-radius:2px;transition:width .4s"></div>
+          </div>
+          <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:3px">${m.liquidez>=1.5?'✓ Excelente':m.liquidez>=1.2?'✓ Saudável':m.liquidez>=0.8?'⚠ Atenção':'⛔ Risco de insolvência'}</div>
+        </div>
+
+        <!-- Capital de Giro Líquido -->
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Capital de giro (CGL)</div>
+          <div style="font-size:15px;font-weight:700;color:${m.cgl>=0?'#4ade80':'#f87171'}">${fmtC(m.cgl)}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:4px">A receber − A pagar (30d)</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:3px">${m.cgl>=0?'✓ Capital positivo':'⛔ Capital negativo'}</div>
+        </div>
+
+        <!-- Margem líquida -->
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Margem líquida</div>
+          <div style="font-size:15px;font-weight:700;color:${m.margemLiq>=20?'#4ade80':m.margemLiq>=10?'#fbbf24':'#f87171'}">${m.margemLiq.toFixed(1)}%</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:4px">lucro / faturamento do mês</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:3px">${m.margemLiq>=20?'✓ Boa margem':m.margemLiq>=10?'⚠ Margem apertada':'⛔ Margem crítica'}</div>
+        </div>
       </div>
+
+      <!-- Alertas -->
+      ${(m.aReceberVencido>0||m.aPagarVencido>0||m.ncg>0)?`
+      <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        ${m.aPagarVencido>0?`<div style="font-size:11px;color:#f87171;margin-bottom:3px"><i class="ti ti-alert-triangle"></i> ${fmtC(m.aPagarVencido)} em pagamentos vencidos</div>`:''}
+        ${m.aReceberVencido>0?`<div style="font-size:11px;color:#fbbf24;margin-bottom:3px"><i class="ti ti-clock"></i> ${fmtC(m.aReceberVencido)} em recebimentos vencidos</div>`:''}
+        ${m.ncg>0?`<div style="font-size:11px;color:#93c5fd;margin-bottom:3px"><i class="ti ti-info-circle"></i> NCG: faltam ${fmtC(m.ncg)} para atingir caixa mínimo</div>`:''}
+      </div>`:''}
+
+      <!-- Fluxo 30 dias -->
+      <div style="display:flex;gap:8px;padding:8px 0">
+        <div style="flex:1;text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:2px">A receber (30d)</div>
+          <div style="font-size:13px;font-weight:700;color:#4ade80">${fmtC(m.aReceber30)}</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:2px">A pagar (30d)</div>
+          <div style="font-size:13px;font-weight:700;color:#f87171">${fmtC(m.aPagar30)}</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+        <div style="flex:1;text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:2px">Saldo 30d</div>
+          <div style="font-size:13px;font-weight:700;color:${m.aReceber30-m.aPagar30>=0?'#4ade80':'#f87171'}">${fmtC(m.aReceber30-m.aPagar30)}</div>
+        </div>
+      </div>
+
+      <!-- Ações -->
       <div class="loja-card-acts">
         <button class="primary" onclick="acessarLoja('${loja.id}')"><i class="ti ti-login"></i> Acessar</button>
         <button onclick="editarLoja('${loja.id}')"><i class="ti ti-edit"></i> Editar</button>
-        <button onclick="toggleLoja('${loja.id}')"><i class="ti ti-${loja.ativa ? 'lock' : 'lock-open'}"></i></button>
+        <button onclick="toggleLoja('${loja.id}')"><i class="ti ti-${loja.ativa?'lock':'lock-open'}"></i></button>
       </div>
     </div>`
   }).join('')
@@ -4791,8 +4955,8 @@ function renderKanban() {
      Concluídas: apenas as de hoje (não mostrar as de outros dias) */
   const hojeIso = hoje  // formato YYYY-MM-DD
 
-  // Orçamentos: todos os pendentes (não tem data de conclusão, sempre relevante)
-  const c1 = orcData.filter(o => o.status === 'Aguardando aprovação')
+  // Orçamentos: pendentes + aprovados aguardando OS
+  const c1 = orcData.filter(o => ['Aguardando aprovação', 'Aprovado', 'OS gerada'].includes(o.status))
 
   // OS em execução: do dia OU de dias anteriores não concluídas (pendências)
   const c2 = osData.filter(o => {
@@ -4833,15 +4997,25 @@ function renderKanban() {
 }
 
 function kCard(item, tipo) {
-  if (tipo === 'orc') return `<div class="kcard">
-    <div class="knum">${item.id}</div><div class="kcli">${item.cliNome}</div>
-    <div class="kvei">${item.vei} / ${item.pla}</div>
-    <div style="font-size:11px;color:var(--t2);margin-top:4px">Serv: ${fmt(item.tSrv)} | Peças: ${fmt(item.tPec)}</div>
-    <div class="kval">${fmt(item.total)}</div>
-    <div class="kac">
-      <button class="btn btn-xs btn-gr" onclick="aprovarOrc('${item.id}')"><i class="ti ti-check"></i> Aprovar</button>
-      <button class="btn btn-xs btn-re" onclick="recusarOrc('${item.id}')">Recusar</button>
-    </div></div>`
+  if (tipo === 'orc') {
+    const isAprovado = item.status === 'Aprovado' || item.status === 'OS gerada'
+    return `<div class="kcard" style="${isAprovado ? 'border-left:3px solid var(--grt)' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="knum">${item.id}</div>
+        ${isAprovado ? `<span style="font-size:9px;font-weight:700;color:var(--grt);background:var(--grb);padding:2px 6px;border-radius:4px">${item.status}</span>` : '<span style="font-size:9px;font-weight:700;color:var(--amt);background:var(--amb);padding:2px 6px;border-radius:4px">Aguardando</span>'}
+      </div>
+      <div class="kcli">${item.cliNome}</div>
+      <div class="kvei">${item.vei} / ${item.pla}</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">Serv: ${fmt(item.tSrv)} | Peças: ${fmt(item.tPec)}</div>
+      <div class="kval">${fmt(item.total)}</div>
+      <div class="kac">
+        ${isAprovado
+          ? `<button class="btn btn-xs btn-pu" onclick="gerarOS('${item.id}')"><i class="ti ti-clipboard-list"></i> Gerar OS</button>`
+          : `<button class="btn btn-xs btn-gr" onclick="aprovarOrc('${item.id}')"><i class="ti ti-check"></i> Aprovar</button>
+             <button class="btn btn-xs btn-re" onclick="recusarOrc('${item.id}')">Recusar</button>`}
+      </div>
+    </div>`
+  }
   if (tipo === 'os_ab') return `<div class="kcard">
     <div class="knum">${item.id}${item.orcId ? ' ← ' + item.orcId : ''}</div>
     <div class="kcli">${item.cliNome}</div><div class="kvei">${item.vei}</div>
