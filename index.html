@@ -1383,7 +1383,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
         <div class="fg"><label>Conta que recebeu</label><select id="orc_fech_conta"><option value="">— Selecione —</option></select></div>
         <div class="fg"><label>Status</label><select id="orc_fech_status"><option>Recebido</option><option>A receber</option></select></div>
       </div>
-      <div class="fr g2">
+      <div class="fr g2" id="orc-fech-datas-row">
         <div class="fg"><label>Data do recebimento</label><input id="orc_fech_data" type="date"></div>
         <div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="orc_fech_venc" type="date"></div>
       </div>
@@ -1466,7 +1466,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
 
   <!-- Comum aos dois modos -->
   <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="onRecFormaChange()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
-  <div class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
+  <div id="rec-venc-row" class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
 
   <!-- Bloco parcelamento -->
   <div id="rec-parcela-wrap" style="display:none;margin-bottom:14px;padding:12px;background:var(--amb);border:1px solid rgba(212,138,12,.3);border-radius:var(--r)">
@@ -6607,8 +6607,10 @@ function onRecFormaChange() {
   const forma = document.getElementById('rec_forma').value
   const wrap = document.getElementById('rec-parcela-wrap')
   const statusEl = document.getElementById('rec_status')
+  const recVencRow = document.getElementById('rec-venc-row')
   if (FORMAS_PARCELAMENTO.includes(forma)) {
     wrap.style.display = 'block'
+    if (recVencRow) recVencRow.style.display = 'none'
     statusEl.value = 'A receber'
     const iniEl = document.getElementById('rec_parc_ini')
     if (!iniEl.value) iniEl.value = hoje
@@ -6617,6 +6619,7 @@ function onRecFormaChange() {
     onRecParcChange()
   } else {
     wrap.style.display = 'none'
+    if (recVencRow) recVencRow.style.display = ''
     statusEl.value = 'Recebido'
   }
 }
@@ -6634,8 +6637,10 @@ function onOrcFechFormaChange() {
   const forma = document.getElementById('orc_fech_forma').value
   const wrap = document.getElementById('orc-parcela-wrap')
   const statusEl = document.getElementById('orc_fech_status')
+  const datasRow = document.getElementById('orc-fech-datas-row')
   if (FORMAS_PARCELAMENTO.includes(forma)) {
     wrap.style.display = 'block'
+    if (datasRow) datasRow.style.display = 'none'
     statusEl.value = 'A receber'
     const iniEl = document.getElementById('orc_parc_ini')
     if (!iniEl.value) iniEl.value = hoje
@@ -6644,6 +6649,7 @@ function onOrcFechFormaChange() {
     onOrcParcChange()
   } else {
     wrap.style.display = 'none'
+    if (datasRow) datasRow.style.display = ''
     statusEl.value = 'Recebido'
   }
 }
