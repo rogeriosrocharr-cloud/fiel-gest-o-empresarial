@@ -1713,7 +1713,9 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
    Fluxo TRAVADO: 1 Clientes → 2 Orçamentos → 3 OS → 4 Financeiro
    =================================================== */
 
-const hoje = new Date().toISOString().split('T')[0]
+/* hoje: sempre data local do dispositivo em YYYY-MM-DD (recalcula a cada acesso via getter) */
+function _hojeISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
+const hoje = _hojeISO()  /* snapshot inicial — usado em contextos estáticos */
 const fmtD = () => new Date().toLocaleDateString('pt-BR')
 const fmt = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -4396,10 +4398,11 @@ function setMovPeriodo(p) {
   const customWrap = document.getElementById('mov-custom-datas')
   if (customWrap) customWrap.style.display = p === 'custom' ? 'flex' : 'none'
   // Calcular datas
-  const d = new Date(hoje + 'T00:00')
+  const hj = _hojeISO()
+  const d = new Date(hj + 'T00:00')
   let de, ate
   if (p === 'dia') {
-    de = hoje; ate = hoje
+    de = hj; ate = hj
   } else if (p === 'semana') {
     const dow = d.getDay()
     const seg = new Date(d); seg.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1))
@@ -5741,13 +5744,28 @@ function resetModalOrc() {
   orcEditId = null
   _orcFechOsId = null
   orcTempSrvs = []; orcTempPecs = []
-  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs','orc_srv_desc','orc_srv_qtd','orc_srv_val','orc_pec_desc','orc_pec_qtd','orc_pec_val'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
-  const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
-  document.getElementById('orc_descSrv').value = 0
-  document.getElementById('orc_descPec').value = 0
-  const dSrvR = document.getElementById('orc_descSrvVal'); if (dSrvR) dSrvR.value = 0
-  const dPecR = document.getElementById('orc_descPecVal'); if (dPecR) dPecR.value = 0
+  /* Limpar todos os campos de texto/número */
+  ;['orc_cli','orc_cli_busca','orc_vei','orc_obs',
+    'orc_srv_desc','orc_srv_qtd','orc_srv_val',
+    'orc_pec_desc','orc_pec_qtd','orc_pec_val'
+  ].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  /* Descontos */
+  ;['orc_descSrv','orc_descPec','orc_descSrvVal','orc_descPecVal'].forEach(id => { const e = document.getElementById(id); if (e) e.value = 0 })
+  /* Checkbox mostrar desconto */
   const mostrar = document.getElementById('orc_mostrarDesc'); if (mostrar) mostrar.checked = true
+  /* Dropdown cliente */
+  const drop = document.getElementById('orc_cli_drop'); if (drop) drop.style.display = 'none'
+  /* Fechamento financeiro */
+  const oFechForma = document.getElementById('orc_fech_forma'); if (oFechForma) oFechForma.value = 'PIX'
+  const oFechStatus = document.getElementById('orc_fech_status'); if (oFechStatus) oFechStatus.value = 'Recebido'
+  ;['orc_fech_data','orc_fech_venc'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  /* Parcelamento — esconder bloco e limpar campos */
+  const orcParcWrap = document.getElementById('orc-parcela-wrap'); if (orcParcWrap) orcParcWrap.style.display = 'none'
+  const orcDatasRow = document.getElementById('orc-fech-datas-row'); if (orcDatasRow) orcDatasRow.style.display = ''
+  ;['orc_parc_entrada','orc_parc_entrada_data','orc_parc_ini'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+  const orcParcN = document.getElementById('orc_parc_n'); if (orcParcN) orcParcN.value = 1
+  const orcParcDias = document.getElementById('orc_parc_dias'); if (orcParcDias) orcParcDias.value = 30
+  const orcParcPrev = document.getElementById('orc-parcela-preview'); if (orcParcPrev) orcParcPrev.innerHTML = ''
   populateClis(); populateMecs()
   renderTempOrc(); atualizarTotalOrc()
   orcShowStep(1)
@@ -5780,7 +5798,8 @@ function _setPeriodoBtns(prefix, p) {
 }
 
 function _calcPeriodoDates(p) {
-  const d = new Date(hoje + 'T00:00')
+  const hj = _hojeISO()
+  const d = new Date(hj + 'T00:00')
   if (p === 'dia')    return { de: hoje, ate: hoje }
   if (p === 'semana') {
     const dow = d.getDay()
