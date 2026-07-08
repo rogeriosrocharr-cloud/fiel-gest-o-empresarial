@@ -1465,7 +1465,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   </div>
 
   <!-- Comum aos dois modos -->
-  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="onRecFormaChange()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status"><option>Recebido</option><option>A receber</option></select></div></div>
+  <div class="fr g3"><div class="fg"><label>Forma de pagamento</label><select id="rec_forma" onchange="onRecFormaChange()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div><div class="fg"><label>Conta que recebeu</label><select id="rec_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Status</label><select id="rec_status" onchange="if(this.value==='Recebido'){const d=document.getElementById('rec_av_data');if(d&&!d.value)d.value=hoje}"><option>Recebido</option><option>A receber</option></select></div></div>
   <div id="rec-venc-row" class="fg" style="margin-bottom:14px"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a receber)</span></label><input id="rec_venc" type="date" style="max-width:200px"></div>
 
   <!-- Bloco parcelamento -->
@@ -1492,7 +1492,7 @@ label:has(input[type="checkbox"][data-acessorio]:checked){background:var(--grb)!
   <div class="fr g2"><div class="fg"><label>Descrição *</label><input id="desp_desc" type="text" placeholder="Ex: Aluguel do galpão"></div><div class="fg"><label>Data *</label><input id="desp_data" type="date"></div></div>
   <div class="fr g2"><div class="fg"><label>Fornecedor <span style="color:var(--t3);font-weight:400">(opcional)</span></label><input id="desp_fornecedor" type="text" placeholder="Ex: Auto Peças Silva" list="fornecedores-list" autocomplete="off"><datalist id="fornecedores-list"></datalist></div><div class="fg"><label>Categoria *</label><select id="desp_cat"></select></div></div>
   <div class="fr g2"><div class="fg"><label>Valor (R$) *</label><input id="desp_valor" type="number" placeholder="0,00" step="0.01" oninput="onDespParcChange()"></div><div class="fg"><label>Forma de pagamento</label><select id="desp_forma" onchange="onDespFormaChange()"><option>PIX</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Boleto</option><option>Transferência</option><option>Crédito da casa</option></select></div></div>
-  <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
+  <div class="fr g3"><div class="fg"><label>Status</label><select id="desp_status" onchange="if(this.value==='Pago'){const d=document.getElementById('desp_data');if(d&&!d.value)d.value=hoje}"><option>Pago</option><option>A pagar</option><option>Atrasado</option></select></div><div class="fg"><label>Conta debitada</label><select id="desp_conta"><option value="">— Selecione a conta —</option></select></div><div class="fg"><label>Vencimento <span style="color:var(--t3);font-weight:400">(se a pagar)</span></label><input id="desp_venc" type="date"></div></div>
 
   <!-- Bloco parcelamento saída -->
   <div id="desp-parcela-wrap" style="display:none;margin-bottom:14px;padding:12px;background:var(--reb);border:1px solid rgba(196,48,48,.3);border-radius:var(--r)">
@@ -6162,10 +6162,16 @@ function renderMov() {
 
   let itens = []
   if (tipo !== 'saida') {
-    itens = itens.concat(recData.filter(r => dateInRange(r.data, de, ate) && passaStatus(r) && passaConta(r)).map(r => ({ ...r, _tipo: 'entrada' })))
+    itens = itens.concat(recData.filter(r => {
+      const refDate = (r.status === 'A receber' && r.dataVenc) ? r.dataVenc : r.data
+      return dateInRange(refDate, de, ate) && passaStatus(r) && passaConta(r)
+    }).map(r => ({ ...r, _tipo: 'entrada' })))
   }
   if (tipo !== 'entrada') {
-    itens = itens.concat(despData.filter(d => dateInRange(d.data, de, ate) && passaStatus(d) && passaConta(d)).map(d => ({ ...d, _tipo: 'saida' })))
+    itens = itens.concat(despData.filter(d => {
+      const refDate = ((d.status === 'A pagar' || d.status === 'Atrasado') && d.dataVenc) ? d.dataVenc : d.data
+      return dateInRange(refDate, de, ate) && passaStatus(d) && passaConta(d)
+    }).map(d => ({ ...d, _tipo: 'saida' })))
   }
   itens.sort((a, b) => {
     const ad = (a.data || '').split('/').reverse().join('-')
@@ -6215,7 +6221,7 @@ function renderMov() {
       : `<button class="btn btn-xs" onclick="editarDespesa(${it.id})" title="Editar saída"><i class="ti ti-edit"></i></button><button class="btn btn-xs btn-re" onclick="cancelarDespesa(${it.id})" title="Cancelar saída"><i class="ti ti-x"></i></button>`
     return `<tr class="mov-row-${it._tipo}">
       <td style="padding:0"></td>
-      <td style="color:var(--t2);white-space:nowrap">${it.data}</td>
+      <td style="color:var(--t2);white-space:nowrap">${(it.status === 'A receber' || it.status === 'A pagar') && it.dataVenc ? it.dataVenc : it.data}</td>
       <td>${descComVenc}</td>
       <td>${cat}</td>
       <td>${contaCell}</td>
