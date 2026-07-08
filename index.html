@@ -4546,8 +4546,15 @@ function renderDash() {
     const despMes = despData.filter(d2 => { const iso = dataIso(d2.data); return iso && iso.substring(0,7) === key }).reduce((a,b) => a+(b.valor||0), 0)
     meses.push({ key, label, rec: recMes, desp: despMes, futuro: i > 0 })
   }
-  const mediaRec3 = meses.slice(0,3).reduce((a,b) => a+b.rec, 0) / 3
-  const mediaDesp3 = meses.slice(0,3).reduce((a,b) => a+b.desp, 0) / 3
+  // Projeção: média dos meses com valor > 0; fallback para mês atual se histórico vazio
+  const mesesComRec = meses.slice(0,4).filter(m => m.rec > 0)
+  const mesesComDesp = meses.slice(0,4).filter(m => m.desp > 0)
+  const mediaRec3 = mesesComRec.length > 0
+    ? mesesComRec.reduce((a,b) => a+b.rec, 0) / mesesComRec.length
+    : meses[3].rec  // fallback: mês atual
+  const mediaDesp3 = mesesComDesp.length > 0
+    ? mesesComDesp.reduce((a,b) => a+b.desp, 0) / mesesComDesp.length
+    : meses[3].desp  // fallback: mês atual
   meses.forEach((m, i) => { if (m.futuro) { m.rec = mediaRec3; m.desp = mediaDesp3 } })
   const maxF = Math.max(...meses.map(m => Math.max(m.rec, m.desp)), 1)
   document.getElementById('chart-fat').innerHTML = meses.map((m, i) => {
